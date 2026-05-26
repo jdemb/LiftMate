@@ -1,0 +1,58 @@
+name: Deploy API to Azure App Service
+
+on:
+  push:
+    branches:
+      - deploy-2026-05-26
+    paths:
+      - apps/api/**
+      - .github/workflows/deploy-api-azure.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AZURE_CLIENT_ID: 5728510f-6be6-4da5-8ec0-2980b694b544
+  AZURE_TENANT_ID: 931e2306-2a26-4cc0-8349-f2d5fa35de74
+  AZURE_SUBSCRIPTION_ID: 49f32f5f-6a02-4fcb-9be8-90d7f9d68233
+  AZURE_WEBAPP_NAME: liftmate-api-dev-jdemb
+  API_SOLUTION_PATH: apps/api/LiftMate.slnx
+  API_PROJECT_PATH: apps/api/LiftMate.Api/LiftMate.Api.csproj
+  PUBLISH_DIR: apps/api/publish
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore ${{ env.API_SOLUTION_PATH }}
+
+      - name: Build
+        run: dotnet build ${{ env.API_SOLUTION_PATH }} --configuration Release --no-restore
+
+      - name: Publish
+        run: dotnet publish ${{ env.API_PROJECT_PATH }} --configuration Release --no-build --output ${{ env.PUBLISH_DIR }}
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: ${{ env.PUBLISH_DIR }}

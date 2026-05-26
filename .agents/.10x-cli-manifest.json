@@ -2,8 +2,8 @@
   "package": "@przeprogramowani/10x-cli",
   "version": "1.3.2",
   "manifestVersion": 2,
-  "lastApplied": "2026-05-23T15:43:16.307Z",
-  "lessonId": "m1l3",
+  "lastApplied": "2026-05-26T15:38:50.410Z",
+  "lessonId": "m1l5",
   "course": "10xdevs3",
   "tool": "codex",
   "files": {
@@ -56,6 +56,27 @@
       "10x-health-check": {
         "files": [
           "references/health-check-schema.md",
+          "SKILL.md"
+        ]
+      },
+      "10x-agents-md": {
+        "files": [
+          "SKILL.md"
+        ]
+      },
+      "10x-rule-review": {
+        "files": [
+          "SKILL.md"
+        ]
+      },
+      "10x-lesson": {
+        "files": [
+          "SKILL.md"
+        ]
+      },
+      "10x-infra-research": {
+        "files": [
+          "references/agent-friendly-criteria.md",
           "SKILL.md"
         ]
       }

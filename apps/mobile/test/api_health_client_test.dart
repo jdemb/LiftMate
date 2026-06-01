@@ -95,6 +95,21 @@ void main() {
       expect(result.message, contains('connection failed'));
     });
 
+    test('returns error when API base URL is not configured', () async {
+      final client = ApiHealthClient(
+        baseUrl: '',
+        httpClient: MockClient((request) async {
+          fail('HTTP client should not be called without a base URL');
+        }),
+      );
+
+      final result = await client.check();
+
+      expect(result.status, ApiHealthStatus.error);
+      expect(result.checkedUri, isNull);
+      expect(result.message, contains('API_BASE_URL'));
+    });
+
     test('returns error for timeout', () async {
       final client = ApiHealthClient(
         baseUrl: 'https://api.example.test',

@@ -12,7 +12,7 @@ The mobile app is still a scaffold that renders `Hello World`. The API already e
 
 ## Desired End State
 
-The app starts on a diagnostic screen that checks `/health`, shows `checking`, `online`, `offline`, or `error`, and supports retry. It uses `--dart-define=API_BASE_URL` when provided and otherwise falls back to the Azure dev API URL.
+The app starts on a diagnostic screen that checks `/health`, shows `checking`, `online`, `offline`, or `error`, and supports retry. It uses explicit `--dart-define=API_BASE_URL` so environment URLs are not baked into app code.
 
 ## Key Decisions Made
 
@@ -20,7 +20,7 @@ The app starts on a diagnostic screen that checks `/health`, shows `checking`, `
 |---|---|---|
 | Smoke scope | API reachability only through `/health` | F-01 is about wiring, not auth, product data, or template endpoints. |
 | Mobile placement | First screen diagnostic | There is no product screen yet, so the first viewport can carry the integration signal. |
-| API URL config | `--dart-define=API_BASE_URL` with Azure fallback | It supports local and deployed checks without adding secrets or settings UI. |
+| API URL config | Required `--dart-define=API_BASE_URL` | It supports local and deployed checks without adding secrets, settings UI, or environment URLs in app code. |
 | Failure states | `checking`, `online`, `offline`, `error` | The screen should not hang and should distinguish reachable API from failures. |
 | Tests | Client unit tests plus widget tests | Automated checks can cover behavior without live network dependency. |
 | Backend tests | No API test project in this change | The selected scope keeps `/health` stable without expanding backend testing yet. |
@@ -46,7 +46,7 @@ The app starts on a diagnostic screen that checks `/health`, shows `checking`, `
 
 ## Architecture / Approach
 
-The Flutter first screen calls a small `ApiHealthClient`, which resolves the base URL from `API_BASE_URL` or the Azure fallback, requests `/health`, applies a short timeout, validates `{"status":"ok"}`, and returns a typed state for the UI. The backend stays on the existing ASP.NET Core `/health` contract.
+The Flutter first screen calls a small `ApiHealthClient`, which resolves the base URL from `API_BASE_URL`, requests `/health`, applies a short timeout, validates `{"status":"ok"}`, and returns a typed state for the UI. If `API_BASE_URL` is missing, the client reports a configuration error instead of using a hardcoded fallback. The backend stays on the existing ASP.NET Core `/health` contract.
 
 ## Phases at a Glance
 
@@ -67,6 +67,6 @@ The Flutter first screen calls a small `ApiHealthClient`, which resolves the bas
 
 ## Success Criteria (Summary)
 
-- The Flutter app can report online against `https://liftmate-api-dev-jdemb.azurewebsites.net/health`.
+- The Flutter app can report online against `https://liftmate-api-dev-jdemb.azurewebsites.net/health` when `API_BASE_URL` is provided.
 - The same app can report online against a local API when `API_BASE_URL` is provided.
 - Automated mobile tests and `flutter analyze` pass.

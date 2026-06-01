@@ -257,21 +257,21 @@ The change can be rolled back by reverting the Flutter app/client/test files and
 
 #### Automated
 
-- [x] 1.1 `dotnet restore LiftMate.slnx` from `apps/api`
-- [x] 1.2 `dotnet build LiftMate.slnx --no-restore` from `apps/api`
+- [x] 1.1 `dotnet restore LiftMate.slnx` from `apps/api` - 8971a20
+- [x] 1.2 `dotnet build LiftMate.slnx --no-restore` from `apps/api` - 8971a20
 
 #### Manual
 
-- [x] 1.3 Local `/health` returns `200 {"status":"ok"}`
-- [x] 1.4 Azure `/health` returns `200 {"status":"ok"}`
+- [x] 1.3 Local `/health` returns `200 {"status":"ok"}` - 8971a20
+- [x] 1.4 Azure `/health` returns `200 {"status":"ok"}` - 8971a20
 
 ### Phase 2: Add Mobile API Health Client
 
 #### Automated
 
-- [ ] 2.1 `flutter pub get` from `apps/mobile`
-- [ ] 2.2 `flutter test test/api_health_client_test.dart` from `apps/mobile`
-- [ ] 2.3 `flutter analyze` from `apps/mobile`
+- [x] 2.1 `flutter pub get` from `apps/mobile`
+- [x] 2.2 `flutter test test/api_health_client_test.dart` from `apps/mobile`
+- [x] 2.3 `flutter analyze` from `apps/mobile`
 
 ### Phase 3: Replace Placeholder With Smoke Screen
 

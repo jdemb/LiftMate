@@ -18,7 +18,7 @@ class ApiHealthResult {
   });
 
   final ApiHealthStatus status;
-  final Uri checkedUri;
+  final Uri? checkedUri;
   final String message;
   final int? statusCode;
 
@@ -33,16 +33,28 @@ class ApiHealthClient {
   })  : _httpClient = httpClient ?? http.Client(),
         _baseUrl = _resolveBaseUrl(baseUrl);
 
-  static const defaultBaseUrl = 'https://liftmate-api-dev-jdemb.azurewebsites.net';
-
   final http.Client _httpClient;
-  final String _baseUrl;
+  final String? _baseUrl;
   final Duration timeout;
 
-  Uri get healthUri => Uri.parse('${_baseUrl.replaceFirst(RegExp(r'/*$'), '')}/health');
+  Uri? get healthUri {
+    final baseUrl = _baseUrl;
+    if (baseUrl == null) {
+      return null;
+    }
+
+    return Uri.parse('${baseUrl.replaceFirst(RegExp(r'/*$'), '')}/health');
+  }
 
   Future<ApiHealthResult> check() async {
     final uri = healthUri;
+    if (uri == null) {
+      return ApiHealthResult(
+        status: ApiHealthStatus.error,
+        checkedUri: null,
+        message: 'API_BASE_URL is not configured.',
+      );
+    }
 
     try {
       final response = await _httpClient.get(uri).timeout(timeout);
@@ -109,10 +121,10 @@ class ApiHealthClient {
     }
   }
 
-  static String _resolveBaseUrl(String? explicitBaseUrl) {
+  static String? _resolveBaseUrl(String? explicitBaseUrl) {
     final value = explicitBaseUrl ?? const String.fromEnvironment('API_BASE_URL');
     if (value.trim().isEmpty) {
-      return defaultBaseUrl;
+      return null;
     }
 
     return value.trim();

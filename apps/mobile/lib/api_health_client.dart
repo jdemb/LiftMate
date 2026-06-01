@@ -122,7 +122,11 @@ class ApiHealthClient {
   }
 
   static String? _resolveBaseUrl(String? explicitBaseUrl) {
-    final value = explicitBaseUrl ?? const String.fromEnvironment('API_BASE_URL');
+    final value = explicitBaseUrl;
+    if (value == null) {
+      return null;
+    }
+
     if (value.trim().isEmpty) {
       return null;
     }

@@ -31,7 +31,7 @@ This is the foundation slice F-01 from `context/foundation/roadmap.md`: mobile m
 
 ## Desired End State
 
-The mobile app starts on an API smoke screen. It checks the configured API base URL, calls `/health`, shows a clear `checking`, `online`, `offline`, or `error` state, and lets the user retry. API URL selection uses explicit `--dart-define=API_BASE_URL=...`; the deployed Azure URL stays in docs and run commands, not as a hardcoded app fallback.
+The mobile app starts on an API smoke screen. It checks the configured API base URL, calls `/health`, shows a clear `checking`, `online`, `offline`, or `error` state, and lets the user retry. API URL selection uses `config/app_config.json` by default, with `--dart-define=API_BASE_URL=...` available as an explicit override.
 
 The API keeps `/health` as the stable smoke contract for this slice. No auth, database, realtime infrastructure, weather endpoint cleanup, or API test project is added in this change.
 
@@ -41,8 +41,8 @@ The API keeps `/health` as the stable smoke contract for this slice. No auth, da
 |---|---|---|
 | Smoke scope | API reachability only through `GET /health` | F-01 exists to verify wiring, not product data, auth, or template endpoints. |
 | Mobile placement | First screen diagnostic | The app has no product screen yet, so the first viewport can carry the integration signal. |
-| API URL config | Required `--dart-define=API_BASE_URL` | Supports local and deployed testing without secrets, runtime settings UI, or environment-specific URLs baked into app code. |
-| Local API mode | Explicit `--dart-define`, not default | Keeps Azure smoke as the default while still allowing local debug loops. |
+| API URL config | Runtime `config/app_config.json` plus optional `--dart-define=API_BASE_URL` override | Supports Android Studio Run, local override, and deployed testing without environment-specific URLs baked into Dart code. |
+| Local API mode | Edit config or use explicit `--dart-define` override | Keeps Azure smoke as the committed default while still allowing local debug loops. |
 | Failure states | `checking`, `online`, `offline`, `error` with a short timeout | Prevents hanging UI and separates unreachable API from malformed or unexpected responses. |
 | Test surface | Unit tests for client plus widget tests for status screen | Verifies behavior without requiring a live network call in automated tests. |
 | Backend contract | Keep `/health` as-is without adding an API test project | The user chose not to add API tests in F-01; backend remains stable but minimally touched. |
@@ -52,7 +52,7 @@ The API keeps `/health` as the stable smoke contract for this slice. No auth, da
 ### In Scope
 
 - Add a Flutter HTTP dependency suitable for Android, iOS, and web.
-- Add a small API health client that reads `API_BASE_URL` from compile-time environment config and reports a configuration error when it is missing.
+- Add a small app config loader that reads `config/app_config.json`, allows an optional `API_BASE_URL` compile-time override, and passes the resolved URL into the API health client.
 - Model health-check result states so UI and tests do not depend on raw exceptions.
 - Replace the placeholder mobile app with a diagnostic smoke screen.
 - Add unit tests around health client behavior using a fake HTTP client.
@@ -79,7 +79,7 @@ Flutter first screen
   -> ApiSmokeScreen with injected health check
   -> ApiHealthController / state holder
   -> ApiHealthClient
-  -> GET {API_BASE_URL}/health
+  -> AppConfig -> ApiHealthClient -> GET {apiBaseUrl}/health
   -> ASP.NET Core /health -> {"status":"ok"}
 ```
 
@@ -134,11 +134,26 @@ Create a testable Flutter client layer for the API smoke check without coupling 
 
 **Contract**:
 - Expose a client that accepts an injectable HTTP client for tests.
-- Resolve the base URL from `String.fromEnvironment('API_BASE_URL')`.
+- Accept the resolved base URL from app configuration.
 - Return an error result when `API_BASE_URL` is empty instead of baking an environment URL into app code.
 - Request `/health` without duplicating slashes when the base URL has a trailing slash.
 - Treat HTTP `200` with JSON `{"status":"ok"}` as online.
 - Treat timeout, socket/client failures, non-2xx responses, invalid JSON, or unexpected status bodies as non-online results with enough detail for UI diagnostics.
+
+#### `apps/mobile/lib/app_config.dart`
+
+**Intent**: Load the mobile runtime API configuration in a way Android Studio can use without launch arguments.
+
+**Contract**:
+- Read `config/app_config.json` as a Flutter asset.
+- Expose `apiBaseUrl`.
+- Allow `--dart-define=API_BASE_URL=...` to override the asset value when needed.
+
+#### `apps/mobile/config/app_config.json`
+
+**Intent**: Store the committed development API base URL for normal Android Studio runs.
+
+**Contract**: Set `apiBaseUrl` to `https://liftmate-api-dev-jdemb.azurewebsites.net`.
 
 #### `apps/mobile/test/api_health_client_test.dart`
 
@@ -197,12 +212,12 @@ Make API reachability visible as the app's first user-facing screen, with clear 
 
 ### Manual Verification
 
-- Run the Flutter app with `--dart-define=API_BASE_URL=https://liftmate-api-dev-jdemb.azurewebsites.net` and confirm it checks `https://liftmate-api-dev-jdemb.azurewebsites.net/health`.
-- Run the Flutter app with a local `API_BASE_URL` override while the local API is running and confirm the screen reports online:
-  - Flutter web/desktop: `--dart-define=API_BASE_URL=http://localhost:5257`
-  - Android emulator: `--dart-define=API_BASE_URL=http://10.0.2.2:5257`
-  - Physical device: `--dart-define=API_BASE_URL=http://<developer-machine-lan-ip>:5257`
-- Run the Flutter app with an intentionally invalid `API_BASE_URL` and confirm the screen reaches an offline/error state quickly and retry does not freeze the UI.
+- Run the Flutter app from Android Studio with the committed `config/app_config.json` and confirm it checks `https://liftmate-api-dev-jdemb.azurewebsites.net/health`.
+- Run the Flutter app with a local API override while the local API is running and confirm the screen reports online:
+  - Flutter web/desktop config value: `http://localhost:5257`
+  - Android emulator config value: `http://10.0.2.2:5257`
+  - Physical device config value: `http://<developer-machine-lan-ip>:5257`
+- Run the Flutter app with an intentionally invalid API base URL and confirm the screen reaches an offline/error state quickly and retry does not freeze the UI.
 
 ## Testing Strategy
 
@@ -283,5 +298,5 @@ The change can be rolled back by reverting the Flutter app/client/test files and
 #### Manual
 
 - [x] 3.3 Flutter app reports online against configured Azure API URL - aa2b041
-- [x] 3.4 Flutter app reports online with local `API_BASE_URL` override - aa2b041
-- [x] 3.5 Flutter app reports offline/error quickly for an invalid `API_BASE_URL` - aa2b041
+- [x] 3.4 Flutter app reports online with local API config override - aa2b041
+- [x] 3.5 Flutter app reports offline/error quickly for an invalid API base URL - aa2b041

@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 
+import 'app_config.dart';
 import 'api_health_client.dart';
 import 'api_smoke_screen.dart';
 
-void main() {
-  runApp(MainApp(apiHealthClient: ApiHealthClient()));
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final config = await AppConfig.load();
+  runApp(
+    MainApp(
+      apiHealthClient: ApiHealthClient(baseUrl: config.apiBaseUrl),
+    ),
+  );
 }
 
 class MainApp extends StatelessWidget {

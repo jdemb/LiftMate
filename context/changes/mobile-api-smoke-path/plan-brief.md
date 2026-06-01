@@ -12,7 +12,7 @@ The mobile app is still a scaffold that renders `Hello World`. The API already e
 
 ## Desired End State
 
-The app starts on a diagnostic screen that checks `/health`, shows `checking`, `online`, `offline`, or `error`, and supports retry. It uses explicit `--dart-define=API_BASE_URL` so environment URLs are not baked into app code.
+The app starts on a diagnostic screen that checks `/health`, shows `checking`, `online`, `offline`, or `error`, and supports retry. It uses `config/app_config.json` for Android Studio runs, with optional `--dart-define=API_BASE_URL` override when needed.
 
 ## Key Decisions Made
 
@@ -20,7 +20,7 @@ The app starts on a diagnostic screen that checks `/health`, shows `checking`, `
 |---|---|---|
 | Smoke scope | API reachability only through `/health` | F-01 is about wiring, not auth, product data, or template endpoints. |
 | Mobile placement | First screen diagnostic | There is no product screen yet, so the first viewport can carry the integration signal. |
-| API URL config | Required `--dart-define=API_BASE_URL` | It supports local and deployed checks without adding secrets, settings UI, or environment URLs in app code. |
+| API URL config | Runtime `config/app_config.json` plus optional `API_BASE_URL` override | It supports Android Studio Run and local/deployed checks without environment URLs in Dart code. |
 | Failure states | `checking`, `online`, `offline`, `error` | The screen should not hang and should distinguish reachable API from failures. |
 | Tests | Client unit tests plus widget tests | Automated checks can cover behavior without live network dependency. |
 | Backend tests | No API test project in this change | The selected scope keeps `/health` stable without expanding backend testing yet. |
@@ -31,7 +31,7 @@ The app starts on a diagnostic screen that checks `/health`, shows `checking`, `
 
 - Flutter HTTP dependency and lockfile refresh.
 - API health client with injectable HTTP transport.
-- Compile-time API base URL config and Azure dev fallback.
+- Runtime API base URL config asset.
 - First-screen smoke UI with retry.
 - Unit and widget tests for mobile smoke behavior.
 - Manual local and Azure smoke verification steps.
@@ -46,7 +46,7 @@ The app starts on a diagnostic screen that checks `/health`, shows `checking`, `
 
 ## Architecture / Approach
 
-The Flutter first screen calls a small `ApiHealthClient`, which resolves the base URL from `API_BASE_URL`, requests `/health`, applies a short timeout, validates `{"status":"ok"}`, and returns a typed state for the UI. If `API_BASE_URL` is missing, the client reports a configuration error instead of using a hardcoded fallback. The backend stays on the existing ASP.NET Core `/health` contract.
+The Flutter first screen loads `config/app_config.json`, passes `apiBaseUrl` into `ApiHealthClient`, requests `/health`, applies a short timeout, validates `{"status":"ok"}`, and returns a typed state for the UI. A `--dart-define=API_BASE_URL` value can override the asset for one-off runs. The backend stays on the existing ASP.NET Core `/health` contract.
 
 ## Phases at a Glance
 
@@ -62,11 +62,11 @@ The Flutter first screen calls a small `ApiHealthClient`, which resolves the bas
 ## Open Risks & Assumptions
 
 - Azure App Service Free F1 is prototype-only and may occasionally be slow; the client should use a timeout and expose retry.
-- Android emulator local API checks may require a host-specific URL instead of plain `localhost`; the plan keeps local URL explicit through `API_BASE_URL`.
+- Android emulator local API checks may require a host-specific URL instead of plain `localhost`; use `10.0.2.2` in `config/app_config.json` or a one-off `API_BASE_URL` override for those runs.
 - The API deploy workflow only runs from `deploy-2026-05-26`; implementation on `develop` will need a deliberate branch/deploy step before Azure verification if backend behavior changes.
 
 ## Success Criteria (Summary)
 
-- The Flutter app can report online against `https://liftmate-api-dev-jdemb.azurewebsites.net/health` when `API_BASE_URL` is provided.
-- The same app can report online against a local API when `API_BASE_URL` is provided.
+- The Flutter app can report online against `https://liftmate-api-dev-jdemb.azurewebsites.net/health` from committed config.
+- The same app can report online against a local API when config or `API_BASE_URL` is overridden.
 - Automated mobile tests and `flutter analyze` pass.

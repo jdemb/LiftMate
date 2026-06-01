@@ -277,11 +277,11 @@ The change can be rolled back by reverting the Flutter app/client/test files and
 
 #### Automated
 
-- [x] 3.1 `flutter test` from `apps/mobile`
-- [x] 3.2 `flutter analyze` from `apps/mobile`
+- [x] 3.1 `flutter test` from `apps/mobile` - aa2b041
+- [x] 3.2 `flutter analyze` from `apps/mobile` - aa2b041
 
 #### Manual
 
-- [x] 3.3 Flutter app reports online against configured Azure API URL
-- [x] 3.4 Flutter app reports online with local `API_BASE_URL` override
-- [x] 3.5 Flutter app reports offline/error quickly for an invalid `API_BASE_URL`
+- [x] 3.3 Flutter app reports online against configured Azure API URL - aa2b041
+- [x] 3.4 Flutter app reports online with local `API_BASE_URL` override - aa2b041
+- [x] 3.5 Flutter app reports offline/error quickly for an invalid `API_BASE_URL` - aa2b041

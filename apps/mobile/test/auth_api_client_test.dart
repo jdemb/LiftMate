@@ -1,0 +1,230 @@
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:liftmate/auth/auth_api_client.dart';
+import 'package:liftmate/auth/auth_models.dart';
+
+void main() {
+  group('AuthApiClient', () {
+    test('register posts invite code and parses auth session', () async {
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test/',
+        httpClient: MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(request.url.toString(), 'https://api.example.test/auth/register');
+          expect(request.headers['Content-Type'], contains('application/json'));
+
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(body, {
+            'email': 'trainer@example.test',
+            'password': 'Password123!',
+            'role': 'trainer',
+            'invitationCode': 'invite-123',
+          });
+
+          return http.Response(
+            jsonEncode(_authResponse(role: 'trainer')),
+            201,
+            headers: {'Content-Type': 'application/json'},
+          );
+        }),
+      );
+
+      final result = await client.register(
+        email: 'trainer@example.test',
+        password: 'Password123!',
+        role: UserRole.trainer,
+        invitationCode: 'invite-123',
+      );
+
+      expect(result.status, AuthApiStatus.success);
+      expect(result.data?.accessToken, 'access-token');
+      expect(result.data?.refreshToken, 'refresh-token');
+      expect(result.data?.user.role, UserRole.trainer);
+    });
+
+    test('login posts credentials and parses trainee session', () async {
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(request.url.toString(), 'https://api.example.test/auth/login');
+
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(body, {
+            'email': 'trainee@example.test',
+            'password': 'Password123!',
+          });
+
+          return http.Response(jsonEncode(_authResponse(role: 'trainee')), 200);
+        }),
+      );
+
+      final result = await client.login(
+        email: 'trainee@example.test',
+        password: 'Password123!',
+      );
+
+      expect(result.status, AuthApiStatus.success);
+      expect(result.data?.user.role, UserRole.trainee);
+    });
+
+    test('refresh posts refresh token and parses replacement session', () async {
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(request.url.toString(), 'https://api.example.test/auth/refresh');
+          expect(jsonDecode(request.body), {'refreshToken': 'old-refresh'});
+
+          return http.Response(jsonEncode(_authResponse()), 200);
+        }),
+      );
+
+      final result = await client.refresh(refreshToken: 'old-refresh');
+
+      expect(result.status, AuthApiStatus.success);
+      expect(result.data?.refreshToken, 'refresh-token');
+    });
+
+    test('me sends bearer token and parses current user', () async {
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          expect(request.method, 'GET');
+          expect(request.url.toString(), 'https://api.example.test/auth/me');
+          expect(request.headers['Authorization'], 'Bearer access-token');
+
+          return http.Response(
+            jsonEncode({
+              'id': 'user-1',
+              'email': 'trainer@example.test',
+              'role': 'trainer',
+            }),
+            200,
+          );
+        }),
+      );
+
+      final result = await client.me(accessToken: 'access-token');
+
+      expect(result.status, AuthApiStatus.success);
+      expect(result.data?.email, 'trainer@example.test');
+      expect(result.data?.role, UserRole.trainer);
+    });
+
+    test('role probes send bearer token and parse role payloads', () async {
+      final seen = <String>[];
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          expect(request.method, 'GET');
+          expect(request.headers['Authorization'], 'Bearer access-token');
+          seen.add(request.url.path);
+
+          final role = request.url.path.contains('trainer') ? 'trainer' : 'trainee';
+          return http.Response(jsonEncode({'role': role}), 200);
+        }),
+      );
+
+      final trainer = await client.trainerProbe(accessToken: 'access-token');
+      final trainee = await client.traineeProbe(accessToken: 'access-token');
+
+      expect(seen, ['/trainer/probe', '/trainee/probe']);
+      expect(trainer.data?.role, UserRole.trainer);
+      expect(trainee.data?.role, UserRole.trainee);
+    });
+
+    test('logout sends bearer token and refresh token body', () async {
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(request.url.toString(), 'https://api.example.test/auth/logout');
+          expect(request.headers['Authorization'], 'Bearer access-token');
+          expect(jsonDecode(request.body), {'refreshToken': 'refresh-token'});
+
+          return http.Response('', 204);
+        }),
+      );
+
+      final result = await client.logout(
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+      );
+
+      expect(result.status, AuthApiStatus.success);
+    });
+
+    test('classifies non-success HTTP status without exposing request secrets', () async {
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          return http.Response('{"message":"Invalid invitation code."}', 403);
+        }),
+      );
+
+      final result = await client.register(
+        email: 'trainer@example.test',
+        password: 'Password123!',
+        role: UserRole.trainer,
+        invitationCode: 'super-secret-invite',
+      );
+
+      expect(result.status, AuthApiStatus.forbidden);
+      expect(result.statusCode, 403);
+      expect(result.message, contains('Invalid invitation code'));
+      expect(result.message, isNot(contains('super-secret-invite')));
+      expect(result.message, isNot(contains('Password123')));
+    });
+
+    test('returns error for invalid JSON response', () async {
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          return http.Response('not json', 200);
+        }),
+      );
+
+      final result = await client.login(
+        email: 'trainer@example.test',
+        password: 'Password123!',
+      );
+
+      expect(result.status, AuthApiStatus.error);
+      expect(result.message, contains('Invalid auth response JSON'));
+    });
+
+    test('returns error when API base URL is not configured', () async {
+      final client = AuthApiClient(
+        baseUrl: '',
+        httpClient: MockClient((request) async {
+          fail('HTTP client should not be called without a base URL');
+        }),
+      );
+
+      final result = await client.login(
+        email: 'trainer@example.test',
+        password: 'Password123!',
+      );
+
+      expect(result.status, AuthApiStatus.error);
+      expect(result.message, contains('API_BASE_URL'));
+    });
+  });
+}
+
+Map<String, Object?> _authResponse({String role = 'trainer'}) {
+  return {
+    'accessToken': 'access-token',
+    'refreshToken': 'refresh-token',
+    'expiresAt': '2026-06-02T12:00:00Z',
+    'user': {
+      'id': 'user-1',
+      'email': '$role@example.test',
+      'role': role,
+    },
+  };
+}

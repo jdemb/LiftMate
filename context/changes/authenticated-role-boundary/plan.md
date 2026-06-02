@@ -618,27 +618,27 @@ Before Azure migration, rollback is a normal code revert. After Azure migration,
 
 #### Automated
 
-- [x] 3.1 `dotnet build LiftMate.slnx --no-restore` from `apps/api`
-- [x] 3.2 `dotnet test LiftMate.slnx --no-build` from `apps/api`
-- [x] 3.3 `dotnet list LiftMate.slnx package --vulnerable --include-transitive` from `apps/api`
-- [x] 3.4 Integration tests cover register, login, refresh, bearer-authenticated logout, me, and role probes
-- [x] 3.5 Integration tests cover invalid invite code, invalid role, missing token, and cross-role denial
-- [x] 3.6 Integration tests cover logout without bearer token, logout for another user's refresh token, and repeated logout
+- [x] 3.1 `dotnet build LiftMate.slnx --no-restore` from `apps/api` - 6429c5c
+- [x] 3.2 `dotnet test LiftMate.slnx --no-build` from `apps/api` - 6429c5c
+- [x] 3.3 `dotnet list LiftMate.slnx package --vulnerable --include-transitive` from `apps/api` - 6429c5c
+- [x] 3.4 Integration tests cover register, login, refresh, bearer-authenticated logout, me, and role probes - 6429c5c
+- [x] 3.5 Integration tests cover invalid invite code, invalid role, missing token, and cross-role denial - 6429c5c
+- [x] 3.6 Integration tests cover logout without bearer token, logout for another user's refresh token, and repeated logout - 6429c5c
 
 #### Manual
 
-- [x] 3.7 Local trainer register/login/me/probe/logout flow succeeds
-- [x] 3.8 Local trainee register/login/me/probe/logout flow succeeds
-- [x] 3.9 Local cross-role probe denial is confirmed
-- [x] 3.10 API auth tests are present in the test output and are not skipped
+- [x] 3.7 Local trainer register/login/me/probe/logout flow succeeds - 6429c5c
+- [x] 3.8 Local trainee register/login/me/probe/logout flow succeeds - 6429c5c
+- [x] 3.9 Local cross-role probe denial is confirmed - 6429c5c
+- [x] 3.10 API auth tests are present in the test output and are not skipped - 6429c5c
 
 ### Phase 4: Mobile Auth Client and Secure Session Storage
 
 #### Automated
 
-- [ ] 4.1 `flutter pub get` from `apps/mobile`
-- [ ] 4.2 `flutter test test/auth_api_client_test.dart test/token_store_test.dart` from `apps/mobile`
-- [ ] 4.3 `flutter analyze` from `apps/mobile`
+- [x] 4.1 `flutter pub get` from `apps/mobile`
+- [x] 4.2 `flutter test test/auth_api_client_test.dart test/token_store_test.dart` from `apps/mobile`
+- [x] 4.3 `flutter analyze` from `apps/mobile`
 
 ### Phase 5: Mobile Auth UI and Diagnostics
 

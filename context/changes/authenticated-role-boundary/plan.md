@@ -636,16 +636,16 @@ Before Azure migration, rollback is a normal code revert. After Azure migration,
 
 #### Automated
 
-- [x] 4.1 `flutter pub get` from `apps/mobile`
-- [x] 4.2 `flutter test test/auth_api_client_test.dart test/token_store_test.dart` from `apps/mobile`
-- [x] 4.3 `flutter analyze` from `apps/mobile`
+- [x] 4.1 `flutter pub get` from `apps/mobile` - 40c70d7
+- [x] 4.2 `flutter test test/auth_api_client_test.dart test/token_store_test.dart` from `apps/mobile` - 40c70d7
+- [x] 4.3 `flutter analyze` from `apps/mobile` - 40c70d7
 
 ### Phase 5: Mobile Auth UI and Diagnostics
 
 #### Automated
 
-- [ ] 5.1 `flutter test` from `apps/mobile`
-- [ ] 5.2 `flutter analyze` from `apps/mobile`
+- [x] 5.1 `flutter test` from `apps/mobile`
+- [x] 5.2 `flutter analyze` from `apps/mobile`
 
 #### Manual
 

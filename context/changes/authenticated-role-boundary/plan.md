@@ -644,8 +644,8 @@ Before Azure migration, rollback is a normal code revert. After Azure migration,
 
 #### Automated
 
-- [x] 5.1 `flutter test` from `apps/mobile`
-- [x] 5.2 `flutter analyze` from `apps/mobile`
+- [x] 5.1 `flutter test` from `apps/mobile` - b7f1c3d
+- [x] 5.2 `flutter analyze` from `apps/mobile` - b7f1c3d
 
 #### Manual
 
@@ -659,14 +659,14 @@ Before Azure migration, rollback is a normal code revert. After Azure migration,
 
 #### Automated
 
-- [ ] 6.1 `dotnet build LiftMate.slnx --no-restore` from `apps/api`
-- [ ] 6.2 `dotnet test LiftMate.slnx --no-build` from `apps/api`
-- [ ] 6.3 `flutter test` from `apps/mobile`
-- [ ] 6.4 `flutter analyze` from `apps/mobile`
+- [x] 6.1 `dotnet build LiftMate.slnx --no-restore` from `apps/api`
+- [x] 6.2 `dotnet test LiftMate.slnx --no-build` from `apps/api`
+- [x] 6.3 `flutter test` from `apps/mobile`
+- [x] 6.4 `flutter analyze` from `apps/mobile`
 
 #### Manual
 
-- [ ] 6.5 Human confirms Azure SQL and App Service auth configuration are set
-- [ ] 6.6 Deployed API accepts valid invite-code registration and rejects invalid invite code
-- [ ] 6.7 Deployed API login, refresh, `/auth/me`, and role probes behave correctly
-- [ ] 6.8 Flutter app completes register/login/probe against deployed API after deploy
+- [x] 6.5 Human confirms Azure SQL and App Service auth configuration are set
+- [x] 6.6 Deployed API accepts valid invite-code registration and rejects invalid invite code
+- [x] 6.7 Deployed API login, refresh, `/auth/me`, and role probes behave correctly
+- [x] 6.8 Flutter app completes register/login/probe against deployed API after deploy

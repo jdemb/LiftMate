@@ -25,6 +25,9 @@ builder.Services
     })
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
+builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<RegistrationGate>();
+
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -70,6 +73,9 @@ app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
     .WithName("HealthCheck");
+
+app.MapAuthEndpoints();
+app.MapProbeEndpoints();
 
 var summaries = new[]
 {

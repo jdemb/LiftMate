@@ -2,8 +2,8 @@
   "package": "@przeprogramowani/10x-cli",
   "version": "1.3.2",
   "manifestVersion": 2,
-  "lastApplied": "2026-05-23T15:43:16.307Z",
-  "lessonId": "m1l3",
+  "lastApplied": "2026-06-01T18:11:54.979Z",
+  "lessonId": "m2l2",
   "course": "10xdevs3",
   "tool": "codex",
   "files": {
@@ -58,9 +58,67 @@
           "references/health-check-schema.md",
           "SKILL.md"
         ]
+      },
+      "10x-agents-md": {
+        "files": [
+          "SKILL.md"
+        ]
+      },
+      "10x-rule-review": {
+        "files": [
+          "SKILL.md"
+        ]
+      },
+      "10x-lesson": {
+        "files": [
+          "SKILL.md"
+        ]
+      },
+      "10x-infra-research": {
+        "files": [
+          "references/agent-friendly-criteria.md",
+          "SKILL.md"
+        ]
+      },
+      "10x-roadmap": {
+        "files": [
+          "SKILL.md"
+        ]
+      },
+      "10x-new": {
+        "files": [
+          "SKILL.md"
+        ]
+      },
+      "10x-plan": {
+        "files": [
+          "references/progress-format.md",
+          "SKILL.md"
+        ]
+      },
+      "10x-plan-review": {
+        "files": [
+          "SKILL.md"
+        ]
+      },
+      "10x-implement": {
+        "files": [
+          "SKILL.md"
+        ]
+      },
+      "10x-archive": {
+        "files": [
+          "SKILL.md"
+        ]
       }
     },
-    "prompts": [],
+    "prompts": [
+      "skill-explainer.md",
+      "m1l5-1-plan-integration.md",
+      "m1l5-2-constrain-approach.md",
+      "m1l5-3-extend-prerequisites.md",
+      "m1l5-4-store-plan.md"
+    ],
     "configs": []
   }
 }

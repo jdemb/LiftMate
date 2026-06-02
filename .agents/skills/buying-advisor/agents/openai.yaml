@@ -1,0 +1,7 @@
+interface:
+  display_name: "Buying Advisor"
+  short_description: "Clarify needs and pick a product model"
+  default_prompt: "Use $buying-advisor to help me choose a model to buy for: <item>."
+
+policy:
+  allow_implicit_invocation: true

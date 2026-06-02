@@ -606,31 +606,31 @@ Before Azure migration, rollback is a normal code revert. After Azure migration,
 
 #### Automated
 
-- [x] 2.1 `dotnet restore LiftMate.slnx` from `apps/api`
-- [x] 2.2 `dotnet build LiftMate.slnx --no-restore` from `apps/api`
-- [x] 2.3 `dotnet test LiftMate.slnx --no-build` from `apps/api`
+- [x] 2.1 `dotnet restore LiftMate.slnx` from `apps/api` - c5b8339
+- [x] 2.2 `dotnet build LiftMate.slnx --no-restore` from `apps/api` - c5b8339
+- [x] 2.3 `dotnet test LiftMate.slnx --no-build` from `apps/api` - c5b8339
 
 #### Manual
 
-- [x] 2.4 API test project is present in test output and the health test is not skipped
+- [x] 2.4 API test project is present in test output and the health test is not skipped - c5b8339
 
 ### Phase 3: API Auth Endpoints and Role Probes
 
 #### Automated
 
-- [ ] 3.1 `dotnet build LiftMate.slnx --no-restore` from `apps/api`
-- [ ] 3.2 `dotnet test LiftMate.slnx --no-build` from `apps/api`
-- [ ] 3.3 `dotnet list LiftMate.slnx package --vulnerable --include-transitive` from `apps/api`
-- [ ] 3.4 Integration tests cover register, login, refresh, bearer-authenticated logout, me, and role probes
-- [ ] 3.5 Integration tests cover invalid invite code, invalid role, missing token, and cross-role denial
-- [ ] 3.6 Integration tests cover logout without bearer token, logout for another user's refresh token, and repeated logout
+- [x] 3.1 `dotnet build LiftMate.slnx --no-restore` from `apps/api`
+- [x] 3.2 `dotnet test LiftMate.slnx --no-build` from `apps/api`
+- [x] 3.3 `dotnet list LiftMate.slnx package --vulnerable --include-transitive` from `apps/api`
+- [x] 3.4 Integration tests cover register, login, refresh, bearer-authenticated logout, me, and role probes
+- [x] 3.5 Integration tests cover invalid invite code, invalid role, missing token, and cross-role denial
+- [x] 3.6 Integration tests cover logout without bearer token, logout for another user's refresh token, and repeated logout
 
 #### Manual
 
-- [ ] 3.7 Local trainer register/login/me/probe/logout flow succeeds
-- [ ] 3.8 Local trainee register/login/me/probe/logout flow succeeds
-- [ ] 3.9 Local cross-role probe denial is confirmed
-- [ ] 3.10 API auth tests are present in the test output and are not skipped
+- [x] 3.7 Local trainer register/login/me/probe/logout flow succeeds
+- [x] 3.8 Local trainee register/login/me/probe/logout flow succeeds
+- [x] 3.9 Local cross-role probe denial is confirmed
+- [x] 3.10 API auth tests are present in the test output and are not skipped
 
 ### Phase 4: Mobile Auth Client and Secure Session Storage
 

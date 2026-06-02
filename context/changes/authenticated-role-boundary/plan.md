@@ -593,26 +593,26 @@ Before Azure migration, rollback is a normal code revert. After Azure migration,
 
 #### Automated
 
-- [x] 1.1 `dotnet restore LiftMate.slnx` from `apps/api`
-- [x] 1.2 `dotnet build LiftMate.slnx --no-restore` from `apps/api`
-- [x] 1.3 `dotnet ef migrations list` confirms the initial auth migration is discoverable
+- [x] 1.1 `dotnet restore LiftMate.slnx` from `apps/api` - 869aaf2
+- [x] 1.2 `dotnet build LiftMate.slnx --no-restore` from `apps/api` - 869aaf2
+- [x] 1.3 `dotnet ef migrations list` confirms the initial auth migration is discoverable - 869aaf2
 
 #### Manual
 
-- [x] 1.4 No auth secrets or connection strings are committed
-- [x] 1.5 Public `/health` still returns `200 {"status":"ok"}`
+- [x] 1.4 No auth secrets or connection strings are committed - 869aaf2
+- [x] 1.5 Public `/health` still returns `200 {"status":"ok"}` - 869aaf2
 
 ### Phase 2: API Integration Test Harness
 
 #### Automated
 
-- [ ] 2.1 `dotnet restore LiftMate.slnx` from `apps/api`
-- [ ] 2.2 `dotnet build LiftMate.slnx --no-restore` from `apps/api`
-- [ ] 2.3 `dotnet test LiftMate.slnx --no-build` from `apps/api`
+- [x] 2.1 `dotnet restore LiftMate.slnx` from `apps/api`
+- [x] 2.2 `dotnet build LiftMate.slnx --no-restore` from `apps/api`
+- [x] 2.3 `dotnet test LiftMate.slnx --no-build` from `apps/api`
 
 #### Manual
 
-- [ ] 2.4 API test project is present in test output and the health test is not skipped
+- [x] 2.4 API test project is present in test output and the health test is not skipped
 
 ### Phase 3: API Auth Endpoints and Role Probes
 

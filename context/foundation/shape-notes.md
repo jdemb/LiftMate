@@ -11,7 +11,7 @@ timeline_budget:
   hard_deadline: 2026-06-21
   after_hours_only: true
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-06-01
 checkpoint:
   current_phase: 8
   phases_completed: [1, 2, 3, 4, 5, 6, 7]
@@ -42,7 +42,9 @@ checkpoint:
       decision: "after-hours work"
     - topic: "non-goals"
       decision: "mobile only; no automatic exercise recommendation; no data export; no trainee-trainee or trainer-trainer interactions; no individual templates in MVP; no separate trainer exercise library in MVP; trainer edits training data only"
-  frs_drafted: 11
+    - topic: "shared live training session"
+      decision: "trainer can initiate a shared training session and enter exercise values once, with the trainer and trainee views updated during the same workout"
+  frs_drafted: 12
   quality_check_status: accepted
 ---
 
@@ -84,6 +86,7 @@ Role i dostęp:
 
 - Podopieczni i trenerzy mogą zakładać konta i łączyć się w pary w modelu: jeden trener do wielu podopiecznych, jeden podopieczny do jednego trenera.
 - Trener może przeprowadzić pełny przepływ: tworzy listę ćwiczeń, buduje zestaw, przypisuje go podopiecznemu, edytuje dane w trakcie treningu, a zapisane wartości są dostępne do wykonania na kolejnym treningu.
+- Trener może zainicjować wspólny trening z podopiecznym i wprowadzać dane treningowe w trakcie jednej sesji tak, żeby aktualizowały się jednocześnie w widoku trenera i podopiecznego.
 
 ### Secondary
 
@@ -104,8 +107,9 @@ Role i dostęp:
 4. Trener definiuje ćwiczenia w zestawie.
 5. Trener buduje zestaw ćwiczeń.
 6. Trener przypisuje zestaw podopiecznemu.
-7. W trakcie treningu dane są edytowane.
-8. Zapisane wartości są używane jako wartości na kolejny trening.
+7. Trener inicjuje wspólny trening z podopiecznym.
+8. W trakcie treningu dane są edytowane w jednej sesji treningowej i widoczne po stronie trenera oraz podopiecznego.
+9. Zapisane wartości są używane jako wartości na kolejny trening.
 
 ## Timeline
 
@@ -145,6 +149,8 @@ Hard deadline: 2026-06-21.
 
 - FR-011: Użytkownik może zapisać wartości przy ćwiczeniu, np. liczbę powtórzeń albo wagę, tak żeby były wartościami do wykonania na kolejnym treningu. Priority: must-have
   > Socrates: Counter-argument considered: "Trzeba określić, które wartości i kiedy nadpisują poprzednie." Resolution: kept, clarified as editing exercise values such as repetitions or weight.
+- FR-012: Trener może zainicjować wspólny trening z podopiecznym i wprowadzać wartości treningowe w trakcie tej samej sesji, tak żeby widok trenera i widok podopiecznego pokazywały te same aktualne dane treningu. Priority: must-have
+  > Socrates: Counter-argument considered: "Wspólna edycja zwiększa złożoność synchronizacji i konfliktów." Resolution: kept as must-have because trainer-led live workout is part of guided training; the scope is limited to training values in one active trainer-trainee session.
 
 ## User Stories
 
@@ -172,18 +178,32 @@ Hard deadline: 2026-06-21.
 - Zapisane wartości obejmują parametry zależne od typu ćwiczenia.
 - Kolejny trening pokazuje ostatnio zapisane wartości dla przypisanego zestawu.
 
+### US-03: Trener prowadzi wspólny trening z podopiecznym
+
+- **Given** trener i podopieczny są połączeni, a podopieczny ma przypisany zestaw ćwiczeń
+- **When** trener inicjuje wspólny trening i wpisuje wartości ćwiczeń podczas tej sesji
+- **Then** trener i podopieczny widzą aktualne wartości tego samego treningu w swoich widokach
+
+#### Acceptance Criteria
+
+- Trener może rozpocząć aktywną sesję treningową dla konkretnego podopiecznego i przypisanego zestawu.
+- Wartości wpisane przez trenera podczas aktywnej sesji są widoczne w widoku podopiecznego podczas tego samego treningu.
+- Wartości widoczne u podopiecznego i trenera dotyczą tej samej aktywnej sesji, a nie osobnych kopii treningu.
+- Po zakończeniu lub zapisaniu treningu wartości z aktywnej sesji są dostępne jako punkt progresu na kolejny trening.
+
 ## Business Logic
 
-Aplikacja pozwala trenerowi przygotować z wyprzedzeniem zestaw ćwiczeń dla podopiecznego oraz śledzić jego progres przez wartości zapisywane przy kolejnych treningach.
+Aplikacja pozwala trenerowi przygotować z wyprzedzeniem zestaw ćwiczeń dla podopiecznego, zainicjować wspólną sesję treningową oraz śledzić progres przez wartości zapisywane przy kolejnych treningach.
 
-Reguła konsumuje przypisany zestaw ćwiczeń, typy ćwiczeń oraz wartości wykonania zapisane przy treningu, takie jak liczba powtórzeń albo waga. Jej wynikiem jest aktualny punkt progresu podopiecznego dostępny dla kolejnej sesji treningowej.
+Reguła konsumuje przypisany zestaw ćwiczeń, typy ćwiczeń, aktywną sesję trener-podopieczny oraz wartości wykonania zapisane przy treningu, takie jak liczba powtórzeń albo waga. Jej wynikiem jest aktualny punkt progresu podopiecznego dostępny dla kolejnej sesji treningowej.
 
-Podopieczny spotyka tę regułę podczas wykonywania przypisanego zestawu, a trener podczas przygotowania zestawu i późniejszego wglądu w progres.
+Podopieczny spotyka tę regułę podczas wykonywania przypisanego zestawu, a trener podczas przygotowania zestawu, prowadzenia wspólnej sesji i późniejszego wglądu w progres.
 
 ## Non-Functional Requirements
 
 - Dane treningowe są widoczne tylko dla właściwego trenera i właściwego podopiecznego zgodnie z relacją trener-podopieczny.
 - Podczas treningu użytkownik widzi potwierdzenie zapisu lub zmiany wartości w czasie krótszym niż 1 sekunda w typowych warunkach działania aplikacji.
+- Podczas wspólnego treningu wartości wpisane przez trenera są widoczne w widoku podopiecznego bez ręcznego odświeżania w typowych warunkach działania aplikacji.
 - Ekrany używane podczas treningu pozostają czytelne na telefonie i pozwalają odczytać ćwiczenie, serię oraz wartości wykonania bez przechodzenia przez dodatkowe wyjaśnienia.
 
 ## Non-Goals

@@ -1,3 +1,12 @@
+using System.Security.Claims;
+using System.Text;
+using LiftMate.Api.Auth;
+using LiftMate.Api.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -5,6 +14,51 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services
+    .AddIdentityCore<ApplicationUser>(options =>
+    {
+        options.User.RequireUniqueEmail = true;
+    })
+    .AddEntityFrameworkStores<ApplicationDbContext>();
+
+builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<RegistrationGate>();
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKeyResolver = (_, _, _, _) =>
+            {
+                var signingKey = builder.Configuration["Jwt:SigningKey"];
+                if (string.IsNullOrWhiteSpace(signingKey))
+                {
+                    return [];
+                }
+
+                return [new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey))];
+            },
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(1),
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = ClaimTypes.Role,
+        };
+    });
+
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("TrainerOnly", policy => policy.RequireClaim(ClaimTypes.Role, UserRole.Trainer))
+    .AddPolicy("TraineeOnly", policy => policy.RequireClaim(ClaimTypes.Role, UserRole.Trainee));
 
 var app = builder.Build();
 
@@ -14,9 +68,14 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
     .WithName("HealthCheck");
+
+app.MapAuthEndpoints();
+app.MapProbeEndpoints();
 
 var summaries = new[]
 {
@@ -43,3 +102,5 @@ record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
+
+public partial class Program;

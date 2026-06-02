@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="LiftMate.Api.Tests/LiftMate.Api.Tests.csproj" />
   <Project Path="LiftMate.Api/LiftMate.Api.csproj" />
 </Solution>

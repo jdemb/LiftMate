@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,9 @@ import 'package:liftmate/auth/auth_api_client.dart';
 import 'package:liftmate/auth/auth_controller.dart';
 import 'package:liftmate/auth/auth_screen.dart';
 import 'package:liftmate/auth/token_store.dart';
+import 'package:liftmate/shared_sessions/shared_session_api_client.dart';
+import 'package:liftmate/shared_sessions/shared_session_models.dart';
+import 'package:liftmate/shared_sessions/shared_session_realtime_client.dart';
 
 void main() {
   group('AuthScreen', () {
@@ -162,6 +166,10 @@ Widget _testApp({
     baseUrl: 'https://api.example.test',
     httpClient: httpClient,
   );
+  final sharedSessionApiClient = SharedSessionApiClient(
+    baseUrl: 'https://api.example.test',
+    httpClient: httpClient,
+  );
 
   return MaterialApp(
     home: AuthScreen(
@@ -170,6 +178,8 @@ Widget _testApp({
         tokenStore: _InMemoryTokenStore(),
       ),
       authApiClient: authApiClient,
+      sharedSessionApiClient: sharedSessionApiClient,
+      sharedSessionRealtimeClientFactory: _FakeSharedSessionRealtimeClient.new,
       healthUri: Uri.parse('https://api.example.test/health'),
       checkHealth: checkHealth ??
           () async => ApiHealthResult(
@@ -210,4 +220,24 @@ class _InMemoryTokenStore implements TokenStore {
   Future<void> save(StoredAuthTokens tokens) async {
     _tokens = tokens;
   }
+}
+
+class _FakeSharedSessionRealtimeClient implements SharedSessionRealtimeClient {
+  final _updatesController = StreamController<SharedSession>.broadcast();
+  final _statusController = StreamController<SharedSessionConnectionStatus>.broadcast();
+
+  @override
+  Stream<SharedSession> get updates => _updatesController.stream;
+
+  @override
+  Stream<SharedSessionConnectionStatus> get connectionStatus => _statusController.stream;
+
+  @override
+  Future<void> connect({
+    required String accessToken,
+    required String sessionId,
+  }) async {}
+
+  @override
+  Future<void> disconnect() async {}
 }

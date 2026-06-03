@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../api_health_client.dart';
 import '../api_smoke_screen.dart';
+import '../shared_sessions/shared_session_api_client.dart';
+import '../shared_sessions/shared_session_realtime_client.dart';
 import 'auth_api_client.dart';
 import 'auth_controller.dart';
 import 'auth_models.dart';
@@ -11,6 +13,8 @@ class AuthScreen extends StatefulWidget {
   const AuthScreen({
     required this.authController,
     required this.authApiClient,
+    required this.sharedSessionApiClient,
+    required this.sharedSessionRealtimeClientFactory,
     required this.healthUri,
     required this.checkHealth,
     super.key,
@@ -18,6 +22,8 @@ class AuthScreen extends StatefulWidget {
 
   final AuthController authController;
   final AuthApiClient authApiClient;
+  final SharedSessionApiClient sharedSessionApiClient;
+  final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
   final Uri? healthUri;
   final ApiHealthCheck checkHealth;
 

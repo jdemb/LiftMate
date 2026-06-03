@@ -594,24 +594,24 @@ Expose a temporary authenticated diagnostic panel that proves the contract with 
 
 #### Automated
 
-- [x] 4.1 `flutter test` succeeds from `apps/mobile`
-- [x] 4.2 `flutter analyze` succeeds from `apps/mobile`
-- [x] 4.3 Model tests cover status/type parsing and invalid payloads
-- [x] 4.4 API client tests prove bearer-authenticated create/get/update/complete/cancel paths
-- [x] 4.5 `main.dart` wires real shared-session clients from configured `apiBaseUrl`
-- [x] 4.6 Existing auth screen widget tests still pass with fake shared-session dependencies
+- [x] 4.1 `flutter test` succeeds from `apps/mobile` - 9516003
+- [x] 4.2 `flutter analyze` succeeds from `apps/mobile` - 9516003
+- [x] 4.3 Model tests cover status/type parsing and invalid payloads - 9516003
+- [x] 4.4 API client tests prove bearer-authenticated create/get/update/complete/cancel paths - 9516003
+- [x] 4.5 `main.dart` wires real shared-session clients from configured `apiBaseUrl` - 9516003
+- [x] 4.6 Existing auth screen widget tests still pass with fake shared-session dependencies - 9516003
 
 #### Manual
 
-- [x] 4.7 Review the mobile client API to confirm UI code does not import the raw SignalR package directly
+- [x] 4.7 Review the mobile client API to confirm UI code does not import the raw SignalR package directly - 9516003
 
 ### Phase 5: Mobile Diagnostic Shared-Session Surface
 
 #### Automated
 
-- [ ] 5.1 `flutter test` succeeds from `apps/mobile`
-- [ ] 5.2 `flutter analyze` succeeds from `apps/mobile`
-- [ ] 5.3 Widget tests prove the diagnostic panel can render a received update without real SignalR
+- [x] 5.1 `flutter test` succeeds from `apps/mobile`
+- [x] 5.2 `flutter analyze` succeeds from `apps/mobile`
+- [x] 5.3 Widget tests prove the diagnostic panel can render a received update without real SignalR
 
 #### Manual
 

@@ -53,11 +53,21 @@ jobs:
             exit 1
           fi
 
-          dotnet ef database update \
-            --project ${{ env.API_PROJECT_PATH }} \
-            --startup-project ${{ env.API_PROJECT_PATH }} \
-            --configuration Release \
-            --connection "$AZURE_SQL_CONNECTION_STRING"
+          for attempt in 1 2 3 4 5; do
+            if dotnet ef database update \
+              --project ${{ env.API_PROJECT_PATH }} \
+              --startup-project ${{ env.API_PROJECT_PATH }} \
+              --configuration Release \
+              --connection "$AZURE_SQL_CONNECTION_STRING"; then
+              exit 0
+            fi
+
+            echo "Migration attempt $attempt failed; retrying in 15 seconds..."
+            sleep 15
+          done
+
+          echo "::error::EF Core migrations failed after 5 attempts."
+          exit 1
 
       - name: Publish
         run: dotnet publish ${{ env.API_PROJECT_PATH }} --configuration Release --no-build --output ${{ env.PUBLISH_DIR }}

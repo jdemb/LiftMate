@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../api_health_client.dart';
 import '../api_smoke_screen.dart';
+import '../shared_sessions/shared_session_api_client.dart';
+import '../shared_sessions/shared_session_diagnostic_panel.dart';
+import '../shared_sessions/shared_session_realtime_client.dart';
 import 'auth_api_client.dart';
 import 'auth_controller.dart';
 import 'auth_models.dart';
@@ -11,6 +14,8 @@ class AuthScreen extends StatefulWidget {
   const AuthScreen({
     required this.authController,
     required this.authApiClient,
+    required this.sharedSessionApiClient,
+    required this.sharedSessionRealtimeClientFactory,
     required this.healthUri,
     required this.checkHealth,
     super.key,
@@ -18,6 +23,8 @@ class AuthScreen extends StatefulWidget {
 
   final AuthController authController;
   final AuthApiClient authApiClient;
+  final SharedSessionApiClient sharedSessionApiClient;
+  final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
   final Uri? healthUri;
   final ApiHealthCheck checkHealth;
 
@@ -118,6 +125,9 @@ class _AuthScreenState extends State<AuthScreen> {
                     _AuthenticatedPanel(
                       authController: widget.authController,
                       authApiClient: widget.authApiClient,
+                      sharedSessionApiClient: widget.sharedSessionApiClient,
+                      sharedSessionRealtimeClientFactory:
+                          widget.sharedSessionRealtimeClientFactory,
                       user: state.user!,
                     )
                   else
@@ -275,11 +285,15 @@ class _AuthenticatedPanel extends StatelessWidget {
   const _AuthenticatedPanel({
     required this.authController,
     required this.authApiClient,
+    required this.sharedSessionApiClient,
+    required this.sharedSessionRealtimeClientFactory,
     required this.user,
   });
 
   final AuthController authController;
   final AuthApiClient authApiClient;
+  final SharedSessionApiClient sharedSessionApiClient;
+  final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
   final AuthUser user;
 
   @override
@@ -298,6 +312,13 @@ class _AuthenticatedPanel extends StatelessWidget {
           authApiClient: authApiClient,
           authController: authController,
           user: user,
+        ),
+        const SizedBox(height: 16),
+        SharedSessionDiagnosticPanel(
+          authController: authController,
+          user: user,
+          sharedSessionApiClient: sharedSessionApiClient,
+          realtimeClientFactory: sharedSessionRealtimeClientFactory,
         ),
         const SizedBox(height: 16),
         OutlinedButton(

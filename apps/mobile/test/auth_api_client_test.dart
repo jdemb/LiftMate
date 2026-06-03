@@ -8,6 +8,12 @@ import 'package:liftmate/auth/auth_models.dart';
 
 void main() {
   group('AuthApiClient', () {
+    test('uses a 30 second default timeout for Azure cold starts', () {
+      final client = AuthApiClient(baseUrl: 'https://api.example.test');
+
+      expect(client.timeout, const Duration(seconds: 30));
+    });
+
     test('register posts invite code and parses auth session', () async {
       final client = AuthApiClient(
         baseUrl: 'https://api.example.test/',
@@ -69,6 +75,32 @@ void main() {
 
       expect(result.status, AuthApiStatus.success);
       expect(result.data?.user.role, UserRole.trainee);
+    });
+
+    test('login retries once after a timeout and returns the successful response', () async {
+      var attempts = 0;
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test',
+        timeout: const Duration(milliseconds: 1),
+        retryDelay: Duration.zero,
+        httpClient: MockClient((request) async {
+          attempts += 1;
+          if (attempts == 1) {
+            await Future<void>.delayed(const Duration(milliseconds: 20));
+          }
+
+          return http.Response(jsonEncode(_authResponse(role: 'trainee')), 200);
+        }),
+      );
+
+      final result = await client.login(
+        email: 'trainee@example.test',
+        password: 'Password123!',
+      );
+
+      expect(result.status, AuthApiStatus.success);
+      expect(result.data?.user.role, UserRole.trainee);
+      expect(attempts, 2);
     });
 
     test('refresh posts refresh token and parses replacement session', () async {

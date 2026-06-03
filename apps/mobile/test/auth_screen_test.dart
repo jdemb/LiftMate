@@ -89,6 +89,7 @@ void main() {
       expect(find.text('trainer'), findsOneWidget);
       expect(find.text('Trainer probe passed'), findsOneWidget);
 
+      await tester.ensureVisible(find.text('Logout'));
       await tester.tap(find.text('Logout'));
       await tester.pumpAndSettle();
 

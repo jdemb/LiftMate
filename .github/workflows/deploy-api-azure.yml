@@ -41,6 +41,24 @@ jobs:
       - name: Build
         run: dotnet build ${{ env.API_SOLUTION_PATH }} --configuration Release --no-restore
 
+      - name: Install EF Core CLI
+        run: dotnet tool install --global dotnet-ef --version 10.0.8
+
+      - name: Apply Azure SQL migrations
+        env:
+          AZURE_SQL_CONNECTION_STRING: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        run: |
+          if [ -z "$AZURE_SQL_CONNECTION_STRING" ]; then
+            echo "::error::AZURE_SQL_CONNECTION_STRING GitHub secret is required to apply EF Core migrations."
+            exit 1
+          fi
+
+          dotnet ef database update \
+            --project ${{ env.API_PROJECT_PATH }} \
+            --startup-project ${{ env.API_PROJECT_PATH }} \
+            --configuration Release \
+            --connection "$AZURE_SQL_CONNECTION_STRING"
+
       - name: Publish
         run: dotnet publish ${{ env.API_PROJECT_PATH }} --configuration Release --no-build --output ${{ env.PUBLISH_DIR }}
 

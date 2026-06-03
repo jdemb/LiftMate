@@ -582,28 +582,28 @@ Expose a temporary authenticated diagnostic panel that proves the contract with 
 
 #### Automated
 
-- [x] 3.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`
-- [x] 3.2 Hub tests cover participant join with SignalR token negotiation, non-participant denial, and update broadcast
-- [x] 3.3 REST endpoint tests continue to pass with broadcasts enabled
+- [x] 3.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api` - 6179deb
+- [x] 3.2 Hub tests cover participant join with SignalR token negotiation, non-participant denial, and update broadcast - 6179deb
+- [x] 3.3 REST endpoint tests continue to pass with broadcasts enabled - 6179deb
 
 #### Manual
 
-- [x] 3.4 Run the API locally and confirm two authenticated clients receive updates without manual refresh
+- [x] 3.4 Run the API locally and confirm two authenticated clients receive updates without manual refresh - 6179deb
 
 ### Phase 4: Mobile Shared-Session Client
 
 #### Automated
 
-- [ ] 4.1 `flutter test` succeeds from `apps/mobile`
-- [ ] 4.2 `flutter analyze` succeeds from `apps/mobile`
-- [ ] 4.3 Model tests cover status/type parsing and invalid payloads
-- [ ] 4.4 API client tests prove bearer-authenticated create/get/update/complete/cancel paths
-- [ ] 4.5 `main.dart` wires real shared-session clients from configured `apiBaseUrl`
-- [ ] 4.6 Existing auth screen widget tests still pass with fake shared-session dependencies
+- [x] 4.1 `flutter test` succeeds from `apps/mobile`
+- [x] 4.2 `flutter analyze` succeeds from `apps/mobile`
+- [x] 4.3 Model tests cover status/type parsing and invalid payloads
+- [x] 4.4 API client tests prove bearer-authenticated create/get/update/complete/cancel paths
+- [x] 4.5 `main.dart` wires real shared-session clients from configured `apiBaseUrl`
+- [x] 4.6 Existing auth screen widget tests still pass with fake shared-session dependencies
 
 #### Manual
 
-- [ ] 4.7 Review the mobile client API to confirm UI code does not import the raw SignalR package directly
+- [x] 4.7 Review the mobile client API to confirm UI code does not import the raw SignalR package directly
 
 ### Phase 5: Mobile Diagnostic Shared-Session Surface
 

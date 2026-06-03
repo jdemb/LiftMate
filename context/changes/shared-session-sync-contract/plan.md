@@ -555,28 +555,28 @@ Expose a temporary authenticated diagnostic panel that proves the contract with 
 
 #### Automated
 
-- [x] 1.1 `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api`
-- [x] 1.2 A migration exists for shared-session tables
-- [x] 1.3 Existing API tests still pass after the new DbContext model is added
+- [x] 1.1 `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api` - b7396a8
+- [x] 1.2 A migration exists for shared-session tables - b7396a8
+- [x] 1.3 Existing API tests still pass after the new DbContext model is added - b7396a8
 
 #### Manual
 
-- [x] 1.4 Review the generated migration to confirm it does not add S-01/S-02/S-05 scope
+- [x] 1.4 Review the generated migration to confirm it does not add S-01/S-02/S-05 scope - b7396a8
 
 ### Phase 2: API REST Contract and Authorization
 
 #### Automated
 
-- [ ] 2.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`
-- [ ] 2.2 Tests prove only stored participants can read or update the session
-- [ ] 2.3 Tests prove both trainer and trainee can write values while the session is active
-- [ ] 2.4 Tests prove completed and cancelled sessions reject value updates
-- [ ] 2.5 Tests prove repeated same-state complete/cancel is idempotent and cross-terminal transitions return `409 Conflict`
-- [ ] 2.6 Tests prove exercise-type value validation returns `400 Bad Request` without advancing version or broadcasting
+- [x] 2.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`
+- [x] 2.2 Tests prove only stored participants can read or update the session
+- [x] 2.3 Tests prove both trainer and trainee can write values while the session is active
+- [x] 2.4 Tests prove completed and cancelled sessions reject value updates
+- [x] 2.5 Tests prove repeated same-state complete/cancel is idempotent and cross-terminal transitions return `409 Conflict`
+- [x] 2.6 Tests prove exercise-type value validation returns `400 Bad Request` without advancing version or broadcasting
 
 #### Manual
 
-- [ ] 2.7 Use local HTTP requests to create users, create a shared session, and update a value from both tokens
+- [x] 2.7 Use local HTTP requests to create users, create a shared session, and update a value from both tokens
 
 ### Phase 3: SignalR Hub and Broadcasts
 

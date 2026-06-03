@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text;
 using LiftMate.Api.Auth;
 using LiftMate.Api.Data;
+using LiftMate.Api.SharedSessions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -76,6 +77,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
 
 app.MapAuthEndpoints();
 app.MapProbeEndpoints();
+app.MapSharedSessionEndpoints();
 
 var summaries = new[]
 {

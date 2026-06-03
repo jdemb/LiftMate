@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text;
 using LiftMate.Api.Auth;
 using LiftMate.Api.Data;
+using LiftMate.Api.SharedSessions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,8 @@ builder.Services
 
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<RegistrationGate>();
+builder.Services.AddScoped<SharedSessionBroadcaster>();
+builder.Services.AddSignalR();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -54,6 +57,21 @@ builder.Services
             NameClaimType = ClaimTypes.NameIdentifier,
             RoleClaimType = ClaimTypes.Role,
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/shared-sessions"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            },
+        };
     });
 
 builder.Services.AddAuthorizationBuilder()
@@ -76,6 +94,8 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
 
 app.MapAuthEndpoints();
 app.MapProbeEndpoints();
+app.MapSharedSessionEndpoints();
+app.MapHub<SharedSessionHub>("/hubs/shared-sessions").RequireAuthorization();
 
 var summaries = new[]
 {

@@ -26,6 +26,7 @@ public static class SharedSessionEndpoints
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
         UserManager<ApplicationUser> userManager,
+        SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
         var trainerUserId = SharedSessionAccess.UserId(principal);
@@ -93,8 +94,9 @@ public static class SharedSessionEndpoints
 
         dbContext.SharedSessions.Add(session);
         await dbContext.SaveChangesAsync(cancellationToken);
+        await broadcaster.BroadcastUpdatedAsync(session, cancellationToken);
 
-        return Results.Created($"/shared-sessions/{session.Id}", ToResponse(session));
+        return Results.Created($"/shared-sessions/{session.Id}", SharedSessionMapping.ToResponse(session));
     }
 
     private static async Task<IResult> Get(
@@ -114,7 +116,7 @@ public static class SharedSessionEndpoints
             return Results.Forbid();
         }
 
-        return Results.Ok(ToResponse(session));
+        return Results.Ok(SharedSessionMapping.ToResponse(session));
     }
 
     private static async Task<IResult> UpdateValue(
@@ -123,6 +125,7 @@ public static class SharedSessionEndpoints
         UpdateSharedSessionValueRequest request,
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
+        SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
         var session = await FindSession(dbContext, sessionId, cancellationToken);
@@ -169,26 +172,29 @@ public static class SharedSessionEndpoints
         session.UpdatedAt = now;
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await broadcaster.BroadcastUpdatedAsync(session, cancellationToken);
 
-        return Results.Ok(ToResponse(session));
+        return Results.Ok(SharedSessionMapping.ToResponse(session));
     }
 
     private static Task<IResult> Complete(
         Guid sessionId,
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
+        SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
-        return Close(sessionId, SharedSessionStatus.Completed, SharedSessionStatus.Cancelled, principal, dbContext, cancellationToken);
+        return Close(sessionId, SharedSessionStatus.Completed, SharedSessionStatus.Cancelled, principal, dbContext, broadcaster, cancellationToken);
     }
 
     private static Task<IResult> Cancel(
         Guid sessionId,
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
+        SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
-        return Close(sessionId, SharedSessionStatus.Cancelled, SharedSessionStatus.Completed, principal, dbContext, cancellationToken);
+        return Close(sessionId, SharedSessionStatus.Cancelled, SharedSessionStatus.Completed, principal, dbContext, broadcaster, cancellationToken);
     }
 
     private static async Task<IResult> Close(
@@ -197,6 +203,7 @@ public static class SharedSessionEndpoints
         string conflictStatus,
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
+        SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
         var session = await FindSession(dbContext, sessionId, cancellationToken);
@@ -212,7 +219,7 @@ public static class SharedSessionEndpoints
 
         if (session.Status == targetStatus)
         {
-            return Results.Ok(ToResponse(session));
+            return Results.Ok(SharedSessionMapping.ToResponse(session));
         }
 
         if (session.Status == conflictStatus)
@@ -227,8 +234,9 @@ public static class SharedSessionEndpoints
         session.ClosedAt = now;
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await broadcaster.BroadcastUpdatedAsync(session, cancellationToken);
 
-        return Results.Ok(ToResponse(session));
+        return Results.Ok(SharedSessionMapping.ToResponse(session));
     }
 
     private static Task<SharedSession?> FindSession(
@@ -257,35 +265,4 @@ public static class SharedSessionEndpoints
         };
     }
 
-    private static SharedSessionResponse ToResponse(SharedSession session)
-    {
-        return new SharedSessionResponse(
-            session.Id,
-            session.TrainerUserId,
-            session.TraineeUserId,
-            session.Status,
-            session.Version,
-            session.CreatedAt,
-            session.UpdatedAt,
-            session.ClosedAt,
-            session.Values
-                .OrderBy(value => value.SetIndex)
-                .ThenBy(value => value.Id)
-                .Select(ToResponse)
-                .ToArray());
-    }
-
-    private static SharedSessionValueResponse ToResponse(SharedSessionValue value)
-    {
-        return new SharedSessionValueResponse(
-            value.Id,
-            value.ExerciseName,
-            value.ExerciseType,
-            value.SetIndex,
-            value.Reps,
-            value.Weight,
-            value.Seconds,
-            value.UpdatedByUserId,
-            value.UpdatedAt);
-    }
 }

@@ -567,28 +567,28 @@ Expose a temporary authenticated diagnostic panel that proves the contract with 
 
 #### Automated
 
-- [x] 2.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`
-- [x] 2.2 Tests prove only stored participants can read or update the session
-- [x] 2.3 Tests prove both trainer and trainee can write values while the session is active
-- [x] 2.4 Tests prove completed and cancelled sessions reject value updates
-- [x] 2.5 Tests prove repeated same-state complete/cancel is idempotent and cross-terminal transitions return `409 Conflict`
-- [x] 2.6 Tests prove exercise-type value validation returns `400 Bad Request` without advancing version or broadcasting
+- [x] 2.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api` - c8c45cd
+- [x] 2.2 Tests prove only stored participants can read or update the session - c8c45cd
+- [x] 2.3 Tests prove both trainer and trainee can write values while the session is active - c8c45cd
+- [x] 2.4 Tests prove completed and cancelled sessions reject value updates - c8c45cd
+- [x] 2.5 Tests prove repeated same-state complete/cancel is idempotent and cross-terminal transitions return `409 Conflict` - c8c45cd
+- [x] 2.6 Tests prove exercise-type value validation returns `400 Bad Request` without advancing version or broadcasting - c8c45cd
 
 #### Manual
 
-- [x] 2.7 Use local HTTP requests to create users, create a shared session, and update a value from both tokens
+- [x] 2.7 Use local HTTP requests to create users, create a shared session, and update a value from both tokens - c8c45cd
 
 ### Phase 3: SignalR Hub and Broadcasts
 
 #### Automated
 
-- [ ] 3.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`
-- [ ] 3.2 Hub tests cover participant join with SignalR token negotiation, non-participant denial, and update broadcast
-- [ ] 3.3 REST endpoint tests continue to pass with broadcasts enabled
+- [x] 3.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`
+- [x] 3.2 Hub tests cover participant join with SignalR token negotiation, non-participant denial, and update broadcast
+- [x] 3.3 REST endpoint tests continue to pass with broadcasts enabled
 
 #### Manual
 
-- [ ] 3.4 Run the API locally and confirm two authenticated clients receive updates without manual refresh
+- [x] 3.4 Run the API locally and confirm two authenticated clients receive updates without manual refresh
 
 ### Phase 4: Mobile Shared-Session Client
 

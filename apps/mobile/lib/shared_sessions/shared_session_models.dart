@@ -51,6 +51,8 @@ class SharedSession {
     required this.id,
     required this.trainerUserId,
     required this.traineeUserId,
+    required this.trainerEmail,
+    required this.traineeEmail,
     required this.status,
     required this.version,
     required this.createdAt,
@@ -62,6 +64,8 @@ class SharedSession {
   final String id;
   final String trainerUserId;
   final String traineeUserId;
+  final String trainerEmail;
+  final String traineeEmail;
   final SharedSessionStatus status;
   final int version;
   final DateTime createdAt;
@@ -73,6 +77,8 @@ class SharedSession {
     final id = json['id'];
     final trainerUserId = json['trainerUserId'];
     final traineeUserId = json['traineeUserId'];
+    final trainerEmail = json['trainerEmail'];
+    final traineeEmail = json['traineeEmail'];
     final status = SharedSessionStatus.tryParse(json['status']);
     final version = json['version'];
     final createdAt = json['createdAt'];
@@ -83,6 +89,8 @@ class SharedSession {
     if (id is! String ||
         trainerUserId is! String ||
         traineeUserId is! String ||
+        trainerEmail is! String ||
+        traineeEmail is! String ||
         status == null ||
         version is! int ||
         createdAt is! String ||
@@ -96,6 +104,8 @@ class SharedSession {
       id: id,
       trainerUserId: trainerUserId,
       traineeUserId: traineeUserId,
+      trainerEmail: trainerEmail,
+      traineeEmail: traineeEmail,
       status: status,
       version: version,
       createdAt: DateTime.parse(createdAt).toUtc(),

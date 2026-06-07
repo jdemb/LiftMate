@@ -4,73 +4,75 @@
 
 ## What & Why
 
-Build the minimal shared active-session sync contract for LiftMate. The goal is to prove that a trainer and trainee can observe and update the same active workout session object through the API and SignalR before the full trainer-led workout slice is built.
+Build the minimal shared active-session sync contract for LiftMate, revised after physical-device Azure testing showed the original tester workflow was too manual and realtime connection handling was not reliable enough. The updated goal is for a trainer to start a session by trainee email and for the trainee to see the active training state automatically, without copying user IDs or session IDs.
 
 ## Starting Point
 
-Auth, roles, JWT tokens, EF Core, and API integration tests already exist. There is no shared-session data model, workout state, SignalR hub, mobile session client, or realtime diagnostic surface yet.
+F-03 phases 1-5 already added shared-session tables, REST endpoints, SignalR group updates, mobile clients, and a temporary diagnostic panel. Manual Azure/device testing exposed two issues: session creation required opaque IDs, and the mobile realtime connection could move from `connecting` to `disconnected` immediately after trying to join.
 
 ## Desired End State
 
-The API can create a small shared session snapshot between an explicit trainer and trainee, authorize only those two users, accept writes from both roles, and broadcast updates through SignalR. The Flutter app has typed session clients and a temporary authenticated diagnostic panel to create/join a session and verify two-way updates without manual refresh.
+The API resolves trainee email to the stored trainee user ID, enforces one active session per trainee, and exposes an authenticated active-session lookup. The mobile diagnostic surface has no `Session ID` or manual join path: a trainer creates a session by trainee email, and a trainee who is logged in or logs in later sees the active session automatically through SignalR notification plus REST fallback.
 
 ## Key Decisions Made
 
 | Decision | Choice | Why |
 |---|---|---|
-| Sync transport | SignalR | The current free tier is acceptable for MVP validation and this directly tests FR-012. |
-| Latency target | Under 1 second | Matches the product expectation for trainer-led live workout feedback. |
-| Session data | Minimal exercise value snapshot | Proves shared state without implementing full workout templates. |
-| Write roles | Trainer and trainee can both write | Forces the shared contract to support later self-editing behavior. |
-| Conflicts | Last write wins | Keeps the MVP contract simple and avoids conflict UI in F-03. |
-| Access | Explicit trainer/trainee participant IDs | Preserves isolation before S-01 relationship records exist. |
-| Lifecycle | `active`, `completed`, `cancelled` | Covers normal finish and abort paths while keeping state small. |
-| Mobile scope | Client plus diagnostic panel | Makes the contract testable on two clients before S-04. |
+| Trainer input | Trainee email | Physical-device testing should use the same identifier humans use to log in. |
+| Stored access model | Keep participant user IDs internally | Authorization remains stable even though UI no longer exposes IDs. |
+| Active-session cardinality | One active session per trainee | Auto-discovery stays deterministic and no session picker is needed in F-03. |
+| Trainee discovery | `sessionStarted` SignalR notification plus `GET /shared-sessions/active` fallback | Covers already-logged-in and newly-logged-in trainees, while tolerating Azure/mobile realtime instability. |
+| Realtime failure handling | Treat `connecting` -> `disconnected` as a failing condition | The observed physical-device behavior blocks the product test and must be diagnosed, not ignored. |
+| Mobile UI scope | Temporary diagnostic surface without session IDs | Keeps F-03 focused on the shared-state contract before S-04 production UI. |
 
 ## Scope
 
 **In scope:**
 
-- API shared-session entities, migration, REST endpoints, and participant access checks.
-- SignalR hub and server broadcasts after accepted mutations.
-- Last-write-wins updates with server-owned versioning.
-- API integration tests for lifecycle, authorization, and hub delivery.
-- Flutter shared-session models, REST client, SignalR wrapper, and temporary diagnostic panel.
-- Mobile unit/widget tests and manual two-client verification.
+- API create-by-trainee-email contract.
+- `GET /shared-sessions/active` for authenticated active-session discovery.
+- One-active-session-per-trainee enforcement and additive migration.
+- User-targeted SignalR `sessionStarted` notification.
+- Mobile trainer create-by-email UI.
+- Mobile trainee waiting/auto-load state with no manual join.
+- Azure App Service SignalR transport verification for physical release builds.
 
 **Out of scope:**
 
-- Full workout templates, trainer-trainee relationship records, production workout UI, and progress saving.
-- Conflict resolution UI, optimistic concurrency, paid realtime infrastructure, and SignalR scale-out.
-- Mobile release automation and unrelated `/weatherforecast` cleanup.
+- Full trainer-trainee relationship records from S-01.
+- Production workout UI from S-04.
+- Paid Azure SignalR Service or scale-out backplanes.
+- Full workout template assignment, progress saving, or conflict resolution UI.
 
 ## Architecture / Approach
 
-REST endpoints own validation, persistence, authorization, lifecycle transitions, and accepted writes. SignalR owns session-group membership and update delivery. Mobile clients treat the API response or `sessionUpdated` payload as canonical and receive the same full minimal snapshot after each create/update/complete/cancel mutation.
+REST remains the source of truth for persistence, validation, authorization, lifecycle, and mutations. SignalR gains a user-targeted notification path so the trainee can learn that a session exists before they know the session ID. Mobile treats `GET /shared-sessions/active` as the fallback/recovery path after login or realtime failure, then joins the specific session group internally for value updates.
 
 ## Phases at a Glance
 
 | Phase | What it delivers | Key risk |
 |---|---|---|
-| 1. API Shared-Session Persistence | Minimal session/value tables and migration. | Accidentally expanding into full workout modeling. |
-| 2. API REST Contract and Authorization | Create/read/update/complete/cancel with participant checks. | Access rules are temporary but must not leak data. |
-| 3. SignalR Hub and Broadcasts | Authenticated session group join and `sessionUpdated` broadcasts. | Hub auth and test setup can be brittle. |
-| 4. Mobile Shared-Session Client | Typed REST models/client and SignalR wrapper. | Raw SignalR details leaking into UI code. |
-| 5. Mobile Diagnostic Shared-Session Surface | Authenticated create/join/update verification panel. | Temporary UI drifting into full S-04 scope. |
+| 1. API Shared-Session Persistence | Minimal session/value tables and migration. | Already implemented; avoid expanding into workout templates. |
+| 2. API REST Contract and Authorization | Initial create/read/update/complete/cancel with participant checks. | Already implemented; now revised by Phase 6. |
+| 3. SignalR Hub and Broadcasts | Initial authenticated session group join and updates. | Already implemented; physical devices exposed transport failure. |
+| 4. Mobile Shared-Session Client | Typed REST models/client and SignalR wrapper. | Already implemented; now revised by Phase 7. |
+| 5. Mobile Diagnostic Surface | Initial manual create/join/update panel. | Manual flow is superseded because it exposed IDs. |
+| 6. API Email-Based Active Session Discovery | Email create, active lookup, one-active-session migration. | Data uniqueness must be enforced without breaking closed history. |
+| 7. Mobile Auto-Discovery and User-Targeted Realtime | No-ID UI and trainee auto-load/notification. | Realtime failures must be surfaced and recovered. |
+| 8. Azure Realtime Hardening and Final Gate | Deploy/migration plus physical-device Azure acceptance. | Free Azure tier and App Service transport settings can still affect latency. |
 
-**Prerequisites:** F-01 mobile/API smoke path and F-02 auth boundary are available in code.
-**Estimated effort:** ~3 focused implementation sessions across 5 phases.
+**Prerequisites:** F-01, F-02, and F-03 phases 1-5 are already present in code and deployed once.
+**Estimated effort:** ~2 focused implementation sessions across phases 6-8.
 
 ## Open Risks & Assumptions
 
-- Azure Free tier may not consistently deliver sub-second updates under cold starts or poor connectivity.
-- F-03 assumes a single App Service instance and no SignalR scale-out backplane.
-- Last-write-wins can silently overwrite near-simultaneous edits; this is accepted for MVP simplicity.
-- Explicit participant IDs are a bridge until S-01 adds real trainer-trainee relationships.
+- Email currently acts as username because registration sets Identity `UserName = Email`.
+- Azure Free/App Service settings may still cause cold starts; auth timeout/retry already mitigates login, but SignalR needs explicit verification.
+- The active-session uniqueness migration assumes demo data has no duplicate active sessions per trainee.
 
 ## Success Criteria (Summary)
 
-- Trainer and trainee can join the same session and receive SignalR updates without manual refresh.
-- Both roles can write active-session values, while non-participants are denied.
-- Completed and cancelled sessions reject further value edits.
-- API tests, mobile tests, `dotnet test`, `flutter test`, and `flutter analyze` pass locally.
+- Trainer starts a session by trainee email, not user ID.
+- Trainee sees the active session automatically when already logged in or after logging in later.
+- Physical release builds against Azure do not require `Session ID` or `Join session`.
+- Realtime update delivery works or recovers via active-session fallback without manual ID entry.

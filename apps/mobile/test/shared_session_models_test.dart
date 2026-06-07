@@ -9,6 +9,8 @@ void main() {
       expect(session.id, 'session-1');
       expect(session.trainerUserId, 'trainer-1');
       expect(session.traineeUserId, 'trainee-1');
+      expect(session.trainerEmail, 'trainer@example.test');
+      expect(session.traineeEmail, 'trainee@example.test');
       expect(session.status, SharedSessionStatus.active);
       expect(session.version, 3);
       expect(session.closedAt, isNull);
@@ -77,6 +79,8 @@ Map<String, Object?> _sessionJson() {
     'id': 'session-1',
     'trainerUserId': 'trainer-1',
     'traineeUserId': 'trainee-1',
+    'trainerEmail': 'trainer@example.test',
+    'traineeEmail': 'trainee@example.test',
     'status': 'active',
     'version': 3,
     'createdAt': '2026-06-03T12:00:00Z',

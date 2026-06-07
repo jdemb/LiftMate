@@ -19,8 +19,13 @@ abstract class SharedSessionRealtimeClient {
 
   Stream<SharedSessionConnectionStatus> get connectionStatus;
 
+  Stream<String> get errors;
+
   Future<void> connect({
     required String accessToken,
+  });
+
+  Future<void> joinSession({
     required String sessionId,
   });
 
@@ -40,6 +45,7 @@ class SignalRSharedSessionRealtimeClient implements SharedSessionRealtimeClient 
   final HubConnectionFactory _hubConnectionFactory;
   final _updatesController = StreamController<SharedSession>.broadcast();
   final _statusController = StreamController<SharedSessionConnectionStatus>.broadcast();
+  final _errorsController = StreamController<String>.broadcast();
 
   HubConnectionAdapter? _connection;
 
@@ -50,9 +56,11 @@ class SignalRSharedSessionRealtimeClient implements SharedSessionRealtimeClient 
   Stream<SharedSessionConnectionStatus> get connectionStatus => _statusController.stream;
 
   @override
+  Stream<String> get errors => _errorsController.stream;
+
+  @override
   Future<void> connect({
     required String accessToken,
-    required String sessionId,
   }) async {
     final baseUrl = _baseUrl;
     if (baseUrl == null) {
@@ -66,11 +74,37 @@ class SignalRSharedSessionRealtimeClient implements SharedSessionRealtimeClient 
     final connection = _hubConnectionFactory(hubUrl, accessToken);
     _connection = connection;
     connection.onSessionUpdated(_handleSessionUpdated);
+    connection.onSessionStarted(_handleSessionUpdated);
     connection.onStatusChanged(_emitStatus);
 
-    await connection.start();
-    await connection.invoke('JoinSession', args: [sessionId]);
-    _emitStatus(SharedSessionConnectionStatus.connected);
+    try {
+      await connection.start();
+      _emitStatus(SharedSessionConnectionStatus.connected);
+    } on Object catch (error) {
+      _reportConnectionError('Realtime connection failed: $error');
+      _connection = null;
+      _emitStatus(SharedSessionConnectionStatus.disconnected);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> joinSession({
+    required String sessionId,
+  }) async {
+    final connection = _connection;
+    if (connection == null) {
+      final error = StateError('Realtime connection is not connected.');
+      _reportConnectionError(error.message);
+      throw error;
+    }
+
+    try {
+      await connection.invoke('JoinSession', args: [sessionId]);
+    } on Object catch (error) {
+      _reportConnectionError('Realtime join failed: $error');
+      rethrow;
+    }
   }
 
   @override
@@ -90,6 +124,7 @@ class SignalRSharedSessionRealtimeClient implements SharedSessionRealtimeClient 
   void dispose() {
     _updatesController.close();
     _statusController.close();
+    _errorsController.close();
   }
 
   void _handleSessionUpdated(Map<String, dynamic> json) {
@@ -99,6 +134,12 @@ class SignalRSharedSessionRealtimeClient implements SharedSessionRealtimeClient 
   void _emitStatus(SharedSessionConnectionStatus status) {
     if (!_statusController.isClosed) {
       _statusController.add(status);
+    }
+  }
+
+  void _reportConnectionError(String message) {
+    if (!_errorsController.isClosed) {
+      _errorsController.add(message);
     }
   }
 
@@ -122,6 +163,8 @@ abstract class HubConnectionAdapter {
   Future<Object?> invoke(String methodName, {List<Object>? args});
 
   void onSessionUpdated(void Function(Map<String, dynamic> json) handler);
+
+  void onSessionStarted(void Function(Map<String, dynamic> json) handler);
 
   void onStatusChanged(void Function(SharedSessionConnectionStatus status) handler);
 }
@@ -164,8 +207,20 @@ class SignalRHubConnectionAdapter implements HubConnectionAdapter {
   void onSessionUpdated(void Function(Map<String, dynamic> json) handler) {
     _connection.on('sessionUpdated', (arguments) {
       final first = arguments?.isEmpty ?? true ? null : arguments!.first;
-      if (first is Map<String, dynamic>) {
-        handler(first);
+      final json = _asStringKeyedJson(first);
+      if (json != null) {
+        handler(json);
+      }
+    });
+  }
+
+  @override
+  void onSessionStarted(void Function(Map<String, dynamic> json) handler) {
+    _connection.on('sessionStarted', (arguments) {
+      final first = arguments?.isEmpty ?? true ? null : arguments!.first;
+      final json = _asStringKeyedJson(first);
+      if (json != null) {
+        handler(json);
       }
     });
   }
@@ -185,5 +240,25 @@ class SignalRHubConnectionAdapter implements HubConnectionAdapter {
       signalr.HubConnectionState.Reconnecting => SharedSessionConnectionStatus.reconnecting,
       signalr.HubConnectionState.Disconnected => SharedSessionConnectionStatus.disconnected,
     };
+  }
+
+  static Map<String, dynamic>? _asStringKeyedJson(Object? value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+
+    if (value is Map) {
+      final json = <String, dynamic>{};
+      for (final entry in value.entries) {
+        final key = entry.key;
+        if (key is! String) {
+          return null;
+        }
+        json[key] = entry.value;
+      }
+      return json;
+    }
+
+    return null;
   }
 }

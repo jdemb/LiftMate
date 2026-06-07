@@ -13,6 +13,7 @@ public static class SharedSessionEndpoints
         var group = routes.MapGroup("/shared-sessions");
 
         group.MapPost("/", Create).RequireAuthorization("TrainerOnly");
+        group.MapGet("/active", GetActive).RequireAuthorization();
         group.MapGet("/{sessionId:guid}", Get).RequireAuthorization();
         group.MapPatch("/{sessionId:guid}/values/{valueId:guid}", UpdateValue).RequireAuthorization();
         group.MapPost("/{sessionId:guid}/complete", Complete).RequireAuthorization();
@@ -35,12 +36,35 @@ public static class SharedSessionEndpoints
             return Results.Unauthorized();
         }
 
+        var trainer = await userManager.Users.SingleOrDefaultAsync(
+            user => user.Id == trainerUserId,
+            cancellationToken);
+        if (trainer is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var traineeEmail = request.TraineeEmail.Trim();
+        if (string.IsNullOrWhiteSpace(traineeEmail))
+        {
+            return Results.BadRequest(new { error = "Trainee email is required." });
+        }
+
+        var normalizedTraineeEmail = userManager.NormalizeEmail(traineeEmail);
         var trainee = await userManager.Users.SingleOrDefaultAsync(
-            user => user.Id == request.TraineeUserId,
+            user => user.NormalizedEmail == normalizedTraineeEmail,
             cancellationToken);
         if (trainee is null || trainee.LiftMateRole != UserRole.Trainee)
         {
             return Results.BadRequest(new { error = "Trainee user not found." });
+        }
+
+        var hasActiveSession = await dbContext.SharedSessions.AnyAsync(
+            session => session.TraineeUserId == trainee.Id && session.Status == SharedSessionStatus.Active,
+            cancellationToken);
+        if (hasActiveSession)
+        {
+            return Results.Conflict(new { error = "Trainee already has an active shared session." });
         }
 
         if (request.Values.Count == 0)
@@ -80,7 +104,9 @@ public static class SharedSessionEndpoints
         {
             Id = Guid.NewGuid(),
             TrainerUserId = trainerUserId,
+            TrainerUser = trainer,
             TraineeUserId = trainee.Id,
+            TraineeUser = trainee,
             Status = SharedSessionStatus.Active,
             Version = 1,
             CreatedAt = now,
@@ -97,6 +123,33 @@ public static class SharedSessionEndpoints
         await broadcaster.BroadcastUpdatedAsync(session, cancellationToken);
 
         return Results.Created($"/shared-sessions/{session.Id}", SharedSessionMapping.ToResponse(session));
+    }
+
+    private static async Task<IResult> GetActive(
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var userId = SharedSessionAccess.UserId(principal);
+        if (userId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var sessions = await dbContext.SharedSessions
+            .Include(session => session.TrainerUser)
+            .Include(session => session.TraineeUser)
+            .Include(session => session.Values.OrderBy(value => value.SetIndex).ThenBy(value => value.Id))
+            .Where(session =>
+                session.Status == SharedSessionStatus.Active &&
+                (session.TrainerUserId == userId || session.TraineeUserId == userId))
+            .ToListAsync(cancellationToken);
+
+        var session = sessions
+            .OrderByDescending(session => session.UpdatedAt)
+            .FirstOrDefault();
+
+        return session is null ? Results.NotFound() : Results.Ok(SharedSessionMapping.ToResponse(session));
     }
 
     private static async Task<IResult> Get(
@@ -245,6 +298,8 @@ public static class SharedSessionEndpoints
         CancellationToken cancellationToken)
     {
         return dbContext.SharedSessions
+            .Include(session => session.TrainerUser)
+            .Include(session => session.TraineeUser)
             .Include(session => session.Values.OrderBy(value => value.SetIndex).ThenBy(value => value.Id))
             .SingleOrDefaultAsync(session => session.Id == sessionId, cancellationToken);
     }

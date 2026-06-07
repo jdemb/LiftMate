@@ -849,12 +849,12 @@ Make Azure-hosted verification part of the plan because the previous physical-de
 
 #### Automated
 
-- [x] 7.1 `flutter test` succeeds from `apps/mobile`
-- [x] 7.2 `flutter analyze` succeeds from `apps/mobile`
-- [x] 7.3 Widget tests prove the trainee does not manually enter a session ID
-- [x] 7.4 Widget tests prove an already logged-in trainee renders a trainer-started session without pressing refresh
-- [x] 7.5 Widget tests prove a trainee who logs in after session creation loads the active session automatically
-- [x] 7.6 Realtime client tests prove connection failures are surfaced instead of silently collapsing to `disconnected`
+- [x] 7.1 `flutter test` succeeds from `apps/mobile` - 8d76d31
+- [x] 7.2 `flutter analyze` succeeds from `apps/mobile` - 8d76d31
+- [x] 7.3 Widget tests prove the trainee does not manually enter a session ID - 8d76d31
+- [x] 7.4 Widget tests prove an already logged-in trainee renders a trainer-started session without pressing refresh - 8d76d31
+- [x] 7.5 Widget tests prove a trainee who logs in after session creation loads the active session automatically - 8d76d31
+- [x] 7.6 Realtime client tests prove connection failures are surfaced instead of silently collapsing to `disconnected` - 8d76d31
 
 #### Manual
 
@@ -866,11 +866,11 @@ Make Azure-hosted verification part of the plan because the previous physical-de
 
 #### Automated
 
-- [ ] 8.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`
-- [ ] 8.2 `flutter test` succeeds from `apps/mobile`
-- [ ] 8.3 `flutter analyze` succeeds from `apps/mobile`
-- [ ] 8.4 GitHub Actions deploy run for `deploy-2026-05-26` succeeds, including the Azure SQL migration step
-- [ ] 8.5 Azure SQL migration list includes the new active-session uniqueness migration
+- [x] 8.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`
+- [x] 8.2 `flutter test` succeeds from `apps/mobile`
+- [x] 8.3 `flutter analyze` succeeds from `apps/mobile`
+- [x] 8.4 GitHub Actions deploy run for `deploy-2026-05-26` succeeds, including the Azure SQL migration step
+- [x] 8.5 Azure SQL migration list includes the new active-session uniqueness migration
 
 #### Manual
 

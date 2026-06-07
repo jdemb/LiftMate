@@ -191,6 +191,8 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
       return;
     }
 
+    _syncValueInputs(session);
+
     setState(() {
       _session = session;
       _message = message;
@@ -258,6 +260,22 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
       setState(() {
         _message = message;
       });
+    }
+  }
+
+  void _syncValueInputs(SharedSession session) {
+    if (session.values.isEmpty) {
+      return;
+    }
+
+    final value = session.values.first;
+    final reps = value.reps;
+    final weight = value.weight;
+    if (reps != null) {
+      _repsController.text = reps.toString();
+    }
+    if (weight != null) {
+      _weightController.text = weight.toString();
     }
   }
 

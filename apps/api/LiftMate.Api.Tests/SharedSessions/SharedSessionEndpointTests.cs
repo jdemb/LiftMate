@@ -19,13 +19,15 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
         var createResponse = await client.PostAsJsonAsync(
             "/shared-sessions",
-            CreateRequest(trainee.User.Id));
+            CreateRequest(trainee.User.Email));
         var created = await createResponse.Content.ReadFromJsonAsync<SharedSessionResponse>();
 
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         Assert.NotNull(created);
         Assert.Equal(trainer.User.Id, created.TrainerUserId);
         Assert.Equal(trainee.User.Id, created.TraineeUserId);
+        Assert.Equal(trainer.User.Email, created.TrainerEmail);
+        Assert.Equal(trainee.User.Email, created.TraineeEmail);
         Assert.Equal("active", created.Status);
         Assert.Equal(1, created.Version);
         Assert.Single(created.Values);
@@ -53,15 +55,64 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
         var traineeCreate = await client.PostAsJsonAsync(
             "/shared-sessions",
-            CreateRequest(trainee.User.Id));
+            CreateRequest(trainee.User.Email));
 
         client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
         var trainerAsTrainee = await client.PostAsJsonAsync(
             "/shared-sessions",
-            CreateRequest(anotherTrainer.User.Id));
+            CreateRequest(anotherTrainer.User.Email));
 
         Assert.Equal(HttpStatusCode.Forbidden, traineeCreate.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, trainerAsTrainee.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateRejectsSecondActiveSessionForSameTraineeButAllowsAfterClose()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        var activeSession = await CreateSession(client, trainer, trainee);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var duplicateActive = await client.PostAsJsonAsync(
+            "/shared-sessions",
+            CreateRequest(trainee.User.Email));
+
+        await client.PostAsync($"/shared-sessions/{activeSession.Id}/complete", null);
+        var afterClose = await client.PostAsJsonAsync(
+            "/shared-sessions",
+            CreateRequest(trainee.User.Email));
+
+        Assert.Equal(HttpStatusCode.Conflict, duplicateActive.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, afterClose.StatusCode);
+    }
+
+    [Fact]
+    public async Task ParticipantsCanReadTheirActiveSession()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        var outsider = await AuthEndpointTests.Register(client, "trainee");
+        var session = await CreateSession(client, trainer, trainee);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var trainerActive = await client.GetAsync("/shared-sessions/active");
+        Assert.Equal(HttpStatusCode.OK, trainerActive.StatusCode);
+        var trainerSession = await trainerActive.Content.ReadFromJsonAsync<SharedSessionResponse>();
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var traineeActive = await client.GetAsync("/shared-sessions/active");
+        Assert.Equal(HttpStatusCode.OK, traineeActive.StatusCode);
+        var traineeSession = await traineeActive.Content.ReadFromJsonAsync<SharedSessionResponse>();
+
+        client.DefaultRequestHeaders.Authorization = Bearer(outsider.AccessToken);
+        var outsiderActive = await client.GetAsync("/shared-sessions/active");
+
+        Assert.Equal(session.Id, trainerSession?.Id);
+        Assert.Equal(session.Id, traineeSession?.Id);
+        Assert.Equal(HttpStatusCode.NotFound, outsiderActive.StatusCode);
     }
 
     [Fact]
@@ -183,7 +234,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
         var response = await client.PostAsJsonAsync(
             "/shared-sessions",
-            CreateRequest(trainee.User.Id, value));
+            CreateRequest(trainee.User.Email, value));
         var session = await response.Content.ReadFromJsonAsync<SharedSessionResponse>();
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -192,11 +243,11 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
     }
 
     private static CreateSharedSessionRequest CreateRequest(
-        string traineeUserId,
+        string traineeEmail,
         CreateSharedSessionValueRequest? value = null)
     {
         return new CreateSharedSessionRequest(
-            traineeUserId,
+            traineeEmail,
             [value ?? new CreateSharedSessionValueRequest("Bench press", "repsWeight", 1, 6, 40m, null)]);
     }
 
@@ -206,7 +257,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
     }
 
     private sealed record CreateSharedSessionRequest(
-        string TraineeUserId,
+        string TraineeEmail,
         IReadOnlyList<CreateSharedSessionValueRequest> Values);
 
     private sealed record CreateSharedSessionValueRequest(
@@ -226,6 +277,8 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         Guid Id,
         string TrainerUserId,
         string TraineeUserId,
+        string TrainerEmail,
+        string TraineeEmail,
         string Status,
         long Version,
         DateTimeOffset CreatedAt,

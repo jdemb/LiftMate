@@ -71,6 +71,9 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
             entity.HasIndex(session => session.TrainerUserId);
             entity.HasIndex(session => session.TraineeUserId);
+            entity.HasIndex(session => session.TraineeUserId)
+                .IsUnique()
+                .HasFilter("[Status] = 'active'");
             entity.HasIndex(session => session.Status);
 
             entity.HasOne(session => session.TrainerUser)

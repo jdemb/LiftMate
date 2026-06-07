@@ -1,7 +1,7 @@
 namespace LiftMate.Api.SharedSessions;
 
 public sealed record CreateSharedSessionRequest(
-    string TraineeUserId,
+    string TraineeEmail,
     IReadOnlyList<CreateSharedSessionValueRequest> Values);
 
 public sealed record CreateSharedSessionValueRequest(
@@ -21,6 +21,8 @@ public sealed record SharedSessionResponse(
     Guid Id,
     string TrainerUserId,
     string TraineeUserId,
+    string TrainerEmail,
+    string TraineeEmail,
     string Status,
     long Version,
     DateTimeOffset CreatedAt,

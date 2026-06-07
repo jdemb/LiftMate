@@ -8,6 +8,8 @@ public static class SharedSessionMapping
             session.Id,
             session.TrainerUserId,
             session.TraineeUserId,
+            session.TrainerUser?.Email ?? string.Empty,
+            session.TraineeUser?.Email ?? string.Empty,
             session.Status,
             session.Version,
             session.CreatedAt,

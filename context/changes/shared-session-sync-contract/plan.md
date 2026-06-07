@@ -836,14 +836,14 @@ Make Azure-hosted verification part of the plan because the previous physical-de
 
 #### Automated
 
-- [ ] 6.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`
-- [ ] 6.2 Tests prove `POST /shared-sessions` accepts `traineeEmail` and no longer requires a trainee user ID in the request body
-- [ ] 6.3 Tests prove only one active session per trainee is allowed
-- [ ] 6.4 Tests prove `GET /shared-sessions/active` returns the authenticated participant's active session and `404` when none exists
+- [x] 6.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`
+- [x] 6.2 Tests prove `POST /shared-sessions` accepts `traineeEmail` and no longer requires a trainee user ID in the request body
+- [x] 6.3 Tests prove only one active session per trainee is allowed
+- [x] 6.4 Tests prove `GET /shared-sessions/active` returns the authenticated participant's active session and `404` when none exists
 
 #### Manual
 
-- [ ] 6.5 Use local HTTP requests to create a session by trainee email, confirm the response still carries participant IDs plus emails, and confirm a second active session for the same trainee returns `409 Conflict`
+- [x] 6.5 Use local HTTP requests to create a session by trainee email, confirm the response still carries participant IDs plus emails, and confirm a second active session for the same trainee returns `409 Conflict`
 
 ### Phase 7: Mobile Auto-Discovery and User-Targeted Realtime
 

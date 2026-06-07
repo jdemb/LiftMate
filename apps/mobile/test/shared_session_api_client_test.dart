@@ -8,7 +8,7 @@ import 'package:liftmate/shared_sessions/shared_session_models.dart';
 
 void main() {
   group('SharedSessionApiClient', () {
-    test('create sends bearer token and parses session', () async {
+    test('create sends trainee email with bearer token and parses session', () async {
       final client = SharedSessionApiClient(
         baseUrl: 'https://api.example.test/',
         httpClient: MockClient((request) async {
@@ -16,7 +16,7 @@ void main() {
           expect(request.url.toString(), 'https://api.example.test/shared-sessions');
           expect(request.headers['Authorization'], 'Bearer access-token');
           expect(jsonDecode(request.body), {
-            'traineeUserId': 'trainee-1',
+            'traineeEmail': 'trainee@example.test',
             'values': [
               {
                 'exerciseName': 'Bench press',
@@ -35,7 +35,7 @@ void main() {
 
       final result = await client.create(
         accessToken: 'access-token',
-        traineeUserId: 'trainee-1',
+        traineeEmail: 'trainee@example.test',
         values: const [
           CreateSharedSessionValue(
             exerciseName: 'Bench press',
@@ -51,7 +51,7 @@ void main() {
       expect(result.data?.id, 'session-1');
     });
 
-    test('get, update, complete, and cancel use expected paths', () async {
+    test('getActive, get, update, complete, and cancel use expected paths', () async {
       final seen = <String>[];
       final client = SharedSessionApiClient(
         baseUrl: 'https://api.example.test',
@@ -71,6 +71,7 @@ void main() {
         }),
       );
 
+      await client.getActive(accessToken: 'access-token');
       await client.get(accessToken: 'access-token', sessionId: 'session-1');
       await client.updateValue(
         accessToken: 'access-token',
@@ -82,6 +83,7 @@ void main() {
       await client.cancel(accessToken: 'access-token', sessionId: 'session-1');
 
       expect(seen, [
+        'GET /shared-sessions/active',
         'GET /shared-sessions/session-1',
         'PATCH /shared-sessions/session-1/values/value-1',
         'POST /shared-sessions/session-1/complete',
@@ -133,6 +135,8 @@ Map<String, Object?> _sessionJson() {
     'id': 'session-1',
     'trainerUserId': 'trainer-1',
     'traineeUserId': 'trainee-1',
+    'trainerEmail': 'trainer@example.test',
+    'traineeEmail': 'trainee@example.test',
     'status': 'active',
     'version': 1,
     'createdAt': '2026-06-03T12:00:00Z',

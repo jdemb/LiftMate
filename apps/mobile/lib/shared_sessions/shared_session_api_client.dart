@@ -46,7 +46,7 @@ class SharedSessionApiClient {
 
   Future<SharedSessionApiResult<SharedSession>> create({
     required String accessToken,
-    required String traineeUserId,
+    required String traineeEmail,
     required List<CreateSharedSessionValue> values,
   }) {
     return _send<SharedSession>(
@@ -54,10 +54,23 @@ class SharedSessionApiClient {
       path: '/shared-sessions',
       accessToken: accessToken,
       body: {
-        'traineeUserId': traineeUserId,
+        'traineeEmail': traineeEmail,
         'values': values.map((value) => value.toJson()).toList(growable: false),
       },
       successStatusCodes: {201},
+      parse: SharedSession.fromJson,
+      invalidJsonMessage: 'Invalid shared session response JSON.',
+    );
+  }
+
+  Future<SharedSessionApiResult<SharedSession>> getActive({
+    required String accessToken,
+  }) {
+    return _send<SharedSession>(
+      method: 'GET',
+      path: '/shared-sessions/active',
+      accessToken: accessToken,
+      successStatusCodes: {200},
       parse: SharedSession.fromJson,
       invalidJsonMessage: 'Invalid shared session response JSON.',
     );

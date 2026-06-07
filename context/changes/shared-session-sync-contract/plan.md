@@ -836,25 +836,25 @@ Make Azure-hosted verification part of the plan because the previous physical-de
 
 #### Automated
 
-- [x] 6.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`
-- [x] 6.2 Tests prove `POST /shared-sessions` accepts `traineeEmail` and no longer requires a trainee user ID in the request body
-- [x] 6.3 Tests prove only one active session per trainee is allowed
-- [x] 6.4 Tests prove `GET /shared-sessions/active` returns the authenticated participant's active session and `404` when none exists
+- [x] 6.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api` - be57ffa
+- [x] 6.2 Tests prove `POST /shared-sessions` accepts `traineeEmail` and no longer requires a trainee user ID in the request body - be57ffa
+- [x] 6.3 Tests prove only one active session per trainee is allowed - be57ffa
+- [x] 6.4 Tests prove `GET /shared-sessions/active` returns the authenticated participant's active session and `404` when none exists - be57ffa
 
 #### Manual
 
-- [x] 6.5 Use local HTTP requests to create a session by trainee email, confirm the response still carries participant IDs plus emails, and confirm a second active session for the same trainee returns `409 Conflict`
+- [x] 6.5 Use local HTTP requests to create a session by trainee email, confirm the response still carries participant IDs plus emails, and confirm a second active session for the same trainee returns `409 Conflict` - be57ffa
 
 ### Phase 7: Mobile Auto-Discovery and User-Targeted Realtime
 
 #### Automated
 
-- [ ] 7.1 `flutter test` succeeds from `apps/mobile`
-- [ ] 7.2 `flutter analyze` succeeds from `apps/mobile`
-- [ ] 7.3 Widget tests prove the trainee does not manually enter a session ID
-- [ ] 7.4 Widget tests prove an already logged-in trainee renders a trainer-started session without pressing refresh
-- [ ] 7.5 Widget tests prove a trainee who logs in after session creation loads the active session automatically
-- [ ] 7.6 Realtime client tests prove connection failures are surfaced instead of silently collapsing to `disconnected`
+- [x] 7.1 `flutter test` succeeds from `apps/mobile`
+- [x] 7.2 `flutter analyze` succeeds from `apps/mobile`
+- [x] 7.3 Widget tests prove the trainee does not manually enter a session ID
+- [x] 7.4 Widget tests prove an already logged-in trainee renders a trainer-started session without pressing refresh
+- [x] 7.5 Widget tests prove a trainee who logs in after session creation loads the active session automatically
+- [x] 7.6 Realtime client tests prove connection failures are surfaced instead of silently collapsing to `disconnected`
 
 #### Manual
 

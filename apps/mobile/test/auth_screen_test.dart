@@ -68,6 +68,10 @@ void main() {
               expect(request.headers['Authorization'], 'Bearer access-token');
               return http.Response('{"role":"trainer"}', 200);
             }
+            if (request.url.path == '/shared-sessions/active') {
+              expect(request.headers['Authorization'], 'Bearer access-token');
+              return http.Response('', 404);
+            }
             if (request.url.path == '/auth/logout') {
               expect(request.headers['Authorization'], 'Bearer access-token');
               expect(jsonDecode(request.body), {'refreshToken': 'refresh-token'});
@@ -94,7 +98,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
-      expect(seenPaths, containsAll(['/auth/login', '/trainer/probe', '/auth/logout']));
+      expect(
+        seenPaths,
+        containsAll([
+          '/auth/login',
+          '/trainer/probe',
+          '/shared-sessions/active',
+          '/auth/logout',
+        ]),
+      );
     });
 
     testWidgets('shows login error without exposing password', (tester) async {
@@ -136,6 +148,10 @@ void main() {
             }
             if (request.url.path == '/trainee/probe') {
               return http.Response('{"role":"trainee"}', 200);
+            }
+            if (request.url.path == '/shared-sessions/active') {
+              expect(request.headers['Authorization'], 'Bearer access-token');
+              return http.Response('', 404);
             }
 
             fail('Unexpected request: ${request.method} ${request.url}');
@@ -226,6 +242,7 @@ class _InMemoryTokenStore implements TokenStore {
 class _FakeSharedSessionRealtimeClient implements SharedSessionRealtimeClient {
   final _updatesController = StreamController<SharedSession>.broadcast();
   final _statusController = StreamController<SharedSessionConnectionStatus>.broadcast();
+  final _errorsController = StreamController<String>.broadcast();
 
   @override
   Stream<SharedSession> get updates => _updatesController.stream;
@@ -234,8 +251,15 @@ class _FakeSharedSessionRealtimeClient implements SharedSessionRealtimeClient {
   Stream<SharedSessionConnectionStatus> get connectionStatus => _statusController.stream;
 
   @override
+  Stream<String> get errors => _errorsController.stream;
+
+  @override
   Future<void> connect({
     required String accessToken,
+  }) async {}
+
+  @override
+  Future<void> joinSession({
     required String sessionId,
   }) async {}
 

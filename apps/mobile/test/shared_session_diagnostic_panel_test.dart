@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:liftmate/auth/auth_api_client.dart';
 import 'package:liftmate/auth/auth_controller.dart';
+import 'package:liftmate/auth/auth_models.dart';
 import 'package:liftmate/auth/token_store.dart';
 import 'package:liftmate/shared_sessions/shared_session_api_client.dart';
 import 'package:liftmate/shared_sessions/shared_session_diagnostic_panel.dart';
@@ -15,55 +16,95 @@ import 'package:liftmate/shared_sessions/shared_session_realtime_client.dart';
 
 void main() {
   group('SharedSessionDiagnosticPanel', () {
-    testWidgets('shows authenticated user and creates trainer demo session', (tester) async {
-      final apiClient = _FakeSharedSessionApiClient();
+    testWidgets('trainer creates a demo session by trainee email without session IDs',
+        (tester) async {
+      final apiClient = _FakeSharedSessionApiClient(hasActiveSession: false);
       final realtimeClient = _FakeSharedSessionRealtimeClient();
 
       await tester.pumpWidget(
-        await _testApp(apiClient: apiClient, realtimeClient: realtimeClient),
+        await _testApp(
+          apiClient: apiClient,
+          realtimeClient: realtimeClient,
+          role: UserRole.trainer,
+        ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Shared session diagnostics'), findsOneWidget);
       expect(find.text('Current user: trainer-1 (trainer)'), findsOneWidget);
+      expect(find.text('Session ID'), findsNothing);
+      expect(find.text('Join session'), findsNothing);
+      expect(find.text('Trainee user ID'), findsNothing);
 
-      await tester.enterText(find.widgetWithText(TextField, 'Trainee user ID'), 'trainee-1');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Trainee email'),
+        'trainee@example.test',
+      );
       await tester.tap(find.text('Create demo session'));
       await tester.pumpAndSettle();
 
-      expect(apiClient.createdForTraineeUserId, 'trainee-1');
-      expect(realtimeClient.connectedSessionId, 'session-1');
+      expect(apiClient.createdForTraineeEmail, 'trainee@example.test');
+      expect(realtimeClient.connectedAccessToken, 'access-token');
+      expect(realtimeClient.joinedSessionIds, ['session-1']);
       expect(find.text('Status: active'), findsOneWidget);
       expect(find.text('Version: 1'), findsOneWidget);
       expect(find.textContaining('Bench press'), findsOneWidget);
     });
 
-    testWidgets('joins an existing session by id', (tester) async {
+    testWidgets('trainee waits without manual session ID or join controls', (tester) async {
+      final apiClient = _FakeSharedSessionApiClient(hasActiveSession: false);
+      final realtimeClient = _FakeSharedSessionRealtimeClient();
+
+      await tester.pumpWidget(
+        await _testApp(
+          apiClient: apiClient,
+          realtimeClient: realtimeClient,
+          role: UserRole.trainee,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(apiClient.activeRequestedCount, 1);
+      expect(find.text('Waiting for trainer to start a session.'), findsWidgets);
+      expect(find.text('Session ID'), findsNothing);
+      expect(find.text('Join session'), findsNothing);
+      expect(find.text('Trainee email'), findsNothing);
+    });
+
+    testWidgets('trainee logged in after session creation auto-loads active session',
+        (tester) async {
       final apiClient = _FakeSharedSessionApiClient();
       final realtimeClient = _FakeSharedSessionRealtimeClient();
 
       await tester.pumpWidget(
-        await _testApp(apiClient: apiClient, realtimeClient: realtimeClient),
+        await _testApp(
+          apiClient: apiClient,
+          realtimeClient: realtimeClient,
+          role: UserRole.trainee,
+        ),
       );
-
-      await tester.enterText(find.widgetWithText(TextField, 'Session ID'), 'session-1');
-      await tester.tap(find.text('Join session'));
       await tester.pumpAndSettle();
 
-      expect(apiClient.requestedSessionId, 'session-1');
-      expect(realtimeClient.connectedSessionId, 'session-1');
+      expect(apiClient.activeRequestedCount, 1);
+      expect(realtimeClient.connectedAccessToken, 'access-token');
+      expect(realtimeClient.joinedSessionIds, ['session-1']);
+      expect(find.text('Trainer: trainer@example.test'), findsOneWidget);
+      expect(find.text('Trainee: trainee@example.test'), findsOneWidget);
       expect(find.text('Status: active'), findsOneWidget);
     });
 
-    testWidgets('renders incoming realtime update without real SignalR', (tester) async {
-      final apiClient = _FakeSharedSessionApiClient();
+    testWidgets('already logged-in trainee renders trainer-started session without refresh',
+        (tester) async {
+      final apiClient = _FakeSharedSessionApiClient(hasActiveSession: false);
       final realtimeClient = _FakeSharedSessionRealtimeClient();
 
       await tester.pumpWidget(
-        await _testApp(apiClient: apiClient, realtimeClient: realtimeClient),
+        await _testApp(
+          apiClient: apiClient,
+          realtimeClient: realtimeClient,
+          role: UserRole.trainee,
+        ),
       );
-
-      await tester.enterText(find.widgetWithText(TextField, 'Session ID'), 'session-1');
-      await tester.tap(find.text('Join session'));
       await tester.pumpAndSettle();
 
       realtimeClient.emit(_session(version: 2, reps: 10, weight: 45));
@@ -73,18 +114,21 @@ void main() {
       expect(find.textContaining('10 reps'), findsOneWidget);
       expect(find.textContaining('45.0 kg'), findsOneWidget);
       expect(find.text('Session update received.'), findsOneWidget);
+      expect(realtimeClient.joinedSessionIds, ['session-1']);
     });
 
-    testWidgets('updates first value through API client', (tester) async {
+    testWidgets('updates first value through internally discovered session ID',
+        (tester) async {
       final apiClient = _FakeSharedSessionApiClient();
       final realtimeClient = _FakeSharedSessionRealtimeClient();
 
       await tester.pumpWidget(
-        await _testApp(apiClient: apiClient, realtimeClient: realtimeClient),
+        await _testApp(
+          apiClient: apiClient,
+          realtimeClient: realtimeClient,
+          role: UserRole.trainee,
+        ),
       );
-
-      await tester.enterText(find.widgetWithText(TextField, 'Session ID'), 'session-1');
-      await tester.tap(find.text('Join session'));
       await tester.pumpAndSettle();
       await tester.enterText(find.widgetWithText(TextField, 'Reps'), '9');
       await tester.enterText(find.widgetWithText(TextField, 'Weight'), '43.5');
@@ -100,16 +144,17 @@ void main() {
 
     testWidgets('disables edits after completed session', (tester) async {
       final apiClient = _FakeSharedSessionApiClient(
-        initialSession: _session(status: SharedSessionStatus.completed),
+        activeSession: _session(status: SharedSessionStatus.completed),
       );
       final realtimeClient = _FakeSharedSessionRealtimeClient();
 
       await tester.pumpWidget(
-        await _testApp(apiClient: apiClient, realtimeClient: realtimeClient),
+        await _testApp(
+          apiClient: apiClient,
+          realtimeClient: realtimeClient,
+          role: UserRole.trainee,
+        ),
       );
-
-      await tester.enterText(find.widgetWithText(TextField, 'Session ID'), 'session-1');
-      await tester.tap(find.text('Join session'));
       await tester.pumpAndSettle();
 
       final updateButton = tester.widget<FilledButton>(
@@ -123,12 +168,13 @@ void main() {
 Future<Widget> _testApp({
   required _FakeSharedSessionApiClient apiClient,
   required _FakeSharedSessionRealtimeClient realtimeClient,
+  required UserRole role,
 }) async {
   final authApiClient = AuthApiClient(
     baseUrl: 'https://api.example.test',
     httpClient: MockClient((request) async {
       if (request.url.path == '/auth/login') {
-        return http.Response(jsonEncode(_authResponse()), 200);
+        return http.Response(jsonEncode(_authResponse(role)), 200);
       }
       return http.Response('', 404);
     }),
@@ -138,7 +184,7 @@ Future<Widget> _testApp({
     tokenStore: _InMemoryTokenStore(),
   );
   await authController.login(
-    email: 'trainer@example.test',
+    email: '${role.wireName}@example.test',
     password: 'Password123!',
   );
 
@@ -156,15 +202,15 @@ Future<Widget> _testApp({
   );
 }
 
-Map<String, Object?> _authResponse() {
+Map<String, Object?> _authResponse(UserRole role) {
   return {
     'accessToken': 'access-token',
     'refreshToken': 'refresh-token',
     'expiresAt': '2026-06-03T12:00:00Z',
     'user': {
-      'id': 'trainer-1',
-      'email': 'trainer@example.test',
-      'role': 'trainer',
+      'id': role == UserRole.trainer ? 'trainer-1' : 'trainee-1',
+      'email': '${role.wireName}@example.test',
+      'role': role.wireName,
     },
   };
 }
@@ -179,6 +225,8 @@ SharedSession _session({
     id: 'session-1',
     trainerUserId: 'trainer-1',
     traineeUserId: 'trainee-1',
+    trainerEmail: 'trainer@example.test',
+    traineeEmail: 'trainee@example.test',
     status: status,
     version: version,
     createdAt: DateTime.parse('2026-06-03T12:00:00Z').toUtc(),
@@ -200,24 +248,29 @@ SharedSession _session({
 }
 
 class _FakeSharedSessionApiClient extends SharedSessionApiClient {
-  _FakeSharedSessionApiClient({SharedSession? initialSession})
-      : _currentSession = initialSession ?? _session(),
+  _FakeSharedSessionApiClient({
+    SharedSession? activeSession,
+    this.hasActiveSession = true,
+  })
+      : _currentSession = activeSession ?? _session(),
         super(baseUrl: 'https://api.example.test');
 
   SharedSession _currentSession;
-  String? createdForTraineeUserId;
-  String? requestedSessionId;
+  bool hasActiveSession;
+  String? createdForTraineeEmail;
   String? updatedSessionId;
   String? updatedValueId;
   UpdateSharedSessionValue? updatedValue;
+  int activeRequestedCount = 0;
 
   @override
   Future<SharedSessionApiResult<SharedSession>> create({
     required String accessToken,
-    required String traineeUserId,
+    required String traineeEmail,
     required List<CreateSharedSessionValue> values,
   }) async {
-    createdForTraineeUserId = traineeUserId;
+    createdForTraineeEmail = traineeEmail;
+    hasActiveSession = true;
     return SharedSessionApiResult(
       status: SharedSessionApiStatus.success,
       message: 'Request succeeded.',
@@ -226,11 +279,17 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
   }
 
   @override
-  Future<SharedSessionApiResult<SharedSession>> get({
+  Future<SharedSessionApiResult<SharedSession>> getActive({
     required String accessToken,
-    required String sessionId,
   }) async {
-    requestedSessionId = sessionId;
+    activeRequestedCount += 1;
+    if (!hasActiveSession) {
+      return const SharedSessionApiResult(
+        status: SharedSessionApiStatus.notFound,
+        message: 'No active shared session yet.',
+      );
+    }
+
     return SharedSessionApiResult(
       status: SharedSessionApiStatus.success,
       message: 'Request succeeded.',
@@ -264,8 +323,9 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
 class _FakeSharedSessionRealtimeClient implements SharedSessionRealtimeClient {
   final _updatesController = StreamController<SharedSession>.broadcast();
   final _statusController = StreamController<SharedSessionConnectionStatus>.broadcast();
+  final _errorsController = StreamController<String>.broadcast();
   String? connectedAccessToken;
-  String? connectedSessionId;
+  final joinedSessionIds = <String>[];
 
   @override
   Stream<SharedSession> get updates => _updatesController.stream;
@@ -274,13 +334,23 @@ class _FakeSharedSessionRealtimeClient implements SharedSessionRealtimeClient {
   Stream<SharedSessionConnectionStatus> get connectionStatus => _statusController.stream;
 
   @override
+  Stream<String> get errors => _errorsController.stream;
+
+  @override
   Future<void> connect({
     required String accessToken,
-    required String sessionId,
   }) async {
     connectedAccessToken = accessToken;
-    connectedSessionId = sessionId;
     _statusController.add(SharedSessionConnectionStatus.connected);
+  }
+
+  @override
+  Future<void> joinSession({
+    required String sessionId,
+  }) async {
+    if (!joinedSessionIds.contains(sessionId)) {
+      joinedSessionIds.add(sessionId);
+    }
   }
 
   @override

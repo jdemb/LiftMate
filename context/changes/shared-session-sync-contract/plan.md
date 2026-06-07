@@ -41,18 +41,22 @@ This is foundation slice F-03 from `context/foundation/roadmap.md`. It exists to
 
 The API has a minimal shared-session domain model and SignalR hub:
 
-- A trainer can create a shared session for a real trainee user by ID with a small inline exercise-value snapshot.
-- The trainer and the named trainee can retrieve, join, and update that session.
+- A trainer can create a shared session for a real trainee by email with a small inline exercise-value snapshot.
+- The API resolves that email to the stored trainee user ID and preserves participant authorization by ID internally.
+- The API allows at most one active shared session per trainee at a time.
+- The trainer and the named trainee can retrieve and update that session without either user copying a session ID through the mobile UI.
 - Other users are denied, even if they are authenticated.
 - Both trainer and trainee can write exercise values.
 - Conflicts use last-write-wins: the API accepts the latest completed write and broadcasts the resulting full snapshot.
 - Session status supports `active`, `completed`, and `cancelled`; non-active sessions reject further value updates.
 - Every accepted mutation advances a server-owned session version and emits a SignalR update to the session group.
+- Creating a session emits a user-targeted start notification so an already logged-in trainee can discover the new active session without manual refresh.
 
 The Flutter app has a typed shared-session client and a lightweight authenticated diagnostic surface:
 
-- A logged-in trainer can create a demo shared session for a trainee user ID.
-- Either participant can join a session by ID, see the current snapshot, and receive SignalR updates.
+- A logged-in trainer can create a demo shared session for a trainee email address.
+- A logged-in trainee automatically discovers an active session created for their account and sees a "training already started" state without entering a session ID.
+- A trainee who logs in after the trainer starts the session automatically loads that active session after authentication.
 - Either participant can submit a small value update and see the broadcast result.
 - This UI is explicitly temporary diagnostic/product-risk validation, not the final workout screen.
 
@@ -65,8 +69,11 @@ The Flutter app has a typed shared-session client and a lightweight authenticate
 | Session data scope | Minimal exercise value snapshot | Proves shared workout state without implementing S-02/S-03 full workout templates. |
 | Write roles | Trainer and trainee can both write | This anticipates later self-editing and forces the contract to handle shared authorship now. |
 | Conflict handling | Last write wins | Keeps F-03 simple and avoids conflict UI, accepting the risk of silent overwrites for MVP. |
-| Access model | Explicit `trainerUserId` and `traineeUserId` participants | Preserves real data isolation before trainer-trainee relationship records exist. |
+| Trainer input | Trainee email | Physical-device Azure testing is much easier with the login identifier than opaque Identity user IDs. |
+| Access model | Store explicit `trainerUserId` and `traineeUserId`; resolve trainee email at create time | Preserves data isolation while hiding IDs from the temporary mobile UI. |
+| Active-session cardinality | One active session per trainee | Avoids session-picking UI and makes trainee auto-discovery deterministic. |
 | Lifecycle | `active`, `completed`, `cancelled` | Covers normal finish and abort paths while keeping persistence small. |
+| Trainee discovery | Push notification over SignalR plus authenticated active-session fetch fallback | Supports already-logged-in and newly-logged-in trainees, and gives a fallback when Azure/mobile realtime is unstable. |
 | Mobile scope | Client plus lightweight diagnostic screen | Makes the contract manually verifiable on two clients before building S-04. |
 
 ## Scope
@@ -81,7 +88,9 @@ The Flutter app has a typed shared-session client and a lightweight authenticate
 - API integration tests for session lifecycle, authorization, mutation rules, and hub delivery.
 - Flutter shared-session models and REST client.
 - Flutter SignalR client wrapper with injectable/fakeable connection boundary.
-- Temporary authenticated diagnostic UI for creating/joining/updating a shared session.
+- Temporary authenticated diagnostic UI for creating/updating a shared session without exposing session IDs.
+- Trainee active-session auto-discovery after login and while already logged in.
+- Azure/App Service realtime transport verification for the observed `connecting` -> `disconnected` failure.
 - Mobile unit/widget tests for models, client behavior, connection state, and diagnostic UI.
 
 ### Out of Scope
@@ -118,9 +127,17 @@ The REST endpoints own validation, persistence, lifecycle rules, and authorizati
 - `POST /shared-sessions`
   - Requires trainer role.
   - Authenticated trainer becomes `trainerUserId`.
-  - Body includes `traineeUserId` and initial exercise value rows.
-  - Verifies the trainee user exists and has role `trainee`.
+  - Body includes `traineeEmail` and initial exercise value rows.
+  - Normalizes the email through Identity's normalizer and verifies the trainee user exists and has role `trainee`.
+  - Rejects creation with `409 Conflict` if the resolved trainee already has an `active` shared session.
   - Returns `201` with `SharedSessionResponse`.
+
+- `GET /shared-sessions/active`
+  - Requires authentication.
+  - Returns the current active session for the authenticated participant.
+  - For trainees, this is the active session where `traineeUserId` matches the current user.
+  - For trainers, this may return the most recently updated active session owned by the trainer only for diagnostics; production trainer session lists belong to later slices.
+  - Returns `404 Not Found` when the authenticated user has no active shared session.
 
 - `GET /shared-sessions/{sessionId}`
   - Requires authentication.
@@ -158,7 +175,10 @@ The REST endpoints own validation, persistence, lifecycle rules, and authorizati
 - Client invokes `JoinSession(sessionId)`.
 - Hub validates the caller is one of the session participants before adding the connection to group `shared-session:{sessionId}`.
 - Server emits `sessionUpdated` with the full `SharedSessionResponse` after create/update/complete/cancel.
+- Server emits `sessionStarted` with the full `SharedSessionResponse` to the trainee's user group immediately after create.
+- Hub connections are also associated with a stable per-user group based on the authenticated user ID, so a trainee can be notified before they know any session ID.
 - Hub should not expose mutation methods in F-03; writes go through REST so authorization and validation stay in one path.
+- The Azure App Service transport settings are part of the verification contract: the deployed app must support the negotiated SignalR transport used by the physical-device release build. The previously observed `connecting` -> `disconnected` state is a failing condition, not an acceptable manual-test workaround.
 
 ### Response Shape
 
@@ -167,6 +187,8 @@ Use stable camelCase JSON fields:
 - `id`
 - `trainerUserId`
 - `traineeUserId`
+- `trainerEmail`
+- `traineeEmail`
 - `status`: `active`, `completed`, or `cancelled`
 - `version`
 - `createdAt`
@@ -487,11 +509,192 @@ Expose a temporary authenticated diagnostic panel that proves the contract with 
 
 ---
 
+## Phase 6: API Email-Based Active Session Discovery
+
+Revise the API contract so physical-device testers can create sessions by trainee email, and so trainees can discover their own active session without knowing a session ID.
+
+### Changes Required
+
+#### `apps/api/LiftMate.Api/SharedSessions/SharedSessionContracts.cs`
+
+**Intent**: Replace the external create input from opaque user ID to the login identifier testers already know.
+
+**Contract**: `CreateSharedSessionRequest` accepts `traineeEmail` instead of `traineeUserId`. `SharedSessionResponse` includes `trainerEmail` and `traineeEmail` alongside the existing participant IDs so diagnostics can show human-readable participants without weakening ID-based authorization.
+
+#### `apps/api/LiftMate.Api/SharedSessions/SharedSessionEndpoints.cs`
+
+**Intent**: Resolve trainee email at the API boundary and add deterministic active-session discovery.
+
+**Contract**: `POST /shared-sessions` normalizes `traineeEmail`, verifies a trainee user exists, rejects another active session for that trainee with `409 Conflict`, stores the resolved `traineeUserId`, and returns the expanded response. Add `GET /shared-sessions/active`, which returns the active session for the authenticated participant or `404 Not Found` when none exists.
+
+#### `apps/api/LiftMate.Api/Data/ApplicationDbContext.cs`
+
+**Intent**: Make "one active session per trainee" durable rather than only a best-effort endpoint check.
+
+**Contract**: Add a unique filtered index on `SharedSession.TraineeUserId` for rows where `Status == active`, while preserving completed/cancelled history.
+
+#### `apps/api/LiftMate.Api/Migrations/<timestamp>_OneActiveSharedSessionPerTrainee.cs`
+
+**Intent**: Apply the active-session uniqueness contract to SQL Server and Azure SQL.
+
+**Contract**: Migration adds only the filtered unique active-session index. It does not alter existing Identity tables, value rows, or historical closed sessions.
+
+#### `apps/api/LiftMate.Api/SharedSessions/SharedSessionMapping.cs`
+
+**Intent**: Keep response shaping centralized after adding participant emails.
+
+**Contract**: Response mapping includes `TrainerUser.Email` and `TraineeUser.Email`; endpoint queries include the required navigation data without introducing lazy loading.
+
+#### `apps/api/LiftMate.Api.Tests/SharedSessions/SharedSessionEndpointTests.cs`
+
+**Intent**: Lock the revised contract and prevent regressions to ID-based manual setup.
+
+**Contract**: Tests cover create-by-trainee-email, unknown/non-trainee email rejection, duplicate active session rejection, active-session lookup for trainer and trainee, `404` when no active session exists, and closed-session behavior allowing a later new active session for the same trainee.
+
+### Success Criteria
+
+#### Automated Verification
+
+- `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`.
+- Tests prove `POST /shared-sessions` accepts `traineeEmail` and no longer requires a trainee user ID in the request body.
+- Tests prove only one active session per trainee is allowed.
+- Tests prove `GET /shared-sessions/active` returns the authenticated participant's active session and `404` when none exists.
+
+#### Manual Verification
+
+- Use local HTTP requests to create a session by trainee email, confirm the response still carries participant IDs plus emails, and confirm a second active session for the same trainee returns `409 Conflict`.
+
+---
+
+## Phase 7: Mobile Auto-Discovery and User-Targeted Realtime
+
+Remove session IDs from the temporary mobile UI and make the trainee screen discover active sessions automatically.
+
+### Changes Required
+
+#### `apps/mobile/lib/shared_sessions/shared_session_models.dart`
+
+**Intent**: Keep the mobile parser aligned with the expanded API response.
+
+**Contract**: `SharedSession` parses `trainerEmail` and `traineeEmail` while preserving existing ID fields for authorization-sensitive operations.
+
+#### `apps/mobile/lib/shared_sessions/shared_session_api_client.dart`
+
+**Intent**: Match the revised REST contract and support trainee auto-load.
+
+**Contract**: `create` accepts `traineeEmail`; add `getActive(accessToken)` for `GET /shared-sessions/active`. Keep update/complete/cancel pathing by internal session ID, but do not expose session ID input to UI.
+
+#### `apps/mobile/lib/shared_sessions/shared_session_realtime_client.dart`
+
+**Intent**: Let an authenticated user receive session-start notifications before they know a session ID.
+
+**Contract**: The realtime client connects with a bearer token, listens for `sessionStarted` and `sessionUpdated`, exposes both through the same `updates` stream or a clearly named start/update stream contract, joins the specific session group after receiving or fetching an active session, and surfaces connection errors instead of silently dropping from `connecting` to `disconnected`.
+
+#### `apps/mobile/lib/shared_sessions/shared_session_diagnostic_panel.dart`
+
+**Intent**: Make the temporary UI match the real physical-device workflow.
+
+**Contract**: Trainer UI has a `Trainee email` field and no `Session ID` field. Trainee UI has no join field or join button; it shows a waiting state when no active session exists, automatically fetches `GET /shared-sessions/active` after authentication, and switches to the active session when `sessionStarted` or `sessionUpdated` arrives.
+
+#### `apps/mobile/lib/auth/auth_screen.dart`
+
+**Intent**: Ensure a trainee who logs in after the trainer starts a session still sees it automatically.
+
+**Contract**: The authenticated panel constructs the diagnostic panel with enough auth/client dependencies for the panel to run active-session discovery on mount and reconnect after auth state changes.
+
+#### `apps/mobile/test/shared_session_api_client_test.dart`
+
+**Intent**: Verify the mobile REST boundary no longer depends on user IDs or manual session IDs for discovery.
+
+**Contract**: Tests prove create sends `traineeEmail`, `getActive` calls `/shared-sessions/active`, and update/complete/cancel still use the internally returned session ID.
+
+#### `apps/mobile/test/shared_session_realtime_client_test.dart`
+
+**Intent**: Reproduce and prevent the physical-device failure class where the realtime client reports `connecting` and immediately `disconnected` without useful handling.
+
+**Contract**: Tests cover `sessionStarted` handling, joining a session after discovery, status/error propagation when start or join fails, and reconnection/status sequencing without swallowing failures.
+
+#### `apps/mobile/test/shared_session_diagnostic_panel_test.dart`
+
+**Intent**: Lock the new tester workflow.
+
+**Contract**: Tests cover trainer create-by-email, trainee waiting state, trainee auto-load from `getActive` on mount, trainee receiving an already-logged-in `sessionStarted` update, and absence of `Session ID`/`Join session` controls.
+
+### Success Criteria
+
+#### Automated Verification
+
+- `flutter test` succeeds from `apps/mobile`.
+- `flutter analyze` succeeds from `apps/mobile`.
+- Widget tests prove the trainee does not manually enter a session ID.
+- Widget tests prove an already logged-in trainee renders a trainer-started session without pressing refresh.
+- Widget tests prove a trainee who logs in after session creation loads the active session automatically.
+- Realtime client tests prove connection failures are surfaced instead of silently collapsing to `disconnected`.
+
+#### Manual Verification
+
+- On physical release builds, trainer creates a session by trainee email and sees the active session without copying any ID.
+- On a second physical device already logged in as trainee, the session appears without manual refresh or manual join.
+- On a trainee device logged out during trainer creation, logging in shows the active session without entering a session ID.
+
+---
+
+## Phase 8: Azure Realtime Hardening and Final Physical-Device Gate
+
+Make Azure-hosted verification part of the plan because the previous physical-device run failed with `connecting` followed by `disconnected`.
+
+### Changes Required
+
+#### Azure App Service configuration
+
+**Intent**: Ensure the deployed App Service supports the transport the mobile SignalR client negotiates.
+
+**Contract**: Verify and, if needed, enable App Service WebSockets for `liftmate-api-dev-jdemb`. Record the effective setting in the phase verification notes. Do not introduce paid Azure SignalR Service in F-03.
+
+#### `.github/workflows/deploy-api-azure.yml`
+
+**Intent**: Keep API deployment and migrations reliable for the revised contract.
+
+**Contract**: Existing Azure SQL migration step remains in place so the new active-session uniqueness migration reaches Azure before physical-device tests run.
+
+#### `context/changes/shared-session-sync-contract/plan.md`
+
+**Intent**: Preserve the manual evidence from the revised end-to-end Azure test.
+
+**Contract**: Phase 8 manual rows are the authoritative replacement for the obsolete Phase 5 manual flow that required copying session IDs.
+
+### Success Criteria
+
+#### Automated Verification
+
+- `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`.
+- `flutter test` succeeds from `apps/mobile`.
+- `flutter analyze` succeeds from `apps/mobile`.
+- GitHub Actions deploy run for `deploy-2026-05-26` succeeds, including the Azure SQL migration step.
+- Azure SQL migration list includes the new active-session uniqueness migration.
+
+#### Manual Verification
+
+- Azure App Service realtime transport setting is verified and documented.
+- Public Azure `/health` returns `200`.
+- Trainer and trainee physical release builds both authenticate against Azure.
+- Trainer creates a session by trainee email; the trainee already logged in receives the active session without manual refresh.
+- Trainer creates a session while the trainee is logged out; the trainee sees it immediately after login.
+- Neither physical-device UI exposes `Session ID` or `Join session` as the normal test path.
+- Value updates from trainer and trainee appear on the other client without manual refresh.
+- Complete or cancel blocks further value edits on both devices.
+- If SignalR falls back, reconnects, or misses a start notification, the active-session fetch fallback recovers without manual session ID entry.
+
+---
+
 ## Testing Strategy
 
 ### API Unit/Integration Tests
 
 - Shared-session create validates trainer role and trainee user role.
+- Shared-session create accepts trainee email and never requires the tester to know the trainee user ID.
+- Active-session lookup returns the authenticated participant's active session.
+- One active session per trainee is enforced by endpoint checks and the database index.
 - Participant-only read/write access is enforced.
 - Third authenticated user receives forbidden behavior.
 - Both trainer and trainee can update active session values.
@@ -504,18 +707,19 @@ Expose a temporary authenticated diagnostic panel that proves the contract with 
 
 - Dart models parse the exact API response shape.
 - REST client sends expected paths, JSON, and bearer headers.
-- Realtime client wrapper can surface connection state and session update stream.
-- Diagnostic panel renders current state, applies incoming updates, and blocks edits for closed sessions.
+- Realtime client wrapper can surface connection state, session-start notifications, session updates, and connection failures.
+- Diagnostic panel renders current state, applies incoming updates, auto-discovers active sessions, and blocks edits for closed sessions.
+- Diagnostic panel tests prove session IDs are not part of the physical-device tester workflow.
 
 ### Manual Testing Steps
 
 1. Run API locally with test/development auth settings.
 2. Register one trainer and one trainee.
-3. Create a shared session as trainer for the trainee user ID.
-4. Join the same session from two mobile clients.
+3. Create a shared session as trainer for the trainee email.
+4. Confirm the trainee client discovers the session automatically without a session ID.
 5. Update a value from each role and observe the other client.
 6. Complete and cancel separate sessions to verify closed-state behavior.
-7. Repeat against Azure after API config, database migration, and deployment are intentionally handled.
+7. Repeat against Azure after API config, database migration, App Service realtime transport, and deployment are intentionally handled.
 
 ## Performance Considerations
 
@@ -529,12 +733,16 @@ Expose a temporary authenticated diagnostic panel that proves the contract with 
 
 - The migration is additive and can be rolled back by dropping shared-session tables before real user workout data depends on them.
 - Existing Identity and refresh-token tables remain unchanged except for foreign key references from shared sessions to users.
+- The revised F-03 contract adds a second additive migration for the unique active-session-per-trainee index.
+- Before applying the active-session uniqueness migration to any database with real data, verify there are no duplicate active sessions per trainee. The current F-03 data is test/demo-only, so conflict cleanup can be manual if needed.
 - Azure verification requires the deployed database to receive the new migration. Do not claim Azure completion until the migration and App Service deployment are confirmed.
 
 ## Rollback Strategy
 
 - API rollback: remove shared-session endpoint/hub mapping and roll back the shared-session migration before any production data is valuable.
+- Revised API rollback: remove `traineeEmail` create contract, `GET /shared-sessions/active`, user-targeted start broadcasts, and roll back the active-session uniqueness migration if it blocks necessary test cleanup.
 - Mobile rollback: remove the diagnostic panel from the authenticated screen while leaving auth and health diagnostics intact.
+- Revised mobile rollback: restore manual session join only as a temporary local-debug fallback, not as the physical-device acceptance path.
 - Since F-03 creates new tables and routes, rollback does not require changing existing auth contracts.
 
 ## References
@@ -607,6 +815,8 @@ Expose a temporary authenticated diagnostic panel that proves the contract with 
 
 ### Phase 5: Mobile Diagnostic Shared-Session Surface
 
+> Revision note: Phase 5 manual verification exposed two plan issues: the UI required copying opaque IDs, and physical-device SignalR collapsed from `connecting` to `disconnected`. Resume implementation at Phase 6; Phase 8 replaces the obsolete Phase 5 manual flow.
+
 #### Automated
 
 - [x] 5.1 `flutter test` succeeds from `apps/mobile`
@@ -621,3 +831,55 @@ Expose a temporary authenticated diagnostic panel that proves the contract with 
 - [ ] 5.7 Updates from trainer and trainee appear on the other client without pressing refresh
 - [ ] 5.8 Complete or cancel the session and confirm further value edits are blocked
 - [ ] 5.9 Observe typical update delivery under local/Azure conditions and record delays if Free tier is slower than expected
+
+### Phase 6: API Email-Based Active Session Discovery
+
+#### Automated
+
+- [ ] 6.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`
+- [ ] 6.2 Tests prove `POST /shared-sessions` accepts `traineeEmail` and no longer requires a trainee user ID in the request body
+- [ ] 6.3 Tests prove only one active session per trainee is allowed
+- [ ] 6.4 Tests prove `GET /shared-sessions/active` returns the authenticated participant's active session and `404` when none exists
+
+#### Manual
+
+- [ ] 6.5 Use local HTTP requests to create a session by trainee email, confirm the response still carries participant IDs plus emails, and confirm a second active session for the same trainee returns `409 Conflict`
+
+### Phase 7: Mobile Auto-Discovery and User-Targeted Realtime
+
+#### Automated
+
+- [ ] 7.1 `flutter test` succeeds from `apps/mobile`
+- [ ] 7.2 `flutter analyze` succeeds from `apps/mobile`
+- [ ] 7.3 Widget tests prove the trainee does not manually enter a session ID
+- [ ] 7.4 Widget tests prove an already logged-in trainee renders a trainer-started session without pressing refresh
+- [ ] 7.5 Widget tests prove a trainee who logs in after session creation loads the active session automatically
+- [ ] 7.6 Realtime client tests prove connection failures are surfaced instead of silently collapsing to `disconnected`
+
+#### Manual
+
+- [ ] 7.7 On physical release builds, trainer creates a session by trainee email and sees the active session without copying any ID
+- [ ] 7.8 On a second physical device already logged in as trainee, the session appears without manual refresh or manual join
+- [ ] 7.9 On a trainee device logged out during trainer creation, logging in shows the active session without entering a session ID
+
+### Phase 8: Azure Realtime Hardening and Final Physical-Device Gate
+
+#### Automated
+
+- [ ] 8.1 `dotnet test LiftMate.slnx --no-restore` succeeds from `apps/api`
+- [ ] 8.2 `flutter test` succeeds from `apps/mobile`
+- [ ] 8.3 `flutter analyze` succeeds from `apps/mobile`
+- [ ] 8.4 GitHub Actions deploy run for `deploy-2026-05-26` succeeds, including the Azure SQL migration step
+- [ ] 8.5 Azure SQL migration list includes the new active-session uniqueness migration
+
+#### Manual
+
+- [ ] 8.6 Azure App Service realtime transport setting is verified and documented
+- [ ] 8.7 Public Azure `/health` returns `200`
+- [ ] 8.8 Trainer and trainee physical release builds both authenticate against Azure
+- [ ] 8.9 Trainer creates a session by trainee email; the trainee already logged in receives the active session without manual refresh
+- [ ] 8.10 Trainer creates a session while the trainee is logged out; the trainee sees it immediately after login
+- [ ] 8.11 Neither physical-device UI exposes `Session ID` or `Join session` as the normal test path
+- [ ] 8.12 Value updates from trainer and trainee appear on the other client without manual refresh
+- [ ] 8.13 Complete or cancel blocks further value edits on both devices
+- [ ] 8.14 If SignalR falls back, reconnects, or misses a start notification, the active-session fetch fallback recovers without manual session ID entry

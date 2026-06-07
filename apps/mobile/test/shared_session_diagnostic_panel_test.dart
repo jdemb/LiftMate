@@ -114,6 +114,14 @@ void main() {
       expect(find.textContaining('10 reps'), findsOneWidget);
       expect(find.textContaining('45.0 kg'), findsOneWidget);
       expect(find.text('Session update received.'), findsOneWidget);
+      expect(
+        tester.widget<TextField>(find.widgetWithText(TextField, 'Reps')).controller?.text,
+        '10',
+      );
+      expect(
+        tester.widget<TextField>(find.widgetWithText(TextField, 'Weight')).controller?.text,
+        '45.0',
+      );
       expect(realtimeClient.joinedSessionIds, ['session-1']);
     });
 

@@ -27,13 +27,13 @@ class SharedSessionDiagnosticPanel extends StatefulWidget {
 }
 
 class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPanel> {
-  final _sessionIdController = TextEditingController();
-  final _traineeUserIdController = TextEditingController();
+  final _traineeEmailController = TextEditingController();
   final _repsController = TextEditingController(text: '8');
   final _weightController = TextEditingController(text: '42.5');
   late final SharedSessionRealtimeClient _realtimeClient;
   StreamSubscription<SharedSession>? _updatesSubscription;
   StreamSubscription<SharedSessionConnectionStatus>? _statusSubscription;
+  StreamSubscription<String>? _errorsSubscription;
 
   SharedSession? _session;
   SharedSessionConnectionStatus _connectionStatus =
@@ -45,14 +45,12 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
   void initState() {
     super.initState();
     _realtimeClient = widget.realtimeClientFactory();
-    _updatesSubscription = _realtimeClient.updates.listen((session) {
-      if (mounted) {
-        setState(() {
-          _session = session;
-          _sessionIdController.text = session.id;
-          _message = 'Session update received.';
-        });
-      }
+    _updatesSubscription = _realtimeClient.updates.listen((session) async {
+      await _applySession(
+        session,
+        message: 'Session update received.',
+        joinRealtime: true,
+      );
     });
     _statusSubscription = _realtimeClient.connectionStatus.listen((status) {
       if (mounted) {
@@ -61,15 +59,17 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
         });
       }
     });
+    _errorsSubscription = _realtimeClient.errors.listen(_setMessage);
+    unawaited(_loadActiveSession());
   }
 
   @override
   void dispose() {
     _updatesSubscription?.cancel();
     _statusSubscription?.cancel();
+    _errorsSubscription?.cancel();
     _realtimeClient.disconnect();
-    _sessionIdController.dispose();
-    _traineeUserIdController.dispose();
+    _traineeEmailController.dispose();
     _repsController.dispose();
     _weightController.dispose();
     super.dispose();
@@ -77,16 +77,16 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
 
   Future<void> _createDemoSession() async {
     final accessToken = _accessToken;
-    final traineeUserId = _traineeUserIdController.text.trim();
-    if (accessToken == null || traineeUserId.isEmpty) {
-      _setMessage('Access token and trainee user ID are required.');
+    final traineeEmail = _traineeEmailController.text.trim();
+    if (accessToken == null || traineeEmail.isEmpty) {
+      _setMessage('Access token and trainee email are required.');
       return;
     }
 
     await _run(() async {
       final result = await widget.sharedSessionApiClient.create(
         accessToken: accessToken,
-        traineeUserId: traineeUserId,
+        traineeEmail: traineeEmail,
         values: const [
           CreateSharedSessionValue(
             exerciseName: 'Bench press',
@@ -97,24 +97,7 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
           ),
         ],
       );
-      await _applyResult(result, connect: true);
-    });
-  }
-
-  Future<void> _joinSession() async {
-    final accessToken = _accessToken;
-    final sessionId = _sessionIdController.text.trim();
-    if (accessToken == null || sessionId.isEmpty) {
-      _setMessage('Access token and session ID are required.');
-      return;
-    }
-
-    await _run(() async {
-      final result = await widget.sharedSessionApiClient.get(
-        accessToken: accessToken,
-        sessionId: sessionId,
-      );
-      await _applyResult(result, connect: true);
+      await _applyResult(result, joinRealtime: true);
     });
   }
 
@@ -184,7 +167,7 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
 
   Future<void> _applyResult(
     SharedSessionApiResult<SharedSession> result, {
-    bool connect = false,
+    bool joinRealtime = false,
   }) async {
     final session = result.data;
     if (!result.isSuccess || session == null) {
@@ -192,20 +175,62 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
       return;
     }
 
+    await _applySession(
+      session,
+      message: result.message,
+      joinRealtime: joinRealtime,
+    );
+  }
+
+  Future<void> _applySession(
+    SharedSession session, {
+    required String message,
+    bool joinRealtime = false,
+  }) async {
+    if (!mounted) {
+      return;
+    }
+
     setState(() {
       _session = session;
-      _sessionIdController.text = session.id;
-      _message = result.message;
+      _message = message;
     });
 
-    if (connect) {
-      final accessToken = _accessToken;
-      if (accessToken != null) {
-        await _realtimeClient.connect(
-          accessToken: accessToken,
-          sessionId: session.id,
-        );
+    if (joinRealtime) {
+      await _joinRealtimeSession(session.id);
+    }
+  }
+
+  Future<void> _loadActiveSession() async {
+    final accessToken = _accessToken;
+    if (accessToken == null) {
+      return;
+    }
+
+    await _run(() async {
+      await _connectRealtime(accessToken);
+      final result = await widget.sharedSessionApiClient.getActive(
+        accessToken: accessToken,
+      );
+
+      if (result.status == SharedSessionApiStatus.notFound) {
+        _setMessage(_waitingMessage);
+        return;
       }
+
+      await _applyResult(result, joinRealtime: true);
+    });
+  }
+
+  Future<void> _connectRealtime(String accessToken) async {
+    await _realtimeClient.connect(accessToken: accessToken);
+  }
+
+  Future<void> _joinRealtimeSession(String sessionId) async {
+    try {
+      await _realtimeClient.joinSession(sessionId: sessionId);
+    } on Object catch (error) {
+      _setMessage(error.toString());
     }
   }
 
@@ -240,6 +265,14 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
 
   bool get _canEdit => !_isBusy && _session?.status == SharedSessionStatus.active;
 
+  String get _waitingMessage {
+    if (widget.user.role == UserRole.trainee) {
+      return 'Waiting for trainer to start a session.';
+    }
+
+    return 'No active shared session yet.';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -260,16 +293,12 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
             SelectableText('Current user: ${widget.user.id} (${widget.user.role.wireName})'),
             Text('Realtime: ${_connectionStatus.name}'),
             const SizedBox(height: 12),
-            TextField(
-              controller: _sessionIdController,
-              decoration: const InputDecoration(labelText: 'Session ID'),
-              enabled: !_isBusy,
-            ),
             if (widget.user.role == UserRole.trainer) ...[
               const SizedBox(height: 12),
               TextField(
-                controller: _traineeUserIdController,
-                decoration: const InputDecoration(labelText: 'Trainee user ID'),
+                controller: _traineeEmailController,
+                decoration: const InputDecoration(labelText: 'Trainee email'),
+                keyboardType: TextInputType.emailAddress,
                 enabled: !_isBusy,
               ),
               const SizedBox(height: 8),
@@ -278,13 +307,10 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
                 child: const Text('Create demo session'),
               ),
             ],
-            const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: _isBusy ? null : _joinSession,
-              child: const Text('Join session'),
-            ),
             if (session != null) ...[
               const SizedBox(height: 16),
+              Text('Trainer: ${session.trainerEmail}'),
+              Text('Trainee: ${session.traineeEmail}'),
               Text('Status: ${session.status.wireName}'),
               Text('Version: ${session.version}'),
               const SizedBox(height: 8),
@@ -333,6 +359,9 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
                   ),
                 ],
               ),
+            ] else ...[
+              const SizedBox(height: 12),
+              Text(_waitingMessage),
             ],
             if (_message != null) ...[
               const SizedBox(height: 12),

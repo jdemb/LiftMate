@@ -82,7 +82,7 @@ public sealed class SharedSessionHubTests(TestApplicationFactory factory)
         var response = await client.PostAsJsonAsync(
             "/shared-sessions",
             new CreateSharedSessionRequest(
-                trainee.User.Id,
+                trainee.User.Email,
                 [new CreateSharedSessionValueRequest("Bench press", "repsWeight", 1, 6, 40m, null)]));
         var session = await response.Content.ReadFromJsonAsync<SharedSessionResponse>();
 
@@ -97,7 +97,7 @@ public sealed class SharedSessionHubTests(TestApplicationFactory factory)
     }
 
     private sealed record CreateSharedSessionRequest(
-        string TraineeUserId,
+        string TraineeEmail,
         IReadOnlyList<CreateSharedSessionValueRequest> Values);
 
     private sealed record CreateSharedSessionValueRequest(
@@ -117,6 +117,8 @@ public sealed class SharedSessionHubTests(TestApplicationFactory factory)
         Guid Id,
         string TrainerUserId,
         string TraineeUserId,
+        string TrainerEmail,
+        string TraineeEmail,
         string Status,
         long Version,
         DateTimeOffset CreatedAt,

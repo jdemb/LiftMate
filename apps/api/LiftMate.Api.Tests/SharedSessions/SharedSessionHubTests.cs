@@ -12,6 +12,32 @@ public sealed class SharedSessionHubTests(TestApplicationFactory factory)
     : IClassFixture<TestApplicationFactory>
 {
     [Fact]
+    public async Task AlreadyConnectedTraineeReceivesSessionStartedWhenTrainerCreatesSession()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        var receivedStart = new TaskCompletionSource<SharedSessionResponse>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using var connection = CreateConnection(trainee.AccessToken);
+        connection.On<SharedSessionResponse>("sessionStarted", response =>
+        {
+            receivedStart.TrySetResult(response);
+        });
+
+        await connection.StartAsync();
+
+        var session = await CreateSession(client, trainer, trainee);
+        var started = await receivedStart.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(session.Id, started.Id);
+        Assert.Equal(trainer.User.Id, started.TrainerUserId);
+        Assert.Equal(trainee.User.Id, started.TraineeUserId);
+        Assert.Equal("active", started.Status);
+    }
+
+    [Fact]
     public async Task ParticipantCanJoinWithQueryStringTokenAndReceiveUpdateBroadcast()
     {
         using var client = factory.CreateClient();

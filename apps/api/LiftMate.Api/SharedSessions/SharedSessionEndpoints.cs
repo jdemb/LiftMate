@@ -120,6 +120,7 @@ public static class SharedSessionEndpoints
 
         dbContext.SharedSessions.Add(session);
         await dbContext.SaveChangesAsync(cancellationToken);
+        await broadcaster.BroadcastStartedAsync(session, cancellationToken);
         await broadcaster.BroadcastUpdatedAsync(session, cancellationToken);
 
         return Results.Created($"/shared-sessions/{session.Id}", SharedSessionMapping.ToResponse(session));

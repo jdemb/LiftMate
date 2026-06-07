@@ -35,13 +35,15 @@ class AuthApiClient {
   AuthApiClient({
     http.Client? httpClient,
     String? baseUrl,
-    this.timeout = const Duration(seconds: 5),
+    this.timeout = const Duration(seconds: 30),
+    this.retryDelay = const Duration(seconds: 1),
   })  : _httpClient = httpClient ?? http.Client(),
         _baseUrl = _resolveBaseUrl(baseUrl);
 
   final http.Client _httpClient;
   final String? _baseUrl;
   final Duration timeout;
+  final Duration retryDelay;
 
   Future<AuthApiResult<AuthSession>> register({
     required String email,
@@ -78,6 +80,7 @@ class AuthApiClient {
       successStatusCodes: {200},
       parse: AuthSession.fromJson,
       invalidJsonMessage: 'Invalid auth response JSON.',
+      retryTransientFailures: true,
     );
   }
 
@@ -162,6 +165,7 @@ class AuthApiClient {
     bool expectBody = true,
     String? accessToken,
     Map<String, Object?>? body,
+    bool retryTransientFailures = false,
   }) async {
     final uri = _uri(path);
     if (uri == null) {
@@ -171,6 +175,44 @@ class AuthApiClient {
       );
     }
 
+    final maxAttempts = retryTransientFailures ? 2 : 1;
+    for (var attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      final result = await _sendOnce<T>(
+        method: method,
+        uri: uri,
+        successStatusCodes: successStatusCodes,
+        parse: parse,
+        invalidJsonMessage: invalidJsonMessage,
+        expectBody: expectBody,
+        accessToken: accessToken,
+        body: body,
+      );
+
+      if (attempt == maxAttempts || !_shouldRetry(result)) {
+        return result;
+      }
+
+      if (retryDelay > Duration.zero) {
+        await Future<void>.delayed(retryDelay);
+      }
+    }
+
+    return AuthApiResult<T>(
+      status: AuthApiStatus.error,
+      message: 'Auth request failed.',
+    );
+  }
+
+  Future<AuthApiResult<T>> _sendOnce<T>({
+    required String method,
+    required Uri uri,
+    required Set<int> successStatusCodes,
+    required T Function(Map<String, dynamic> json) parse,
+    required String invalidJsonMessage,
+    required bool expectBody,
+    String? accessToken,
+    Map<String, Object?>? body,
+  }) async {
     try {
       final request = http.Request(method, uri);
       request.headers['Content-Type'] = 'application/json';
@@ -232,6 +274,15 @@ class AuthApiClient {
         message: error.toString(),
       );
     }
+  }
+
+  static bool _shouldRetry<T>(AuthApiResult<T> result) {
+    if (result.status == AuthApiStatus.offline) {
+      return true;
+    }
+
+    return result.status == AuthApiStatus.error &&
+        const {500, 502, 503, 504}.contains(result.statusCode);
   }
 
   AuthApiResult<T> _failureFromResponse<T>(http.Response response) {

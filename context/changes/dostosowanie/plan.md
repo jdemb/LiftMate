@@ -505,9 +505,9 @@ Rolling back after deployment requires compatibility awareness: once mobile expe
 
 #### Automated
 
-- [x] 4.1 `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile`.
-- [x] 4.2 `flutter test` succeeds from `apps/mobile`.
-- [x] 4.3 `flutter analyze` succeeds from `apps/mobile`.
+- [x] 4.1 `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile` - 7b97602.
+- [x] 4.2 `flutter test` succeeds from `apps/mobile` - 7b97602.
+- [x] 4.3 `flutter analyze` succeeds from `apps/mobile` - 7b97602.
 
 #### Manual
 

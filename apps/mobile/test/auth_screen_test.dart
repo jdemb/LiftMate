@@ -142,6 +142,7 @@ void main() {
                 'email': 'trainee@example.test',
                 'password': 'Password123!',
                 'role': 'trainee',
+                'displayName': 'trainee@example.test',
                 'invitationCode': 'invite-123',
               });
               return http.Response(jsonEncode(_authResponse(role: 'trainee')), 201);
@@ -214,13 +215,15 @@ Map<String, Object?> _authResponse({required String role}) {
     'accessToken': 'access-token',
     'refreshToken': 'refresh-token',
     'expiresAt': '2026-06-02T12:00:00Z',
-    'user': {
-      'id': 'user-1',
-      'email': '$role@example.test',
-      'role': role,
-    },
-  };
-}
+      'user': {
+        'id': 'user-1',
+        'email': '$role@example.test',
+        'role': role,
+        'displayName': role == 'trainer' ? 'Test Trainer' : 'Test Trainee',
+        'trainerUserId': role == 'trainee' ? 'trainer-1' : null,
+      },
+    };
+  }
 
 class _InMemoryTokenStore implements TokenStore {
   StoredAuthTokens? _tokens;

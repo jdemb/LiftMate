@@ -92,6 +92,7 @@ class _AuthScreenState extends State<AuthScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         role: _selectedRole,
+        displayName: _emailController.text.trim(),
         invitationCode: _invitationCodeController.text.trim(),
       );
       return;

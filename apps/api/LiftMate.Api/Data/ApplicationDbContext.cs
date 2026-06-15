@@ -10,6 +10,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 {
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    public DbSet<TrainerInviteCode> TrainerInviteCodes => Set<TrainerInviteCode>();
+
     public DbSet<SharedSession> SharedSessions => Set<SharedSession>();
 
     public DbSet<SharedSessionValue> SharedSessionValues => Set<SharedSessionValue>();
@@ -20,13 +22,51 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
         builder.Entity<ApplicationUser>(entity =>
         {
+            entity.Property(user => user.DisplayName)
+                .HasMaxLength(200)
+                .IsRequired();
+
             entity.Property(user => user.LiftMateRole)
                 .HasMaxLength(32)
                 .IsRequired();
 
+            entity.Property(user => user.TrainerUserId)
+                .HasMaxLength(450);
+
+            entity.HasIndex(user => user.TrainerUserId);
+
+            entity.HasOne(user => user.TrainerUser)
+                .WithMany(user => user.Trainees)
+                .HasForeignKey(user => user.TrainerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.ToTable(table => table.HasCheckConstraint(
                 "CK_AspNetUsers_LiftMateRole",
                 "[LiftMateRole] IN ('trainer', 'trainee')"));
+        });
+
+        builder.Entity<TrainerInviteCode>(entity =>
+        {
+            entity.HasKey(inviteCode => inviteCode.Id);
+
+            entity.Property(inviteCode => inviteCode.Code)
+                .HasMaxLength(6)
+                .IsRequired();
+
+            entity.Property(inviteCode => inviteCode.TrainerUserId)
+                .HasMaxLength(450)
+                .IsRequired();
+
+            entity.HasIndex(inviteCode => inviteCode.Code)
+                .IsUnique();
+
+            entity.HasIndex(inviteCode => inviteCode.TrainerUserId)
+                .IsUnique();
+
+            entity.HasOne(inviteCode => inviteCode.TrainerUser)
+                .WithMany()
+                .HasForeignKey(inviteCode => inviteCode.TrainerUserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<RefreshToken>(entity =>

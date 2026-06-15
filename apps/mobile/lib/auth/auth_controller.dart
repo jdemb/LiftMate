@@ -86,6 +86,7 @@ class AuthController extends ChangeNotifier {
     required String email,
     required String password,
     required UserRole role,
+    required String displayName,
     required String invitationCode,
   }) async {
     _setState(const AuthControllerState.loading());
@@ -94,9 +95,48 @@ class AuthController extends ChangeNotifier {
       email: email,
       password: password,
       role: role,
+      displayName: displayName,
       invitationCode: invitationCode,
     );
     await _storeSessionOrShowError(result);
+
+    return result;
+  }
+
+  Future<AuthApiResult<TrainerInviteCode>> generateTrainerInviteCode() async {
+    final accessToken = _tokens?.accessToken;
+    if (accessToken == null) {
+      return const AuthApiResult<TrainerInviteCode>(
+        status: AuthApiStatus.unauthorized,
+        message: 'User is not authenticated.',
+      );
+    }
+
+    return authApiClient.generateTrainerInviteCode(accessToken: accessToken);
+  }
+
+  Future<AuthApiResult<AuthUser>> claimTrainerInviteCode({
+    required String code,
+  }) async {
+    final accessToken = _tokens?.accessToken;
+    if (accessToken == null) {
+      return const AuthApiResult<AuthUser>(
+        status: AuthApiStatus.unauthorized,
+        message: 'User is not authenticated.',
+      );
+    }
+
+    final result = await authApiClient.claimTrainerInviteCode(
+      accessToken: accessToken,
+      code: code,
+    );
+
+    final user = result.data;
+    if (result.isSuccess && user != null) {
+      _setState(AuthControllerState.authenticated(user));
+    } else if (!result.isSuccess) {
+      _setState(AuthControllerState.error(result.message));
+    }
 
     return result;
   }

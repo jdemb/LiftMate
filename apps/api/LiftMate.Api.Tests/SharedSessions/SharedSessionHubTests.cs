@@ -104,6 +104,8 @@ public sealed class SharedSessionHubTests(TestApplicationFactory factory)
         AuthEndpointTests.AuthResponse trainer,
         AuthEndpointTests.AuthResponse trainee)
     {
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+
         client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
         var response = await client.PostAsJsonAsync(
             "/shared-sessions",

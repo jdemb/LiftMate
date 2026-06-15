@@ -1,0 +1,420 @@
+# Dostosowanie onboardingu auth do projektu Design
+
+## Overview
+
+Przebudować istniejący przepływ logowania i tworzenia konta w aplikacji mobilnej tak, żeby odpowiadał projektowi z `apps/mobile/design/LiftMate.dc.html`, przy zachowaniu działającego kontraktu auth, rozszerzeniu backendu o imię i nazwisko użytkownika oraz dodaniu podstawowego parowania trener-podopieczny kodem zaproszenia. Zakres obejmuje pełny onboarding auth: powitanie, wybór roli, osobny login, rejestrację oraz ekran parowania po rejestracji, ale nie obejmuje docelowych dashboardów trenera i podopiecznego.
+
+## Current State Analysis
+
+Obecny Flutter auth UI jest skupiony w `apps/mobile/lib/auth/auth_screen.dart`: jeden ekran przełącza tryb `Sign in` / `Create account`, pokazuje role, kod zaproszenia, diagnostykę API oraz po zalogowaniu panele techniczne `RoleProbePanel` i `SharedSessionDiagnosticPanel`. `apps/mobile/lib/main.dart` uruchamia `AuthScreen` bez globalnego motywu dopasowanego do designu.
+
+Design w `apps/mobile/design/LiftMate.dc.html` rozbija onboarding na kroki: `welcome`, `role`, `signup`, `pair`, a notatki designu wiążą je z FR-001, FR-002 i FR-003. Design używa ciemnego tła, niebieskiego koloru akcentu, fontów Space Grotesk / Manrope, polskich tekstów produktowych i osobnego wyboru roli.
+
+Backend auth ma obecnie `RegisterRequest(Email, Password, Role, InvitationCode)` i `UserResponse(Id, Email, Role)` w `apps/api/LiftMate.Api/Auth/AuthContracts.cs`. `ApplicationUser` przechowuje `LiftMateRole`, ale nie przechowuje imienia i nazwiska ani przypisania podopiecznego do trenera. Istniejące shared-session używa `TrainerUserId` i `TraineeUserId` na sesji, ale nie ma osobnej trwałej relacji trener-podopieczny. `TokenService.ToUserResponse` zwraca tylko `id`, `email`, `role`. Istnieją testy API i mobilne testy klienta oraz ekranu auth, które trzeba zaktualizować razem z kontraktem.
+
+## Desired End State
+
+Użytkownik widzi produktowy onboarding zgodny z designem: powitanie LiftMate, wybór roli, osobny ekran logowania oraz ekran rejestracji z imieniem i nazwiskiem, e-mailem, hasłem i kodem zaproszenia. Teksty produktowe są po polsku, a techniczne komunikaty API mogą pozostać po angielsku.
+
+Po udanym loginie albo rejestracji aplikacja nadal przechodzi do tymczasowego stanu zalogowanego, bez wdrażania dashboardów z designu. Diagnostyka API i panele probe/shared-session nie są częścią auth UI.
+
+Backend zapisuje i zwraca `displayName` dla użytkownika, a mobilny klient wysyła je przy rejestracji i parsuje z odpowiedzi auth. Trener może wygenerować kod zaproszenia w ekranie parowania, przekazać go podopiecznemu poza aplikacją, a podopieczny może wprowadzić ten kod w onboardingu i zostać przypisany do trenera.
+
+## Decisions
+
+| Area | Decision | Rationale |
+| --- | --- | --- |
+| Scope | Full auth onboarding: welcome, role, login, signup, pair | This follows the Design flow while keeping dashboard work out of scope. |
+| Language | Mixed UI | Product-facing onboarding text follows the Polish design; existing API error messages can stay technical/English. |
+| Name field | Extend backend and mobile contract | The design contains name input and the user explicitly chose real persistence over visual-only input. |
+| Registration gate | Keep global `invitationCode` in registration | This preserves the current backend registration gate. |
+| Trainer-trainee pairing | Add invite-code endpoints in this phase | This makes the Design pair screens functional without implementing a future trainer settings window. |
+| Login | Separate login screen in the same style | The existing login remains functional while matching the multi-step onboarding structure. |
+| Diagnostics | Remove from auth UI | Auth screens become product-facing instead of test panels. |
+| Post-auth destination | Keep current authenticated panel temporarily | This avoids expanding into trainer/trainee dashboards in this change. |
+
+## Scope
+
+In scope:
+
+- Add backend `displayName` support to auth registration, user persistence, auth responses, `/auth/me`, tests, and migrations.
+- Add backend trainer invite-code generation and trainee code-claiming endpoints.
+- Add persistent trainer-trainee relationship for assigning a trainee to exactly one trainer.
+- Update mobile auth models, client, controller, and tests to send and parse `displayName`.
+- Update mobile auth client/controller for invite-code generation and trainee pairing.
+- Rework `AuthScreen` into a multi-step onboarding UI based on `welcome`, `role`, `login`, `signup`, and `pair`.
+- Keep global registration `invitationCode` as part of registration.
+- Remove API diagnostics and auth diagnostic panels from the auth screen surface.
+- Preserve authenticated state and logout capability as a temporary post-auth screen.
+- Update automated tests for backend auth, mobile auth client, and mobile auth widget behavior.
+
+Out of scope:
+
+- Trainer dashboard, trainee dashboard, workout screens, set builder, history, and live session UI from the design.
+- Future trainer access to the invite-code screen outside onboarding.
+- In-app delivery/sharing of trainer invite codes; sending the code happens outside the app.
+- Invite-code lifecycle beyond MVP generation/claiming, such as expiration controls, revocation UI, or multi-code management.
+- Password reset, social login, e-mail verification, and account settings.
+- Full typography asset integration if bundled font files are not already available; use theme-compatible fallback unless fonts are deliberately added.
+
+## Architecture / Approach
+
+The change is a contract-first vertical slice. Backend adds a first-class `DisplayName` property to `ApplicationUser`, exposes it in auth request/response contracts, persists trainer-trainee pairing data, and adds two pairing endpoints: one trainer-only endpoint to generate/read a trainer invite code, and one trainee-only endpoint to claim that code. Mobile updates its auth model and API client to match those contracts, then replaces the one-form auth UI with a small internal onboarding state machine. Diagnostics remain available through their standalone components/tests but are no longer composed into `AuthScreen`.
+
+```mermaid
+flowchart LR
+  Welcome["Welcome screen"] --> Role["Role selection"]
+  Welcome --> Login["Login screen"]
+  Role --> Signup["Signup form"]
+  Signup --> Pair["Pair screen"]
+  Pair --> TrainerCode["Trainer generates code"]
+  Pair --> TraineeClaim["Trainee enters trainer code"]
+  TrainerCode --> Authenticated
+  TraineeClaim --> Authenticated
+  Login --> Authenticated
+```
+
+## Phase 1: Backend Auth Contract
+
+### Goal
+
+Persist and return the user's display name, trainer invite codes, and the trainee's trainer assignment so the mobile signup and pair screens map to real backend data.
+
+### Changes Required
+
+#### `apps/api/LiftMate.Api/Auth/ApplicationUser.cs`
+
+**Intent:** Add a durable display name field to the Identity user entity.
+
+**Contract:** `ApplicationUser` exposes `DisplayName` as a required string property. It also exposes nullable `TrainerUserId` / `TrainerUser` for trainee accounts; trainer accounts leave this null.
+
+#### `apps/api/LiftMate.Api/Auth/TrainerInviteCode.cs` (new)
+
+**Intent:** Persist the trainer code that is shared outside the app.
+
+**Contract:** Entity stores `Code`, `TrainerUserId`, `TrainerUser`, `CreatedAt`, and optionally `LastUsedAt`; `Code` is unique and maps to exactly one trainer. Codes are normalized uppercase 6-character alphanumeric strings using unambiguous characters only: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`.
+
+#### `apps/api/LiftMate.Api/Data/ApplicationDbContext.cs`
+
+**Intent:** Configure display-name storage consistently with existing explicit user-role configuration.
+
+**Contract:** `ApplicationUser.DisplayName` has a bounded max length and is required. `ApplicationUser.TrainerUserId` is nullable, indexed, and configured as a self-reference to `ApplicationUser`. `TrainerInviteCode` is mapped with a unique `Code` index and required trainer FK.
+
+#### `apps/api/LiftMate.Api/Auth/AuthContracts.cs`
+
+**Intent:** Extend auth DTOs to accept and return a display name.
+
+**Contract:** `RegisterRequest` includes `DisplayName`; `UserResponse` includes `DisplayName` and nullable `TrainerUserId`. Add pairing DTOs: `TrainerInviteCodeResponse(Code)` and `ClaimTrainerInviteCodeRequest(Code)`.
+
+#### `apps/api/LiftMate.Api/Auth/AuthEndpoints.cs`
+
+**Intent:** Validate, trim, and store display name during registration.
+
+**Contract:** Empty display names return `400`; successful registration stores the trimmed value.
+
+#### `apps/api/LiftMate.Api/Auth/PairingEndpoints.cs` (new)
+
+**Intent:** Make the Design pair screens functional without building a future trainer settings window.
+
+**Contract:** Add:
+
+- `POST /trainer/invite-code` requiring `TrainerOnly`, returning the trainer's existing code or generating a new unique 6-character uppercase code.
+- `POST /trainee/trainer-link` requiring `TraineeOnly`, accepting `{ "code": "..." }`, trimming and uppercasing the input before lookup, assigning the current trainee to the trainer behind that code, and returning the updated user or a pairing response.
+
+The trainee endpoint rejects non-trainee tokens, invalid codes, self-pairing, trainer accounts, and attempts to reassign an already linked trainee.
+
+#### `apps/api/LiftMate.Api/SharedSessions/SharedSessionEndpoints.cs`
+
+**Intent:** Make the new persistent trainer-trainee relationship authoritative for training session creation.
+
+**Contract:** `Create` continues to resolve `traineeEmail`, but it only creates a session when `trainee.TrainerUserId == trainerUserId`. A trainer attempting to create a shared session for an unpaired trainee or another trainer's trainee receives a forbidden or bad-request response. Existing participant read/update rules remain based on the `SharedSession` participant IDs.
+
+#### `apps/api/LiftMate.Api/Program.cs`
+
+**Intent:** Register the new pairing routes.
+
+**Contract:** App maps `PairingEndpoints` alongside existing auth/probe/shared-session endpoints.
+
+#### `apps/api/LiftMate.Api/Auth/TokenService.cs`
+
+**Intent:** Include display name in every auth response and `/auth/me` response.
+
+**Contract:** `ToUserResponse` maps `ApplicationUser.DisplayName`.
+
+#### `apps/api/LiftMate.Api/Migrations/*` and `ApplicationDbContextModelSnapshot.cs`
+
+**Intent:** Add display-name, trainer relationship, and trainer invite-code storage.
+
+**Contract:** Migration adds a non-null `DisplayName` column to `AspNetUsers`, nullable `TrainerUserId` FK/index on `AspNetUsers`, and a `TrainerInviteCodes` table with unique `Code`. Existing users receive a safe display-name default and remain unpaired.
+
+#### `apps/api/LiftMate.Api.Tests/Auth/AuthEndpointTests.cs`
+
+**Intent:** Lock the new register/me response contract and validation behavior.
+
+**Contract:** Test helper records include `DisplayName`; assertions verify registration and `/auth/me` return it; invalid blank name is rejected.
+
+#### `apps/api/LiftMate.Api.Tests/Auth/PairingEndpointTests.cs` (new)
+
+**Intent:** Lock trainer-code generation and trainee assignment behavior.
+
+**Contract:** Tests cover trainer can generate a normalized 6-character code, code generation is idempotent for a trainer, trainee can claim it with lowercase/whitespace input, trainee `/auth/me` shows the trainer assignment, invalid code returns `400` or `404`, and already-linked trainee cannot be reassigned.
+
+#### `apps/api/LiftMate.Api.Tests/SharedSessions/SharedSessionEndpointTests.cs`
+
+**Intent:** Prevent the new relationship model from being bypassed by existing shared-session endpoints.
+
+**Contract:** Shared-session creation tests pair the trainer and trainee before creating sessions. Add a regression test proving a different trainer cannot create a session for a trainee already linked to another trainer.
+
+### Success Criteria
+
+#### Automated Verification
+
+- `dotnet restore LiftMate.slnx` succeeds from `apps/api`.
+- `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api`.
+- `dotnet test LiftMate.slnx --no-build` succeeds from `apps/api`.
+
+#### Manual Verification
+
+- A test registration through the API returns `user.displayName` in the auth response.
+- `/auth/me` returns the same `displayName` and the trainee's `trainerUserId` when linked.
+- A trainer can generate an invite code and a trainee can claim it with a separate authenticated request.
+- A trainer cannot create a shared session for an unpaired trainee or another trainer's paired trainee.
+
+---
+
+## Phase 2: Mobile Auth Contract
+
+### Goal
+
+Update the Flutter auth layer so it sends, receives, stores in memory, and tests display names and pairing calls without changing token storage.
+
+### Changes Required
+
+#### `apps/mobile/lib/auth/auth_models.dart`
+
+**Intent:** Represent the backend's display name in mobile auth state.
+
+**Contract:** `AuthUser` includes `displayName` and nullable `trainerUserId`; `AuthUser.fromJson` requires a string `displayName`.
+
+#### `apps/mobile/lib/auth/auth_api_client.dart`
+
+**Intent:** Send display name during registration.
+
+**Contract:** `register` accepts `displayName` and posts `displayName` alongside `email`, `password`, `role`, and global registration `invitationCode`. Add `generateTrainerInviteCode(accessToken)` and `claimTrainerInviteCode(accessToken, code)` methods matching backend endpoints. Mobile trims and uppercases trainer-code input before submission, matching backend normalization.
+
+#### `apps/mobile/lib/auth/auth_controller.dart`
+
+**Intent:** Thread display name from UI to API.
+
+**Contract:** `AuthController.register` accepts required `displayName`. Add controller methods to generate a trainer invite code and claim a trainer invite code using the current access token, updating the authenticated user state after a successful trainee claim.
+
+#### `apps/mobile/test/auth_api_client_test.dart`
+
+**Intent:** Keep the mobile API contract in sync with backend DTOs.
+
+**Contract:** Register request expectations include `displayName`, auth response fixtures include `displayName` and nullable `trainerUserId`, and new tests cover trainer-code generation plus trainee code claim with lowercase/whitespace input normalization.
+
+#### Related mobile tests
+
+**Intent:** Prevent fixture breakage after `AuthUser` becomes stricter.
+
+**Contract:** Every mobile auth response fixture includes `displayName`.
+
+### Success Criteria
+
+#### Automated Verification
+
+- `flutter test test/auth_api_client_test.dart` succeeds from `apps/mobile`.
+- `flutter test` succeeds from `apps/mobile`.
+- `flutter analyze` succeeds from `apps/mobile`.
+
+#### Manual Verification
+
+- Mobile registration sends `displayName` to `/auth/register`.
+- Existing login still works with responses that include `displayName`.
+- Mobile pairing methods call `/trainer/invite-code` and `/trainee/trainer-link` with bearer tokens.
+- Mobile trainee code entry trims whitespace and normalizes to uppercase before submitting.
+
+---
+
+## Phase 3: Mobile Onboarding UI
+
+### Goal
+
+Replace the current technical auth screen with a product-facing onboarding flow based on the Design prototype.
+
+### Changes Required
+
+#### `apps/mobile/lib/main.dart`
+
+**Intent:** Apply a dark, LiftMate-specific app theme compatible with the Design visual system.
+
+**Contract:** `MaterialApp` uses a dark theme with blue primary color and typography choices that degrade cleanly if custom fonts are not bundled.
+
+#### `apps/mobile/lib/auth/auth_screen.dart`
+
+**Intent:** Rebuild the unauthenticated UI into a multi-step onboarding flow.
+
+**Contract:** The unauthenticated states include:
+
+- Welcome screen with LiftMate branding and actions: `Załóż konto`, `Mam już konto`.
+- Role selection screen with trainer and trainee choices.
+- Separate login form with e-mail and password.
+- Signup form with display name, e-mail, password, role context, and invitation code.
+- Pair screen after registration flow that reflects the selected role:
+  - trainer variant calls trainer invite-code generation and displays the code to share outside the app;
+  - trainee variant accepts a trainer code, calls the trainee claim endpoint, and only then continues to the temporary authenticated panel.
+
+#### `apps/mobile/lib/auth/auth_screen.dart`
+
+**Intent:** Remove technical diagnostics from the auth surface.
+
+**Contract:** `AuthScreen` no longer renders `_HealthDiagnostics`, `RoleProbePanel`, or `SharedSessionDiagnosticPanel`; authenticated state keeps a minimal temporary user panel and logout action.
+
+#### `apps/mobile/lib/auth/auth_screen.dart`, `apps/mobile/lib/main.dart`, and `apps/mobile/test/auth_screen_test.dart`
+
+**Intent:** Remove dead diagnostic wiring after diagnostics leave the auth surface.
+
+**Contract:** `AuthScreen` constructor no longer accepts `authApiClient`, `sharedSessionApiClient`, `sharedSessionRealtimeClientFactory`, `healthUri`, or `checkHealth` unless still needed by the temporary authenticated panel. `main.dart` and the auth widget-test `_testApp` helper pass only the dependencies still required by auth, pairing, and logout. Standalone diagnostic components and their dedicated tests remain untouched.
+
+#### `apps/mobile/test/auth_screen_test.dart`
+
+**Intent:** Verify the new flow as a user-visible onboarding experience.
+
+**Contract:** Widget tests cover welcome screen, role selection, login submission, signup submission with display name and global registration invitation code, trainer code display, trainee code claim, pairing error display without secret leakage, and logout returning to onboarding.
+
+### Success Criteria
+
+#### Automated Verification
+
+- `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile`.
+- `flutter test` succeeds from `apps/mobile`.
+- `flutter analyze` succeeds from `apps/mobile`.
+
+#### Manual Verification
+
+- On a phone-sized viewport, onboarding text and controls do not overlap.
+- `Załóż konto` reaches role selection and signup.
+- `Mam już konto` reaches login.
+- Signup for trainer and trainee roles preserves the selected role.
+- Trainer signup reaches pair screen and displays a generated trainer invite code.
+- Trainee signup reaches pair screen and can claim a trainer invite code before continuing.
+- Auth errors remain visible without exposing password or invitation code.
+- Technical diagnostics are absent from the auth UI.
+- `AuthScreen` no longer exposes constructor parameters used only by the removed diagnostics.
+
+---
+
+## Testing Strategy
+
+### Unit / Contract Tests
+
+- Backend auth endpoint tests for register/login/me with `displayName`.
+- Backend pairing endpoint tests for trainer code generation and trainee code claiming.
+- Backend shared-session tests for enforcing trainer-trainee pairing before session creation.
+- Mobile `AuthApiClient` tests for register payload and auth response parsing.
+- Mobile `AuthApiClient` tests for pairing endpoint payloads and responses.
+- Mobile model fixture updates anywhere `AuthUser` or auth JSON is constructed.
+
+### Widget Tests
+
+- Welcome screen renders initial actions.
+- Role selection changes selected role before signup.
+- Login submits credentials through `AuthController`.
+- Signup submits display name, e-mail, password, role, and invitation code.
+- Trainer pair screen requests and displays a trainer invite code.
+- Trainee pair screen submits a trainer invite code and updates the authenticated user.
+- Error state renders API message and does not leak secrets.
+- Authenticated temporary panel still allows logout.
+- Auth widget-test setup no longer constructs diagnostic-only API clients or health-check callbacks.
+
+### Manual Testing Steps
+
+1. Launch the mobile app and verify the welcome screen matches the dark LiftMate style.
+2. Tap `Mam już konto`, submit login, and confirm authenticated state appears.
+3. Logout, tap `Załóż konto`, select each role, and verify signup role context.
+4. Register a trainer with a valid global registration invitation code and confirm the pair screen displays a generated trainer invite code.
+5. Register a trainee with a valid global registration invitation code, enter the trainer invite code with mixed case or surrounding whitespace, and confirm `/auth/me` shows the trainee assigned to that trainer.
+6. Confirm a different trainer cannot start a shared session for that paired trainee.
+7. Trigger invalid global registration and trainer invite codes and confirm errors are readable and secrets are not shown.
+
+## Performance Considerations
+
+This change is UI and auth-contract focused. No high-volume data path is introduced. Trainer invite-code generation should use a short indexed code lookup and retry on rare uniqueness collisions. Use the fixed character set `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`, store codes uppercase, and normalize trainee input before lookup. Keep onboarding state local to `AuthScreen` to avoid unnecessary app-wide state management. Avoid expensive layout work or external runtime dependencies for the design export.
+
+## Migration Notes
+
+The backend migration must add `DisplayName` and nullable `TrainerUserId` to `AspNetUsers`, plus `TrainerInviteCodes`. Existing rows need a safe display-name default, preferably derived from `Email` where possible or a neutral fallback, so the non-null constraint applies cleanly. Existing users remain unpaired. The migration should be generated from the EF model rather than hand-edited unless the generated default or FK/index shape needs adjustment.
+
+## Rollback Notes
+
+Rolling back after deployment requires compatibility awareness: once mobile expects `displayName` and pairing endpoints, backend responses without them will fail strict parsing or pairing calls. If a staged rollout is needed, first deploy backend support, then mobile. Do not deploy the mobile contract change before backend support.
+
+## References
+
+- Design prototype: `apps/mobile/design/LiftMate.dc.html`
+- Current auth UI: `apps/mobile/lib/auth/auth_screen.dart`
+- Mobile app entry point: `apps/mobile/lib/main.dart`
+- Mobile auth client: `apps/mobile/lib/auth/auth_api_client.dart`
+- Backend auth contracts: `apps/api/LiftMate.Api/Auth/AuthContracts.cs`
+- Backend auth endpoint: `apps/api/LiftMate.Api/Auth/AuthEndpoints.cs`
+- User entity config: `apps/api/LiftMate.Api/Data/ApplicationDbContext.cs`
+- Shared session participant model: `apps/api/LiftMate.Api/SharedSessions/SharedSession.cs`
+- Shared session endpoints: `apps/api/LiftMate.Api/SharedSessions/SharedSessionEndpoints.cs`
+- Backend auth tests: `apps/api/LiftMate.Api.Tests/Auth/AuthEndpointTests.cs`
+- Backend shared-session tests: `apps/api/LiftMate.Api.Tests/SharedSessions/SharedSessionEndpointTests.cs`
+- Mobile auth tests: `apps/mobile/test/auth_screen_test.dart`
+
+## Progress
+
+> Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles. See `references/progress-format.md`.
+
+### Phase 1: Backend Auth Contract
+
+#### Automated
+
+- [x] 1.1 `dotnet restore LiftMate.slnx` succeeds from `apps/api` - 0400412.
+- [x] 1.2 `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api` - 0400412.
+- [x] 1.3 `dotnet test LiftMate.slnx --no-build` succeeds from `apps/api` - 0400412.
+
+#### Manual
+
+- [x] 1.4 A test registration through the API returns `user.displayName` in the auth response - 0400412.
+- [x] 1.5 `/auth/me` returns the same `displayName` and the trainee's `trainerUserId` when linked - 0400412.
+- [x] 1.6 A trainer can generate an invite code and a trainee can claim it with a separate authenticated request - 0400412.
+- [x] 1.7 A trainer cannot create a shared session for an unpaired trainee or another trainer's paired trainee - 0400412.
+
+### Phase 2: Mobile Auth Contract
+
+#### Automated
+
+- [x] 2.1 `flutter test test/auth_api_client_test.dart` succeeds from `apps/mobile` - 47473ef.
+- [x] 2.2 `flutter test` succeeds from `apps/mobile` - 47473ef.
+- [x] 2.3 `flutter analyze` succeeds from `apps/mobile` - 47473ef.
+
+#### Manual
+
+- [x] 2.4 Mobile registration sends `displayName` to `/auth/register` - 47473ef.
+- [x] 2.5 Existing login still works with responses that include `displayName` - 47473ef.
+- [x] 2.6 Mobile pairing methods call `/trainer/invite-code` and `/trainee/trainer-link` with bearer tokens - 47473ef.
+- [x] 2.7 Mobile trainee code entry trims whitespace and normalizes to uppercase before submitting - 47473ef.
+
+### Phase 3: Mobile Onboarding UI
+
+#### Automated
+
+- [x] 3.1 `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile` - 0094a47.
+- [x] 3.2 `flutter test` succeeds from `apps/mobile` - 0094a47.
+- [x] 3.3 `flutter analyze` succeeds from `apps/mobile` - 0094a47.
+
+#### Manual
+
+- [x] 3.4 On a phone-sized viewport, onboarding text and controls do not overlap - 0094a47.
+- [x] 3.5 `Załóż konto` reaches role selection and signup - 0094a47.
+- [x] 3.6 `Mam już konto` reaches login - 0094a47.
+- [x] 3.7 Signup for trainer and trainee roles preserves the selected role - 0094a47.
+- [x] 3.8 Trainer signup reaches pair screen and displays a generated trainer invite code - 0094a47.
+- [x] 3.9 Trainee signup reaches pair screen and can claim a trainer invite code before continuing - 0094a47.
+- [x] 3.10 Auth errors remain visible without exposing password or invitation code - 0094a47.
+- [x] 3.11 Technical diagnostics are absent from the auth UI - 0094a47.
+- [x] 3.12 `AuthScreen` no longer exposes constructor parameters used only by the removed diagnostics - 0094a47.

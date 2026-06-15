@@ -4,6 +4,7 @@ public sealed record RegisterRequest(
     string Email,
     string Password,
     string Role,
+    string DisplayName,
     string InvitationCode);
 
 public sealed record LoginRequest(string Email, string Password);
@@ -18,6 +19,15 @@ public sealed record AuthResponse(
     DateTimeOffset ExpiresAt,
     UserResponse User);
 
-public sealed record UserResponse(string Id, string Email, string Role);
+public sealed record UserResponse(
+    string Id,
+    string Email,
+    string Role,
+    string DisplayName,
+    string? TrainerUserId);
 
 public sealed record ProbeResponse(string Role);
+
+public sealed record TrainerInviteCodeResponse(string Code);
+
+public sealed record ClaimTrainerInviteCodeRequest(string Code);

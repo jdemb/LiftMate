@@ -15,6 +15,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         var trainer = await AuthEndpointTests.Register(client, "trainer");
         var trainee = await AuthEndpointTests.Register(client, "trainee");
         var outsider = await AuthEndpointTests.Register(client, "trainer");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
 
         client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
         var createResponse = await client.PostAsJsonAsync(
@@ -72,6 +73,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         using var client = factory.CreateClient();
         var trainer = await AuthEndpointTests.Register(client, "trainer");
         var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
         var activeSession = await CreateSession(client, trainer, trainee);
 
         client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
@@ -95,6 +97,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         var trainer = await AuthEndpointTests.Register(client, "trainer");
         var trainee = await AuthEndpointTests.Register(client, "trainee");
         var outsider = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
         var session = await CreateSession(client, trainer, trainee);
 
         client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
@@ -121,6 +124,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         using var client = factory.CreateClient();
         var trainer = await AuthEndpointTests.Register(client, "trainer");
         var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
         var session = await CreateSession(client, trainer, trainee);
         var value = Assert.Single(session.Values);
 
@@ -156,6 +160,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         using var client = factory.CreateClient();
         var trainer = await AuthEndpointTests.Register(client, "trainer");
         var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
         var session = await CreateSession(
             client,
             trainer,
@@ -185,6 +190,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         using var client = factory.CreateClient();
         var trainer = await AuthEndpointTests.Register(client, "trainer");
         var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
         var completedSession = await CreateSession(client, trainer, trainee);
         var completedValue = Assert.Single(completedSession.Values);
 
@@ -223,6 +229,36 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         Assert.NotNull(repeatedCancelled);
         Assert.Equal(2, repeatedCancelled.Version);
         Assert.Equal(HttpStatusCode.Conflict, completeCancelledResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateRequiresTrainerTraineePairing()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var anotherTrainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var unpairedResponse = await client.PostAsJsonAsync(
+            "/shared-sessions",
+            CreateRequest(trainee.User.Email));
+
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(anotherTrainer.AccessToken);
+        var wrongTrainerResponse = await client.PostAsJsonAsync(
+            "/shared-sessions",
+            CreateRequest(trainee.User.Email));
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var pairedTrainerResponse = await client.PostAsJsonAsync(
+            "/shared-sessions",
+            CreateRequest(trainee.User.Email));
+
+        Assert.Equal(HttpStatusCode.Forbidden, unpairedResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, wrongTrainerResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, pairedTrainerResponse.StatusCode);
     }
 
     private static async Task<SharedSessionResponse> CreateSession(

@@ -89,7 +89,12 @@ public sealed class TokenService(IConfiguration configuration, ApplicationDbCont
 
     public static UserResponse ToUserResponse(ApplicationUser user)
     {
-        return new UserResponse(user.Id, user.Email ?? string.Empty, user.LiftMateRole);
+        return new UserResponse(
+            user.Id,
+            user.Email ?? string.Empty,
+            user.LiftMateRole,
+            user.DisplayName,
+            user.TrainerUserId);
     }
 
     private string CreateAccessToken(ApplicationUser user, DateTimeOffset expiresAt)

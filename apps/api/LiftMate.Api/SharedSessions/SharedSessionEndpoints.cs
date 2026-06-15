@@ -59,6 +59,11 @@ public static class SharedSessionEndpoints
             return Results.BadRequest(new { error = "Trainee user not found." });
         }
 
+        if (!string.Equals(trainee.TrainerUserId, trainerUserId, StringComparison.Ordinal))
+        {
+            return Results.Forbid();
+        }
+
         var hasActiveSession = await dbContext.SharedSessions.AnyAsync(
             session => session.TraineeUserId == trainee.Id && session.Status == SharedSessionStatus.Active,
             cancellationToken);

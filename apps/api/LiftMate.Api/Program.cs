@@ -96,6 +96,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
 
 app.MapAuthEndpoints();
 app.MapProbeEndpoints();
+app.MapPairingEndpoints();
 app.MapSharedSessionEndpoints();
 app.MapHub<SharedSessionHub>("/hubs/shared-sessions").RequireAuthorization();
 

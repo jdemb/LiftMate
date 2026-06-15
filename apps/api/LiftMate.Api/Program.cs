@@ -29,7 +29,6 @@ builder.Services
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddScoped<TokenService>();
-builder.Services.AddScoped<RegistrationGate>();
 builder.Services.AddScoped<SharedSessionBroadcaster>();
 builder.Services.AddSignalR();
 

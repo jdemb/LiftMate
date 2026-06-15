@@ -4,8 +4,7 @@ public sealed record RegisterRequest(
     string Email,
     string Password,
     string Role,
-    string DisplayName,
-    string InvitationCode);
+    string DisplayName);
 
 public sealed record LoginRequest(string Email, string Password);
 

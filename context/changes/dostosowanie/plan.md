@@ -388,33 +388,33 @@ Rolling back after deployment requires compatibility awareness: once mobile expe
 
 #### Automated
 
-- [x] 2.1 `flutter test test/auth_api_client_test.dart` succeeds from `apps/mobile`.
-- [x] 2.2 `flutter test` succeeds from `apps/mobile`.
-- [x] 2.3 `flutter analyze` succeeds from `apps/mobile`.
+- [x] 2.1 `flutter test test/auth_api_client_test.dart` succeeds from `apps/mobile` - 47473ef.
+- [x] 2.2 `flutter test` succeeds from `apps/mobile` - 47473ef.
+- [x] 2.3 `flutter analyze` succeeds from `apps/mobile` - 47473ef.
 
 #### Manual
 
-- [x] 2.4 Mobile registration sends `displayName` to `/auth/register`.
-- [x] 2.5 Existing login still works with responses that include `displayName`.
-- [x] 2.6 Mobile pairing methods call `/trainer/invite-code` and `/trainee/trainer-link` with bearer tokens.
-- [x] 2.7 Mobile trainee code entry trims whitespace and normalizes to uppercase before submitting.
+- [x] 2.4 Mobile registration sends `displayName` to `/auth/register` - 47473ef.
+- [x] 2.5 Existing login still works with responses that include `displayName` - 47473ef.
+- [x] 2.6 Mobile pairing methods call `/trainer/invite-code` and `/trainee/trainer-link` with bearer tokens - 47473ef.
+- [x] 2.7 Mobile trainee code entry trims whitespace and normalizes to uppercase before submitting - 47473ef.
 
 ### Phase 3: Mobile Onboarding UI
 
 #### Automated
 
-- [ ] 3.1 `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile`.
-- [ ] 3.2 `flutter test` succeeds from `apps/mobile`.
-- [ ] 3.3 `flutter analyze` succeeds from `apps/mobile`.
+- [x] 3.1 `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile`.
+- [x] 3.2 `flutter test` succeeds from `apps/mobile`.
+- [x] 3.3 `flutter analyze` succeeds from `apps/mobile`.
 
 #### Manual
 
-- [ ] 3.4 On a phone-sized viewport, onboarding text and controls do not overlap.
-- [ ] 3.5 `Załóż konto` reaches role selection and signup.
-- [ ] 3.6 `Mam już konto` reaches login.
-- [ ] 3.7 Signup for trainer and trainee roles preserves the selected role.
-- [ ] 3.8 Trainer signup reaches pair screen and displays a generated trainer invite code.
-- [ ] 3.9 Trainee signup reaches pair screen and can claim a trainer invite code before continuing.
-- [ ] 3.10 Auth errors remain visible without exposing password or invitation code.
-- [ ] 3.11 Technical diagnostics are absent from the auth UI.
-- [ ] 3.12 `AuthScreen` no longer exposes constructor parameters used only by the removed diagnostics.
+- [x] 3.4 On a phone-sized viewport, onboarding text and controls do not overlap.
+- [x] 3.5 `Załóż konto` reaches role selection and signup.
+- [x] 3.6 `Mam już konto` reaches login.
+- [x] 3.7 Signup for trainer and trainee roles preserves the selected role.
+- [x] 3.8 Trainer signup reaches pair screen and displays a generated trainer invite code.
+- [x] 3.9 Trainee signup reaches pair screen and can claim a trainer invite code before continuing.
+- [x] 3.10 Auth errors remain visible without exposing password or invitation code.
+- [x] 3.11 Technical diagnostics are absent from the auth UI.
+- [x] 3.12 `AuthScreen` no longer exposes constructor parameters used only by the removed diagnostics.

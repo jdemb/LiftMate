@@ -1,54 +1,48 @@
 import 'package:flutter/material.dart';
 
-import '../api_health_client.dart';
-import '../api_smoke_screen.dart';
-import '../shared_sessions/shared_session_api_client.dart';
-import '../shared_sessions/shared_session_diagnostic_panel.dart';
-import '../shared_sessions/shared_session_realtime_client.dart';
-import 'auth_api_client.dart';
 import 'auth_controller.dart';
 import 'auth_models.dart';
-import 'role_probe_panel.dart';
+
+enum _AuthStep {
+  welcome,
+  role,
+  login,
+  signup,
+}
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({
     required this.authController,
-    required this.authApiClient,
-    required this.sharedSessionApiClient,
-    required this.sharedSessionRealtimeClientFactory,
-    required this.healthUri,
-    required this.checkHealth,
     super.key,
   });
 
   final AuthController authController;
-  final AuthApiClient authApiClient;
-  final SharedSessionApiClient sharedSessionApiClient;
-  final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
-  final Uri? healthUri;
-  final ApiHealthCheck checkHealth;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final _loginFormKey = GlobalKey<FormState>();
+  final _signupFormKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _displayNameController = TextEditingController();
   final _invitationCodeController = TextEditingController();
+  final _trainerCodeController = TextEditingController();
 
-  bool _isRegistering = false;
+  _AuthStep _step = _AuthStep.welcome;
   UserRole _selectedRole = UserRole.trainer;
-  ApiHealthResult? _healthResult;
-  bool _isCheckingHealth = true;
+  UserRole? _pendingPairRole;
+  String? _trainerInviteCode;
+  String? _pairingError;
+  bool _isPairing = false;
 
   @override
   void initState() {
     super.initState();
     widget.authController.addListener(_onAuthChanged);
     widget.authController.initialize();
-    _checkHealth();
   }
 
   @override
@@ -56,7 +50,9 @@ class _AuthScreenState extends State<AuthScreen> {
     widget.authController.removeListener(_onAuthChanged);
     _emailController.dispose();
     _passwordController.dispose();
+    _displayNameController.dispose();
     _invitationCodeController.dispose();
+    _trainerCodeController.dispose();
     super.dispose();
   }
 
@@ -66,101 +62,186 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  Future<void> _checkHealth() async {
-    setState(() {
-      _isCheckingHealth = true;
-    });
-
-    final result = await widget.checkHealth();
-    if (!mounted) {
+  Future<void> _login() async {
+    if (!_loginFormKey.currentState!.validate()) {
       return;
     }
 
-    setState(() {
-      _healthResult = result;
-      _isCheckingHealth = false;
-    });
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    if (_isRegistering) {
-      await widget.authController.register(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        role: _selectedRole,
-        displayName: _emailController.text.trim(),
-        invitationCode: _invitationCodeController.text.trim(),
-      );
-      return;
-    }
-
+    _pendingPairRole = null;
     await widget.authController.login(
       email: _emailController.text.trim(),
       password: _passwordController.text,
     );
   }
 
+  Future<void> _signup() async {
+    if (!_signupFormKey.currentState!.validate()) {
+      return;
+    }
+
+    final role = _selectedRole;
+    final result = await widget.authController.register(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      role: role,
+      displayName: _displayNameController.text.trim(),
+      invitationCode: _invitationCodeController.text.trim(),
+    );
+
+    if (result.isSuccess) {
+      setState(() {
+        _pendingPairRole = role;
+        _pairingError = null;
+        _trainerInviteCode = null;
+        _trainerCodeController.clear();
+      });
+    }
+  }
+
+  Future<void> _generateTrainerCode() async {
+    setState(() {
+      _isPairing = true;
+      _pairingError = null;
+    });
+
+    final result = await widget.authController.generateTrainerInviteCode();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isPairing = false;
+      if (result.isSuccess && result.data != null) {
+        _trainerInviteCode = result.data!.code;
+      } else {
+        _pairingError = result.message;
+      }
+    });
+  }
+
+  Future<void> _claimTrainerCode() async {
+    final code = _trainerCodeController.text.trim();
+    if (code.isEmpty) {
+      setState(() {
+        _pairingError = 'Wpisz kod trenera.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isPairing = true;
+      _pairingError = null;
+    });
+
+    final result = await widget.authController.claimTrainerInviteCode(code: code);
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isPairing = false;
+      if (result.isSuccess) {
+        _pendingPairRole = null;
+      } else {
+        _pairingError = result.message;
+      }
+    });
+  }
+
+  Future<void> _finishTrainerPairing() async {
+    setState(() {
+      _pendingPairRole = null;
+    });
+  }
+
+  Future<void> _logout() async {
+    _resetOnboarding();
+    await widget.authController.logout();
+  }
+
+  void _resetOnboarding() {
+    setState(() {
+      _step = _AuthStep.welcome;
+      _pendingPairRole = null;
+      _trainerInviteCode = null;
+      _pairingError = null;
+      _isPairing = false;
+      _trainerCodeController.clear();
+    });
+  }
+
+  void _selectRole(UserRole role) {
+    setState(() {
+      _selectedRole = role;
+      _pairingError = null;
+    });
+  }
+
+  void _continueToSignup() {
+    setState(() {
+      _step = _AuthStep.signup;
+      _pairingError = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = widget.authController.state;
+    final user = state.user;
+    final isLoading = state.status == AuthControllerStatus.loading;
+    final errorMessage =
+        state.status == AuthControllerStatus.error ? state.message : null;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('LiftMate'),
-      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (state.status == AuthControllerStatus.authenticated &&
-                      state.user != null)
+                  const _BrandHeader(),
+                  const SizedBox(height: 28),
+                  if (user != null && _pendingPairRole != null)
+                    _PairingPanel(
+                      role: _pendingPairRole!,
+                      trainerInviteCode: _trainerInviteCode,
+                      trainerCodeController: _trainerCodeController,
+                      isLoading: _isPairing,
+                      errorMessage: _pairingError,
+                      onGenerateTrainerCode: _generateTrainerCode,
+                      onClaimTrainerCode: _claimTrainerCode,
+                      onContinue: _finishTrainerPairing,
+                    )
+                  else if (state.status == AuthControllerStatus.authenticated &&
+                      user != null)
                     _AuthenticatedPanel(
-                      authController: widget.authController,
-                      authApiClient: widget.authApiClient,
-                      sharedSessionApiClient: widget.sharedSessionApiClient,
-                      sharedSessionRealtimeClientFactory:
-                          widget.sharedSessionRealtimeClientFactory,
-                      user: state.user!,
+                      user: user,
+                      onLogout: _logout,
                     )
                   else
-                    _AuthForm(
-                      formKey: _formKey,
-                      isRegistering: _isRegistering,
-                      isLoading: state.status == AuthControllerStatus.loading,
+                    _OnboardingPanel(
+                      step: _step,
                       selectedRole: _selectedRole,
+                      isLoading: isLoading,
+                      errorMessage: errorMessage,
+                      loginFormKey: _loginFormKey,
+                      signupFormKey: _signupFormKey,
                       emailController: _emailController,
                       passwordController: _passwordController,
+                      displayNameController: _displayNameController,
                       invitationCodeController: _invitationCodeController,
-                      errorMessage:
-                          state.status == AuthControllerStatus.error ? state.message : null,
-                      onRoleChanged: (role) {
-                        setState(() {
-                          _selectedRole = role;
-                        });
-                      },
-                      onSubmit: _submit,
-                      onModeChanged: () {
-                        setState(() {
-                          _isRegistering = !_isRegistering;
-                        });
-                      },
+                      onShowLogin: () => setState(() => _step = _AuthStep.login),
+                      onShowRoleSelection: () =>
+                          setState(() => _step = _AuthStep.role),
+                      onBack: () => setState(() => _step = _AuthStep.welcome),
+                      onRoleSelected: _selectRole,
+                      onContinueRole: _continueToSignup,
+                      onLogin: _login,
+                      onSignup: _signup,
                     ),
-                  const SizedBox(height: 20),
-                  _HealthDiagnostics(
-                    healthUri: widget.healthUri,
-                    result: _healthResult,
-                    isChecking: _isCheckingHealth,
-                    onRetry: _checkHealth,
-                  ),
                 ],
               ),
             ),
@@ -171,131 +252,159 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 }
 
-class _AuthForm extends StatelessWidget {
-  const _AuthForm({
-    required this.formKey,
-    required this.isRegistering,
-    required this.isLoading,
-    required this.selectedRole,
-    required this.emailController,
-    required this.passwordController,
-    required this.invitationCodeController,
-    required this.onRoleChanged,
-    required this.onSubmit,
-    required this.onModeChanged,
-    this.errorMessage,
-  });
-
-  final GlobalKey<FormState> formKey;
-  final bool isRegistering;
-  final bool isLoading;
-  final UserRole selectedRole;
-  final TextEditingController emailController;
-  final TextEditingController passwordController;
-  final TextEditingController invitationCodeController;
-  final ValueChanged<UserRole> onRoleChanged;
-  final Future<void> Function() onSubmit;
-  final VoidCallback onModeChanged;
-  final String? errorMessage;
+class _BrandHeader extends StatelessWidget {
+  const _BrandHeader();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final title = isRegistering ? 'Create account' : 'Sign in';
 
-    return Form(
-      key: formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(title, style: theme.textTheme.headlineSmall),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: emailController,
-            decoration: const InputDecoration(labelText: 'Email'),
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            validator: _requiredValidator,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary,
+            borderRadius: BorderRadius.circular(8),
           ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: passwordController,
-            decoration: const InputDecoration(labelText: 'Password'),
-            obscureText: true,
-            textInputAction:
-                isRegistering ? TextInputAction.next : TextInputAction.done,
-            validator: _requiredValidator,
-          ),
-          if (isRegistering) ...[
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: invitationCodeController,
-              decoration: const InputDecoration(labelText: 'Invitation code'),
-              textInputAction: TextInputAction.done,
-              validator: _requiredValidator,
-            ),
-            const SizedBox(height: 16),
-            SegmentedButton<UserRole>(
-              segments: const [
-                ButtonSegment(
-                  value: UserRole.trainer,
-                  label: Text('Trainer'),
-                ),
-                ButtonSegment(
-                  value: UserRole.trainee,
-                  label: Text('Trainee'),
-                ),
-              ],
-              selected: {selectedRole},
-              onSelectionChanged: isLoading
-                  ? null
-                  : (selection) => onRoleChanged(selection.single),
-            ),
-          ],
-          if (errorMessage != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              errorMessage!,
-              style: TextStyle(color: theme.colorScheme.error),
-            ),
-          ],
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: isLoading ? null : onSubmit,
-            child: Text(title),
-          ),
-          TextButton(
-            onPressed: isLoading ? null : onModeChanged,
-            child: Text(isRegistering ? 'Sign in' : 'Create account'),
-          ),
-        ],
-      ),
+          child: const Icon(Icons.fitness_center, color: Colors.white),
+        ),
+        const SizedBox(height: 18),
+        Text('LiftMate', style: theme.textTheme.displaySmall),
+        const SizedBox(height: 8),
+        Text(
+          'Trening prowadzony blisko celu, bez zgadywania.',
+          style: theme.textTheme.bodyLarge,
+        ),
+      ],
     );
-  }
-
-  static String? _requiredValidator(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Required';
-    }
-
-    return null;
   }
 }
 
-class _AuthenticatedPanel extends StatelessWidget {
-  const _AuthenticatedPanel({
-    required this.authController,
-    required this.authApiClient,
-    required this.sharedSessionApiClient,
-    required this.sharedSessionRealtimeClientFactory,
-    required this.user,
+class _OnboardingPanel extends StatelessWidget {
+  const _OnboardingPanel({
+    required this.step,
+    required this.selectedRole,
+    required this.isLoading,
+    required this.loginFormKey,
+    required this.signupFormKey,
+    required this.emailController,
+    required this.passwordController,
+    required this.displayNameController,
+    required this.invitationCodeController,
+    required this.onShowLogin,
+    required this.onShowRoleSelection,
+    required this.onBack,
+    required this.onRoleSelected,
+    required this.onContinueRole,
+    required this.onLogin,
+    required this.onSignup,
+    this.errorMessage,
   });
 
-  final AuthController authController;
-  final AuthApiClient authApiClient;
-  final SharedSessionApiClient sharedSessionApiClient;
-  final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
-  final AuthUser user;
+  final _AuthStep step;
+  final UserRole selectedRole;
+  final bool isLoading;
+  final GlobalKey<FormState> loginFormKey;
+  final GlobalKey<FormState> signupFormKey;
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final TextEditingController displayNameController;
+  final TextEditingController invitationCodeController;
+  final VoidCallback onShowLogin;
+  final VoidCallback onShowRoleSelection;
+  final VoidCallback onBack;
+  final ValueChanged<UserRole> onRoleSelected;
+  final VoidCallback onContinueRole;
+  final Future<void> Function() onLogin;
+  final Future<void> Function() onSignup;
+  final String? errorMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (step) {
+      _AuthStep.welcome => _WelcomeStep(
+          isLoading: isLoading,
+          onCreateAccount: onShowRoleSelection,
+          onLogin: onShowLogin,
+        ),
+      _AuthStep.role => _RoleStep(
+          selectedRole: selectedRole,
+          onBack: onBack,
+          onRoleSelected: onRoleSelected,
+          onContinue: onContinueRole,
+        ),
+      _AuthStep.login => _LoginForm(
+          formKey: loginFormKey,
+          isLoading: isLoading,
+          emailController: emailController,
+          passwordController: passwordController,
+          errorMessage: errorMessage,
+          onBack: onBack,
+          onLogin: onLogin,
+        ),
+      _AuthStep.signup => _SignupForm(
+          formKey: signupFormKey,
+          role: selectedRole,
+          isLoading: isLoading,
+          emailController: emailController,
+          passwordController: passwordController,
+          displayNameController: displayNameController,
+          invitationCodeController: invitationCodeController,
+          errorMessage: errorMessage,
+          onBack: onBack,
+          onSignup: onSignup,
+        ),
+    };
+  }
+}
+
+class _WelcomeStep extends StatelessWidget {
+  const _WelcomeStep({
+    required this.isLoading,
+    required this.onCreateAccount,
+    required this.onLogin,
+  });
+
+  final bool isLoading;
+  final VoidCallback onCreateAccount;
+  final VoidCallback onLogin;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        FilledButton.icon(
+          onPressed: isLoading ? null : onCreateAccount,
+          icon: const Icon(Icons.person_add_alt_1),
+          label: const Text('Załóż konto'),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: isLoading ? null : onLogin,
+          icon: const Icon(Icons.login),
+          label: const Text('Mam już konto'),
+        ),
+      ],
+    );
+  }
+}
+
+class _RoleStep extends StatelessWidget {
+  const _RoleStep({
+    required this.selectedRole,
+    required this.onBack,
+    required this.onRoleSelected,
+    required this.onContinue,
+  });
+
+  final UserRole selectedRole;
+  final VoidCallback onBack;
+  final ValueChanged<UserRole> onRoleSelected;
+  final VoidCallback onContinue;
 
   @override
   Widget build(BuildContext context) {
@@ -304,79 +413,408 @@ class _AuthenticatedPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Signed in', style: theme.textTheme.headlineSmall),
-        const SizedBox(height: 12),
-        Text(user.email),
-        Text(user.role.wireName),
+        Text('Wybierz rolę', style: theme.textTheme.headlineSmall),
         const SizedBox(height: 16),
-        RoleProbePanel(
-          authApiClient: authApiClient,
-          authController: authController,
-          user: user,
+        SegmentedButton<UserRole>(
+          segments: const [
+            ButtonSegment(
+              value: UserRole.trainer,
+              icon: Icon(Icons.sports),
+              label: Text('Trener'),
+            ),
+            ButtonSegment(
+              value: UserRole.trainee,
+              icon: Icon(Icons.accessibility_new),
+              label: Text('Podopieczny'),
+            ),
+          ],
+          selected: {selectedRole},
+          onSelectionChanged: (selection) => onRoleSelected(selection.single),
         ),
         const SizedBox(height: 16),
-        SharedSessionDiagnosticPanel(
-          authController: authController,
-          user: user,
-          sharedSessionApiClient: sharedSessionApiClient,
-          realtimeClientFactory: sharedSessionRealtimeClientFactory,
+        FilledButton.icon(
+          onPressed: onContinue,
+          icon: const Icon(Icons.arrow_forward),
+          label: const Text('Dalej'),
         ),
-        const SizedBox(height: 16),
-        OutlinedButton(
-          onPressed: authController.logout,
-          child: const Text('Logout'),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          onPressed: onBack,
+          icon: const Icon(Icons.arrow_back),
+          label: const Text('Wróć'),
         ),
       ],
     );
   }
 }
 
-class _HealthDiagnostics extends StatelessWidget {
-  const _HealthDiagnostics({
-    required this.healthUri,
-    required this.result,
-    required this.isChecking,
-    required this.onRetry,
+class _LoginForm extends StatelessWidget {
+  const _LoginForm({
+    required this.formKey,
+    required this.isLoading,
+    required this.emailController,
+    required this.passwordController,
+    required this.onBack,
+    required this.onLogin,
+    this.errorMessage,
   });
 
-  final Uri? healthUri;
-  final ApiHealthResult? result;
-  final bool isChecking;
-  final Future<void> Function() onRetry;
+  final GlobalKey<FormState> formKey;
+  final bool isLoading;
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final VoidCallback onBack;
+  final Future<void> Function() onLogin;
+  final String? errorMessage;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('API diagnostics', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(
-              isChecking ? 'Checking API' : result?.message ?? 'No health check result.',
-            ),
-            const SizedBox(height: 8),
-            SelectableText(
-              healthUri?.toString() ?? 'API_BASE_URL not configured',
-              textAlign: TextAlign.start,
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: isChecking ? null : onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry health'),
-            ),
-          ],
-        ),
+    return Form(
+      key: formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Logowanie', style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 16),
+          _EmailField(controller: emailController),
+          const SizedBox(height: 12),
+          _PasswordField(controller: passwordController),
+          _ErrorText(message: errorMessage),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: isLoading ? null : onLogin,
+            icon: const Icon(Icons.login),
+            label: const Text('Zaloguj'),
+          ),
+          TextButton.icon(
+            onPressed: isLoading ? null : onBack,
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Wróć'),
+          ),
+        ],
       ),
     );
   }
+}
+
+class _SignupForm extends StatelessWidget {
+  const _SignupForm({
+    required this.formKey,
+    required this.role,
+    required this.isLoading,
+    required this.emailController,
+    required this.passwordController,
+    required this.displayNameController,
+    required this.invitationCodeController,
+    required this.onBack,
+    required this.onSignup,
+    this.errorMessage,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final UserRole role;
+  final bool isLoading;
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final TextEditingController displayNameController;
+  final TextEditingController invitationCodeController;
+  final VoidCallback onBack;
+  final Future<void> Function() onSignup;
+  final String? errorMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final roleLabel = role == UserRole.trainer ? 'Trener' : 'Podopieczny';
+
+    return Form(
+      key: formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Nowe konto', style: theme.textTheme.headlineSmall),
+          const SizedBox(height: 6),
+          Text('Rola: $roleLabel', style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: displayNameController,
+            decoration: const InputDecoration(
+              labelText: 'Imię i nazwisko',
+              prefixIcon: Icon(Icons.badge_outlined),
+            ),
+            textInputAction: TextInputAction.next,
+            validator: _requiredValidator,
+          ),
+          const SizedBox(height: 12),
+          _EmailField(controller: emailController),
+          const SizedBox(height: 12),
+          _PasswordField(controller: passwordController),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: invitationCodeController,
+            decoration: const InputDecoration(
+              labelText: 'Kod rejestracji',
+              prefixIcon: Icon(Icons.key),
+            ),
+            textInputAction: TextInputAction.done,
+            validator: _requiredValidator,
+          ),
+          _ErrorText(message: errorMessage),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: isLoading ? null : onSignup,
+            icon: const Icon(Icons.arrow_forward),
+            label: const Text('Kontynuuj'),
+          ),
+          TextButton.icon(
+            onPressed: isLoading ? null : onBack,
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Wróć'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PairingPanel extends StatelessWidget {
+  const _PairingPanel({
+    required this.role,
+    required this.trainerCodeController,
+    required this.isLoading,
+    required this.onGenerateTrainerCode,
+    required this.onClaimTrainerCode,
+    required this.onContinue,
+    this.trainerInviteCode,
+    this.errorMessage,
+  });
+
+  final UserRole role;
+  final TextEditingController trainerCodeController;
+  final bool isLoading;
+  final Future<void> Function() onGenerateTrainerCode;
+  final Future<void> Function() onClaimTrainerCode;
+  final Future<void> Function() onContinue;
+  final String? trainerInviteCode;
+  final String? errorMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isTrainer = role == UserRole.trainer;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          isTrainer ? 'Kod dla podopiecznego' : 'Połącz z trenerem',
+          style: theme.textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 12),
+        if (isTrainer)
+          _TrainerPairingContent(
+            code: trainerInviteCode,
+            isLoading: isLoading,
+            onGenerateTrainerCode: onGenerateTrainerCode,
+            onContinue: onContinue,
+          )
+        else
+          _TraineePairingContent(
+            controller: trainerCodeController,
+            isLoading: isLoading,
+            onClaimTrainerCode: onClaimTrainerCode,
+          ),
+        _ErrorText(message: errorMessage),
+      ],
+    );
+  }
+}
+
+class _TrainerPairingContent extends StatelessWidget {
+  const _TrainerPairingContent({
+    required this.isLoading,
+    required this.onGenerateTrainerCode,
+    required this.onContinue,
+    this.code,
+  });
+
+  final bool isLoading;
+  final Future<void> Function() onGenerateTrainerCode;
+  final Future<void> Function() onContinue;
+  final String? code;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (code != null) ...[
+          SelectableText(
+            code!,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.displaySmall,
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: isLoading ? null : onContinue,
+            icon: const Icon(Icons.check),
+            label: const Text('Przejdź dalej'),
+          ),
+        ] else
+          FilledButton.icon(
+            onPressed: isLoading ? null : onGenerateTrainerCode,
+            icon: const Icon(Icons.ios_share),
+            label: const Text('Wygeneruj kod'),
+          ),
+      ],
+    );
+  }
+}
+
+class _TraineePairingContent extends StatelessWidget {
+  const _TraineePairingContent({
+    required this.controller,
+    required this.isLoading,
+    required this.onClaimTrainerCode,
+  });
+
+  final TextEditingController controller;
+  final bool isLoading;
+  final Future<void> Function() onClaimTrainerCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextFormField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Kod trenera',
+            prefixIcon: Icon(Icons.qr_code_2),
+          ),
+          textCapitalization: TextCapitalization.characters,
+          textInputAction: TextInputAction.done,
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: isLoading ? null : onClaimTrainerCode,
+          icon: const Icon(Icons.link),
+          label: const Text('Połącz konto'),
+        ),
+      ],
+    );
+  }
+}
+
+class _AuthenticatedPanel extends StatelessWidget {
+  const _AuthenticatedPanel({
+    required this.user,
+    required this.onLogout,
+  });
+
+  final AuthUser user;
+  final Future<void> Function() onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final roleLabel = user.role == UserRole.trainer ? 'Trener' : 'Podopieczny';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Witaj, ${user.displayName}', style: theme.textTheme.headlineSmall),
+        const SizedBox(height: 12),
+        Text(user.email),
+        Text('Rola: $roleLabel'),
+        if (user.trainerUserId != null) Text('Trener: ${user.trainerUserId}'),
+        const SizedBox(height: 20),
+        OutlinedButton.icon(
+          onPressed: onLogout,
+          icon: const Icon(Icons.logout),
+          label: const Text('Wyloguj'),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmailField extends StatelessWidget {
+  const _EmailField({
+    required this.controller,
+  });
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      decoration: const InputDecoration(
+        labelText: 'E-mail',
+        prefixIcon: Icon(Icons.mail_outline),
+      ),
+      keyboardType: TextInputType.emailAddress,
+      textInputAction: TextInputAction.next,
+      validator: _requiredValidator,
+    );
+  }
+}
+
+class _PasswordField extends StatelessWidget {
+  const _PasswordField({
+    required this.controller,
+  });
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      decoration: const InputDecoration(
+        labelText: 'Hasło',
+        prefixIcon: Icon(Icons.lock_outline),
+      ),
+      obscureText: true,
+      textInputAction: TextInputAction.done,
+      validator: _requiredValidator,
+    );
+  }
+}
+
+class _ErrorText extends StatelessWidget {
+  const _ErrorText({
+    required this.message,
+  });
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    if (message == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Text(
+        message!,
+        style: TextStyle(color: Theme.of(context).colorScheme.error),
+      ),
+    );
+  }
+}
+
+String? _requiredValidator(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return 'To pole jest wymagane.';
+  }
+
+  return null;
 }

@@ -50,7 +50,6 @@ class AuthApiClient {
     required String password,
     required UserRole role,
     required String displayName,
-    required String invitationCode,
   }) {
     return _send<AuthSession>(
       method: 'POST',
@@ -60,7 +59,6 @@ class AuthApiClient {
         'password': password,
         'role': role.wireName,
         'displayName': displayName,
-        'invitationCode': invitationCode,
       },
       successStatusCodes: {201},
       parse: AuthSession.fromJson,

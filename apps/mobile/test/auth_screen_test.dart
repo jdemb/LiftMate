@@ -24,8 +24,14 @@ void main() {
 
       expect(find.text('LiftMate'), findsOneWidget);
       expect(find.text('Trenuj bez myślenia\no liczbach.'), findsOneWidget);
+      expect(
+        find.text('Trener ustawia plan, Ty widzisz co robić, ile podnieść i kiedy poprawiasz wynik.'),
+        findsNothing,
+      );
       expect(find.text('Załóż konto'), findsOneWidget);
       expect(find.text('Mam już konto'), findsOneWidget);
+      expect(find.text('Kod dostępu'), findsNothing);
+      expect(find.text('Kod rejestracji'), findsNothing);
       expect(find.text('API diagnostics'), findsNothing);
       expect(find.text('Trainer probe passed'), findsNothing);
       expect(find.text('Shared session diagnostics'), findsNothing);
@@ -103,18 +109,19 @@ void main() {
       expect(seenPaths, ['/auth/login', '/auth/logout']);
     });
 
-    testWidgets('trainee signup separates registration code from trainer code',
+    testWidgets('trainee signup opens trainer-code pairing without access-code gate',
         (tester) async {
+      final seenPaths = <String>[];
       await tester.pumpWidget(
         _testApp(
           httpClient: MockClient((request) async {
+            seenPaths.add(request.url.path);
             if (request.url.path == '/auth/register') {
               expect(jsonDecode(request.body), {
                 'email': 'trainee@example.test',
                 'password': 'Password123!',
                 'role': 'trainee',
                 'displayName': 'Test Trainee',
-                'invitationCode': 'invite-123',
               });
               return http.Response(jsonEncode(_authResponse(role: 'trainee')), 201);
             }
@@ -132,17 +139,13 @@ void main() {
       expect(find.text('Kod trenera'), findsNothing);
 
       await _tapButton(tester, 'Utwórz konto');
-      expect(find.text('Kod dostępu'), findsOneWidget);
-      expect(find.text('Kod rejestracji'), findsOneWidget);
-      expect(find.text('Kod trenera'), findsNothing);
-
-      await tester.enterText(find.byKey(const ValueKey('field-Kod rejestracji')), 'invite-123');
-      await _tapButton(tester, 'Utwórz konto');
 
       expect(find.text('Połącz się\nz trenerem'), findsOneWidget);
+      expect(find.text('Kod dostępu'), findsNothing);
       expect(find.text('Kod trenera'), findsNothing);
       expect(find.byKey(const ValueKey('field-Kod trenera')), findsOneWidget);
       expect(find.text('Kod rejestracji'), findsNothing);
+      expect(seenPaths, ['/auth/register']);
     });
 
     testWidgets('trainer signup displays generated invite code on separate design screen',
@@ -159,7 +162,6 @@ void main() {
                 'password': 'Password123!',
                 'role': 'trainer',
                 'displayName': 'Test Trainer',
-                'invitationCode': 'invite-123',
               });
               return http.Response(jsonEncode(_authResponse(role: 'trainer')), 201);
             }
@@ -180,10 +182,10 @@ void main() {
       expect(find.text('Twój kod zaproszenia'), findsNothing);
 
       await _tapButton(tester, 'Utwórz konto');
-      await tester.enterText(find.byKey(const ValueKey('field-Kod rejestracji')), 'invite-123');
-      await _tapButton(tester, 'Utwórz konto');
 
       expect(find.text('Zaproś\npodopiecznego'), findsOneWidget);
+      expect(find.text('Kod dostępu'), findsNothing);
+      expect(find.text('Kod rejestracji'), findsNothing);
       expect(find.text('Twój kod zaproszenia'), findsOneWidget);
       expect(find.text('7F2K9D'), findsOneWidget);
       expect(find.text('⧉ Kopiuj kod'), findsOneWidget);
@@ -220,8 +222,6 @@ void main() {
       await _openSignup(tester, roleLabel: 'Jestem podopiecznym');
       await _fillSignupForm(tester, displayName: 'Test Trainee', email: 'trainee@example.test');
       await _tapButton(tester, 'Utwórz konto');
-      await tester.enterText(find.byKey(const ValueKey('field-Kod rejestracji')), 'invite-123');
-      await _tapButton(tester, 'Utwórz konto');
 
       await tester.enterText(find.byKey(const ValueKey('field-Kod trenera')), '  7f2k9d  ');
       await _tapButton(tester, 'Połącz konto');
@@ -232,12 +232,12 @@ void main() {
       expect(seenPaths, ['/auth/register', '/trainee/trainer-link']);
     });
 
-    testWidgets('shows API error without exposing password or registration code',
+    testWidgets('shows API error without exposing password',
         (tester) async {
       await tester.pumpWidget(
         _testApp(
           httpClient: MockClient((request) async {
-            return http.Response('{"message":"Invitation code is invalid."}', 400);
+            return http.Response('{"message":"Registration failed."}', 400);
           }),
         ),
       );
@@ -251,12 +251,11 @@ void main() {
         password: 'SuperSecret123!',
       );
       await _tapButton(tester, 'Utwórz konto');
-      await tester.enterText(find.byKey(const ValueKey('field-Kod rejestracji')), 'secret-invite');
-      await _tapButton(tester, 'Utwórz konto');
 
-      expect(find.text('Invitation code is invalid.'), findsOneWidget);
+      expect(find.text('Registration failed.'), findsOneWidget);
       expect(_textContaining('SuperSecret123'), findsNothing);
-      expect(_textContaining('secret-invite'), findsNothing);
+      expect(find.text('Kod dostępu'), findsNothing);
+      expect(find.text('Kod rejestracji'), findsNothing);
     });
   });
 }

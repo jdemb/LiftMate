@@ -27,6 +27,7 @@ void main() {
             'email': 'trainer@example.test',
             'password': 'Password123!',
             'role': 'trainer',
+            'displayName': 'Test Trainer',
             'invitationCode': 'invite-123',
           });
 
@@ -42,6 +43,7 @@ void main() {
         email: 'trainer@example.test',
         password: 'Password123!',
         role: UserRole.trainer,
+        displayName: 'Test Trainer',
         invitationCode: 'invite-123',
       );
 
@@ -49,6 +51,60 @@ void main() {
       expect(result.data?.accessToken, 'access-token');
       expect(result.data?.refreshToken, 'refresh-token');
       expect(result.data?.user.role, UserRole.trainer);
+      expect(result.data?.user.displayName, 'Test Trainer');
+      expect(result.data?.user.trainerUserId, isNull);
+    });
+
+    test('trainer invite code request sends bearer token and parses code', () async {
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(request.url.toString(), 'https://api.example.test/trainer/invite-code');
+          expect(request.headers['Authorization'], 'Bearer access-token');
+
+          return http.Response('{"code":"7F2K9D"}', 200);
+        }),
+      );
+
+      final result = await client.generateTrainerInviteCode(
+        accessToken: 'access-token',
+      );
+
+      expect(result.status, AuthApiStatus.success);
+      expect(result.data?.code, '7F2K9D');
+    });
+
+    test('claim trainer invite code normalizes input and parses linked user', () async {
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(request.url.toString(), 'https://api.example.test/trainee/trainer-link');
+          expect(request.headers['Authorization'], 'Bearer access-token');
+          expect(jsonDecode(request.body), {'code': '7F2K9D'});
+
+          return http.Response(
+            jsonEncode({
+              'id': 'trainee-1',
+              'email': 'trainee@example.test',
+              'role': 'trainee',
+              'displayName': 'Test Trainee',
+              'trainerUserId': 'trainer-1',
+            }),
+            200,
+          );
+        }),
+      );
+
+      final result = await client.claimTrainerInviteCode(
+        accessToken: 'access-token',
+        code: '  7f2k9d  ',
+      );
+
+      expect(result.status, AuthApiStatus.success);
+      expect(result.data?.trainerUserId, 'trainer-1');
+      expect(result.data?.displayName, 'Test Trainee');
     });
 
     test('login posts credentials and parses trainee session', () async {
@@ -134,6 +190,8 @@ void main() {
               'id': 'user-1',
               'email': 'trainer@example.test',
               'role': 'trainer',
+              'displayName': 'Test Trainer',
+              'trainerUserId': null,
             }),
             200,
           );
@@ -202,6 +260,7 @@ void main() {
         email: 'trainer@example.test',
         password: 'Password123!',
         role: UserRole.trainer,
+        displayName: 'Test Trainer',
         invitationCode: 'super-secret-invite',
       );
 
@@ -253,10 +312,12 @@ Map<String, Object?> _authResponse({String role = 'trainer'}) {
     'accessToken': 'access-token',
     'refreshToken': 'refresh-token',
     'expiresAt': '2026-06-02T12:00:00Z',
-    'user': {
-      'id': 'user-1',
-      'email': '$role@example.test',
-      'role': role,
-    },
-  };
-}
+      'user': {
+        'id': 'user-1',
+        'email': '$role@example.test',
+        'role': role,
+        'displayName': role == 'trainer' ? 'Test Trainer' : 'Test Trainee',
+        'trainerUserId': role == 'trainee' ? 'trainer-1' : null,
+      },
+    };
+  }

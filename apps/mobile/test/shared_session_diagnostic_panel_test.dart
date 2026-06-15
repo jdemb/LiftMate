@@ -125,6 +125,33 @@ void main() {
       expect(realtimeClient.joinedSessionIds, ['session-1']);
     });
 
+    testWidgets('trainee recovers active session on reconnect after missed start',
+        (tester) async {
+      final apiClient = _FakeSharedSessionApiClient(hasActiveSession: false);
+      final realtimeClient = _FakeSharedSessionRealtimeClient();
+
+      await tester.pumpWidget(
+        await _testApp(
+          apiClient: apiClient,
+          realtimeClient: realtimeClient,
+          role: UserRole.trainee,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(apiClient.activeRequestedCount, 1);
+      expect(find.text('Waiting for trainer to start a session.'), findsWidgets);
+
+      apiClient.hasActiveSession = true;
+      realtimeClient.emitStatus(SharedSessionConnectionStatus.connected);
+      await tester.pumpAndSettle();
+
+      expect(apiClient.activeRequestedCount, 2);
+      expect(find.text('Trainer: trainer@example.test'), findsOneWidget);
+      expect(find.text('Status: active'), findsOneWidget);
+      expect(realtimeClient.joinedSessionIds, ['session-1']);
+    });
+
     testWidgets('updates first value through internally discovered session ID',
         (tester) async {
       final apiClient = _FakeSharedSessionApiClient();
@@ -219,6 +246,8 @@ Map<String, Object?> _authResponse(UserRole role) {
       'id': role == UserRole.trainer ? 'trainer-1' : 'trainee-1',
       'email': '${role.wireName}@example.test',
       'role': role.wireName,
+      'displayName': role == UserRole.trainer ? 'Test Trainer' : 'Test Trainee',
+      'trainerUserId': role == UserRole.trainee ? 'trainer-1' : null,
     },
   };
 }
@@ -368,6 +397,10 @@ class _FakeSharedSessionRealtimeClient implements SharedSessionRealtimeClient {
 
   void emit(SharedSession session) {
     _updatesController.add(session);
+  }
+
+  void emitStatus(SharedSessionConnectionStatus status) {
+    _statusController.add(status);
   }
 }
 

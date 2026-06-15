@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  @keyframes lm-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.82); } }
+  @keyframes lm-ring { 0% { box-shadow: 0 0 0 0 rgba(255,77,77,.5); } 100% { box-shadow: 0 0 0 10px rgba(255,77,77,0); } }
+  .lm-scroll::-webkit-scrollbar { width: 0; height: 0; }
+  .lm-scroll { scrollbar-width: none; }
+</style>
+</helmet>
+<div style="min-height:100vh;background:radial-gradient(1200px 600px at 18% -5%, #1a1d24 0%, #0c0d10 55%, #090a0c 100%);font-family:'Manrope',system-ui,sans-serif;color:#f3f4f6;padding:34px 40px 80px;">
+
+  <!-- ===== HEADER ===== -->
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;max-width:1500px;margin:0 auto 30px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div style="width:46px;height:46px;border-radius:13px;background:linear-gradient(145deg,#3a82f6,#2f6fd6);display:flex;align-items:center;justify-content:center;gap:2.5px;box-shadow:0 8px 24px rgba(58,130,246,.4);">
+        <div style="width:6px;height:20px;border-radius:2px;background:#fff;"></div>
+        <div style="width:10px;height:6px;background:#fff;"></div>
+        <div style="width:6px;height:20px;border-radius:2px;background:#fff;"></div>
+      </div>
+      <div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:25px;letter-spacing:-0.5px;line-height:1;">LiftMate</div>
+        <div style="font-size:13px;color:#969ba3;margin-top:4px;">Prototyp mobilny · spec do przekazania agentowi · Flutter + .NET</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:999px;background:rgba(58,130,246,.14);border:1px solid rgba(58,130,246,.3);font-size:12.5px;font-weight:600;color:#9cc1fb;">Rola: <span style="color:#fff;">{{ roleLabel }}</span></div>
+      <div style="display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;background:rgba(255,77,77,.12);border:1px solid rgba(255,77,77,.28);font-size:12.5px;font-weight:600;color:#ff8d8d;"><span style="width:7px;height:7px;border-radius:50%;background:#ff4d4d;display:inline-block;animation:lm-pulse 1.4s infinite;"></span> na żywo</div>
+    </div>
+  </div>
+
+  <!-- ===== WORK AREA ===== -->
+  <div style="display:flex;gap:30px;align-items:flex-start;justify-content:center;max-width:1500px;margin:0 auto;flex-wrap:wrap;">
+
+    <!-- LEFT: screen index -->
+    <div style="width:236px;flex-shrink:0;position:sticky;top:20px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#686d75;text-transform:uppercase;margin:0 0 14px 4px;">Ekrany</div>
+      <sc-for list="{{ navGroups }}" as="grp" hint-placeholder-count="3">
+        <div style="margin-bottom:18px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:{{ grp.color }};text-transform:uppercase;margin:0 0 8px 4px;">{{ grp.title }}</div>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <sc-for list="{{ grp.items }}" as="it" hint-placeholder-count="4">
+              <button onClick="{{ it.go }}" style="{{ it.style }}">
+                <span style="width:6px;height:6px;border-radius:50%;background:{{ it.dot }};flex-shrink:0;"></span>
+                <span style="flex:1;text-align:left;">{{ it.label }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- CENTER: phone -->
+    <div style="flex-shrink:0;">
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="412px,892px">
+        <div class="lm-scroll" style="height:100%;display:flex;flex-direction:column;background:#101216;overflow:hidden;font-family:'Manrope',system-ui,sans-serif;">
+
+          <!-- WELCOME -->
+          <sc-if value="{{ scWelcome }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:46px 28px 32px;background:radial-gradient(420px 280px at 70% 8%, rgba(58,130,246,.22), transparent 70%);">
+              <div>
+                <div style="display:flex;align-items:center;gap:15px;">
+                  <div style="width:60px;height:60px;border-radius:18px;background:linear-gradient(145deg,#3a82f6,#2f6fd6);display:flex;align-items:center;justify-content:center;gap:3.5px;box-shadow:0 14px 34px rgba(58,130,246,.45);">
+                    <div style="width:8px;height:27px;border-radius:3px;background:#fff;"></div>
+                    <div style="width:13px;height:8px;background:#fff;"></div>
+                    <div style="width:8px;height:27px;border-radius:3px;background:#fff;"></div>
+                  </div>
+                  <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:31px;letter-spacing:-1px;color:#fff;">LiftMate</div>
+                </div>
+                <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:46px;letter-spacing:-1.5px;line-height:1.02;margin-top:38px;">Trenuj bez myślenia<br>o liczbach.</div>
+                
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <button onClick="{{ toRole }}" style="height:56px;border:none;border-radius:16px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:16.5px;cursor:pointer;box-shadow:0 10px 26px rgba(58,130,246,.4);">Załóż konto</button>
+                <button onClick="{{ toRole }}" style="height:56px;border:1px solid rgba(255,255,255,.14);border-radius:16px;background:transparent;color:#f3f4f6;font-family:'Manrope';font-weight:600;font-size:16.5px;cursor:pointer;">Mam już konto</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- ROLE SELECT -->
+          <sc-if value="{{ scRole }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;padding:30px 24px 28px;">
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;letter-spacing:-0.8px;line-height:1.1;">Jak korzystasz<br>z LiftMate?</div>
+              <div style="font-size:15px;color:#969ba3;margin-top:12px;">Wybierz rolę. Zmienisz ją w ustawieniach.</div>
+              <div style="display:flex;flex-direction:column;gap:14px;margin-top:30px;">
+                <button onClick="{{ pickTrainee }}" style="{{ roleCardTrainee }}">
+                  <div style="display:flex;align-items:center;gap:16px;">
+                    <div style="width:52px;height:52px;border-radius:15px;background:rgba(58,130,246,.16);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">🏋️</div>
+                    <div style="text-align:left;flex:1;">
+                      <div style="font-family:'Space Grotesk';font-weight:600;font-size:19px;color:#fff;">Jestem podopiecznym</div>
+                      <div style="font-size:13.5px;color:#969ba3;margin-top:3px;line-height:1.4;">Wykonuję plan ułożony przez trenera</div>
+                    </div>
+                  </div>
+                </button>
+                <button onClick="{{ pickTrainer }}" style="{{ roleCardTrainer }}">
+                  <div style="display:flex;align-items:center;gap:16px;">
+                    <div style="width:52px;height:52px;border-radius:15px;background:rgba(58,130,246,.16);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">📋</div>
+                    <div style="text-align:left;flex:1;">
+                      <div style="font-family:'Space Grotesk';font-weight:600;font-size:19px;color:#fff;">Jestem trenerem</div>
+                      <div style="font-size:13.5px;color:#969ba3;margin-top:3px;line-height:1.4;">Układam plany i prowadzę podopiecznych</div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+              <div style="flex:1;"></div>
+              <button onClick="{{ toSignup }}" style="height:54px;border:none;border-radius:15px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;">Dalej</button>
+            </div>
+          </sc-if>
+
+          <!-- SIGNUP -->
+          <sc-if value="{{ scSignup }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;padding:18px 24px 28px;">
+              <button onClick="{{ back }}" style="background:none;border:none;color:#969ba3;font-size:22px;cursor:pointer;padding:6px 0;align-self:flex-start;">‹</button>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:28px;letter-spacing:-0.6px;margin-top:6px;">Załóż konto</div>
+              <div style="font-size:14.5px;color:#969ba3;margin-top:8px;">Rola: <span style="color:#9cc1fb;font-weight:600;">{{ roleLabel }}</span></div>
+              <div style="display:flex;flex-direction:column;gap:16px;margin-top:26px;">
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:#969ba3;margin-bottom:8px;">Imię i nazwisko</div>
+                  <div style="height:52px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 16px;font-size:15.5px;color:#f3f4f6;">{{ signupName }}</div>
+                </div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:#969ba3;margin-bottom:8px;">E-mail</div>
+                  <div style="height:52px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 16px;font-size:15.5px;color:#f3f4f6;">{{ signupEmail }}</div>
+                </div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:#969ba3;margin-bottom:8px;">Hasło</div>
+                  <div style="height:52px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:15.5px;color:#f3f4f6;letter-spacing:3px;">••••••••<span style="font-size:13px;letter-spacing:0;color:#3a82f6;font-weight:600;">Pokaż</span></div>
+                </div>
+              </div>
+              <div style="flex:1;"></div>
+              <button onClick="{{ toPair }}" style="height:54px;border:none;border-radius:15px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;">Utwórz konto</button>
+            </div>
+          </sc-if>
+
+          <!-- PAIR -->
+          <sc-if value="{{ scPair }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;padding:18px 24px 28px;">
+              <button onClick="{{ back }}" style="background:none;border:none;color:#969ba3;font-size:22px;cursor:pointer;padding:6px 0;align-self:flex-start;">‹</button>
+              <!-- trainee variant: enter code -->
+              <sc-if value="{{ isTrainee }}" hint-placeholder-val="{{ true }}">
+                <div style="margin-top:6px;">
+                  <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:28px;letter-spacing:-0.6px;">Połącz się<br>z trenerem</div>
+                  <div style="font-size:14.5px;color:#969ba3;margin-top:12px;line-height:1.5;">Wpisz kod, który otrzymasz od swojego trenera.</div>
+                  <div style="display:flex;gap:10px;margin-top:28px;">
+                    <sc-for list="{{ codeBoxes }}" as="b" hint-placeholder-count="6">
+                      <div style="flex:1;height:62px;border-radius:14px;background:#191c22;border:1px solid {{ b.border }};display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk';font-weight:700;font-size:26px;color:#fff;">{{ b.ch }}</div>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;margin-top:26px;padding:14px 16px;border-radius:14px;background:rgba(33,201,122,.1);border:1px solid rgba(33,201,122,.25);">
+                    <span style="font-size:18px;">✓</span>
+                    <div style="font-size:13.5px;color:#7ee0ad;font-weight:600;">Znaleziono trenera: Marek Kowalski</div>
+                  </div>
+                </div>
+                <div style="flex:1;"></div>
+                <button onClick="{{ toHome }}" style="height:54px;border:none;border-radius:15px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;">Połącz konto</button>
+              </sc-if>
+              <!-- trainer variant: share code -->
+              <sc-if value="{{ isTrainer }}" hint-placeholder-val="{{ true }}">
+                <div style="margin-top:6px;">
+                  <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:28px;letter-spacing:-0.6px;">Zaproś<br>podopiecznego</div>
+                  <div style="font-size:14.5px;color:#969ba3;margin-top:12px;line-height:1.5;">Przekaż ten kod podopiecznemu. Po wpisaniu pojawi się na Twojej liście.</div>
+                  <div style="margin-top:28px;padding:32px 24px;border-radius:20px;background:#191c22;border:1px solid rgba(255,255,255,.08);text-align:center;">
+                    <div style="font-size:12px;font-weight:700;letter-spacing:2px;color:#686d75;text-transform:uppercase;">Twój kod zaproszenia</div>
+                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:44px;letter-spacing:8px;color:#fff;margin-top:14px;">7F2K9D</div>
+                    <div style="display:inline-flex;align-items:center;gap:8px;margin-top:18px;padding:9px 18px;border-radius:999px;background:rgba(58,130,246,.16);color:#9cc1fb;font-size:13.5px;font-weight:600;">⧉ Kopiuj kod</div>
+                  </div>
+                </div>
+                <div style="flex:1;"></div>
+                <button onClick="{{ toDash }}" style="height:54px;border:none;border-radius:15px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;">Przejdź do pulpitu</button>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- TRAINER DASHBOARD -->
+          <sc-if value="{{ scTDash }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+              <div style="padding:14px 22px 16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <div>
+                    <div style="font-size:14px;color:#969ba3;">Cześć,</div>
+                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:26px;letter-spacing:-0.5px;">Marek 👋</div>
+                  </div>
+                  <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(145deg,#3a82f6,#2f6fd6);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;font-family:'Space Grotesk';">MK</div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:18px;">
+                  <div style="flex:1;padding:14px 16px;border-radius:16px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
+                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:28px;color:#fff;">4</div>
+                    <div style="font-size:12.5px;color:#969ba3;margin-top:2px;">podopiecznych</div>
+                  </div>
+                  <div style="flex:1;padding:14px 16px;border-radius:16px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
+                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:28px;color:#3a82f6;">2</div>
+                    <div style="font-size:12.5px;color:#969ba3;margin-top:2px;">treningi dziś</div>
+                  </div>
+                </div>
+              </div>
+              <div class="lm-scroll" style="flex:1;overflow:auto;padding:4px 22px 16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin:8px 2px 12px;">
+                  <div style="font-size:13px;font-weight:700;letter-spacing:.5px;color:#686d75;text-transform:uppercase;">Podopieczni</div>
+                  <div style="font-size:13px;color:#3a82f6;font-weight:600;">+ Zaproś</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <sc-for list="{{ trainees }}" as="t" hint-placeholder-count="4">
+                    <button onClick="{{ t.open }}" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:16px;background:#191c22;border:1px solid rgba(255,255,255,.07);cursor:pointer;text-align:left;">
+                      <div style="width:46px;height:46px;border-radius:14px;background:{{ t.avBg }};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;font-family:'Space Grotesk';color:#fff;flex-shrink:0;position:relative;">{{ t.initials }}<span style="position:absolute;right:-2px;bottom:-2px;width:13px;height:13px;border-radius:50%;background:{{ t.statusDot }};border:2.5px solid #191c22;"></span></div>
+                      <div style="flex:1;min-width:0;">
+                        <div style="font-weight:700;font-size:15.5px;color:#f3f4f6;">{{ t.name }}</div>
+                        <div style="font-size:12.5px;color:#969ba3;margin-top:2px;">{{ t.sub }}</div>
+                      </div>
+                      <div style="text-align:right;">
+                        <div style="font-size:12px;color:{{ t.lastColor }};font-weight:600;">{{ t.last }}</div>
+                        <div style="font-size:11.5px;color:#686d75;margin-top:3px;">🔥 {{ t.streak }}</div>
+                      </div>
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="{{ bottomNavStyle }}">
+                <sc-for list="{{ trainerNav }}" as="n" hint-placeholder-count="4">
+                  <button onClick="{{ n.go }}" style="{{ n.style }}"><span style="font-size:19px;">{{ n.icon }}</span><span style="font-size:11px;font-weight:600;">{{ n.label }}</span></button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TRAINER: TRAINEE DETAIL -->
+          <sc-if value="{{ scTTrainee }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+              <div style="padding:14px 22px 10px;display:flex;align-items:center;gap:14px;">
+                <button onClick="{{ back }}" style="background:none;border:none;color:#969ba3;font-size:24px;cursor:pointer;">‹</button>
+                <div style="font-weight:700;font-size:17px;">Podopieczny</div>
+              </div>
+              <div class="lm-scroll" style="flex:1;overflow:auto;padding:8px 22px 24px;">
+                <div style="display:flex;align-items:center;gap:16px;">
+                  <div style="width:62px;height:62px;border-radius:18px;background:linear-gradient(145deg,#3a82f6,#2f6fd6);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;font-family:'Space Grotesk';">AN</div>
+                  <div>
+                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:23px;">Anna Nowak</div>
+                    <div style="font-size:13.5px;color:#969ba3;margin-top:3px;">Połączona · od marca 2026</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:20px;">
+                  <div style="flex:1;padding:14px;border-radius:15px;background:#191c22;border:1px solid rgba(255,255,255,.07);text-align:center;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;color:#21c97a;">+2.5</div><div style="font-size:11.5px;color:#969ba3;margin-top:2px;">kg / tydzień</div></div>
+                  <div style="flex:1;padding:14px;border-radius:15px;background:#191c22;border:1px solid rgba(255,255,255,.07);text-align:center;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;color:#fff;">18</div><div style="font-size:11.5px;color:#969ba3;margin-top:2px;">treningów</div></div>
+                  <div style="flex:1;padding:14px;border-radius:15px;background:#191c22;border:1px solid rgba(255,255,255,.07);text-align:center;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;color:#fff;">🔥6</div><div style="font-size:11.5px;color:#969ba3;margin-top:2px;">seria</div></div>
+                </div>
+                <div style="margin-top:22px;font-size:13px;font-weight:700;letter-spacing:.5px;color:#686d75;text-transform:uppercase;">Przypisany zestaw</div>
+                <div style="margin-top:12px;padding:18px;border-radius:18px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
+                  <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:18px;">Push A — góra ciała</div>
+                    <div style="font-size:12px;color:#3a82f6;font-weight:600;">Zmień</div>
+                  </div>
+                  <div style="font-size:13px;color:#969ba3;margin-top:6px;">5 ćwiczeń · ~45 min · ostatnio 2 dni temu</div>
+                  <div style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap;">
+                    <span style="font-size:12px;padding:5px 10px;border-radius:8px;background:#22262e;color:#c2c7ce;">Wyciskanie sztangi</span>
+                    <span style="font-size:12px;padding:5px 10px;border-radius:8px;background:#22262e;color:#c2c7ce;">Hantle skos</span>
+                    <span style="font-size:12px;padding:5px 10px;border-radius:8px;background:#22262e;color:#c2c7ce;">+3</span>
+                  </div>
+                </div>
+                <button onClick="{{ startLive }}" style="width:100%;height:56px;margin-top:18px;border:none;border-radius:16px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 10px 26px rgba(58,130,246,.36);"><span style="width:8px;height:8px;border-radius:50%;background:#fff;"></span>Rozpocznij wspólny trening</button>
+                <button onClick="{{ toAssign }}" style="width:100%;height:50px;margin-top:11px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:transparent;color:#f3f4f6;font-family:'Manrope';font-weight:600;font-size:15px;cursor:pointer;">Przypisz inny zestaw</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TRAINER: SETS LIBRARY -->
+          <sc-if value="{{ scTSets }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+              <div style="padding:16px 22px 10px;">
+                <div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;letter-spacing:-0.5px;">Moje zestawy</div>
+                <div style="font-size:13.5px;color:#969ba3;margin-top:4px;">Szablony globalne — przypisz je dowolnemu podopiecznemu</div>
+              </div>
+              <div class="lm-scroll" style="flex:1;overflow:auto;padding:8px 22px 16px;">
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                  <sc-for list="{{ sets }}" as="z" hint-placeholder-count="3">
+                    <div style="padding:18px;border-radius:18px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
+                      <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <div style="font-family:'Space Grotesk';font-weight:700;font-size:17.5px;">{{ z.name }}</div>
+                        <span style="font-size:11px;padding:4px 9px;border-radius:7px;background:rgba(58,130,246,.16);color:#9cc1fb;font-weight:600;">{{ z.tag }}</span>
+                      </div>
+                      <div style="font-size:13px;color:#969ba3;margin-top:6px;">{{ z.meta }}</div>
+                      <div style="font-size:12.5px;color:#686d75;margin-top:10px;">Przypisany: {{ z.assigned }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <button onClick="{{ toBuilder }}" style="width:100%;height:54px;margin-top:16px;border:1.5px dashed rgba(58,130,246,.45);border-radius:16px;background:rgba(58,130,246,.08);color:#9cc1fb;font-family:'Manrope';font-weight:700;font-size:15.5px;cursor:pointer;">+ Nowy zestaw</button>
+              </div>
+              <div style="{{ bottomNavStyle }}">
+                <sc-for list="{{ trainerNav }}" as="n" hint-placeholder-count="4">
+                  <button onClick="{{ n.go }}" style="{{ n.style }}"><span style="font-size:19px;">{{ n.icon }}</span><span style="font-size:11px;font-weight:600;">{{ n.label }}</span></button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TRAINER: SET BUILDER -->
+          <sc-if value="{{ scTBuilder }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+              <div style="padding:14px 22px 6px;display:flex;align-items:center;gap:12px;">
+                <button onClick="{{ back }}" style="background:none;border:none;color:#969ba3;font-size:24px;cursor:pointer;">‹</button>
+                <div style="font-weight:700;font-size:17px;">Kreator zestawu</div>
+              </div>
+              <div class="lm-scroll" style="flex:1;overflow:auto;padding:10px 22px 16px;">
+                <div style="font-size:13px;font-weight:600;color:#969ba3;margin-bottom:8px;">Nazwa zestawu</div>
+                <div style="height:52px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 16px;font-size:16px;font-weight:700;color:#fff;">{{ setName }}</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin:22px 2px 12px;">
+                  <div style="font-size:13px;font-weight:700;letter-spacing:.5px;color:#686d75;text-transform:uppercase;">Ćwiczenia · {{ draftCount }}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <sc-for list="{{ draftVM }}" as="d" hint-placeholder-count="5">
+                    <div style="display:flex;align-items:center;gap:13px;padding:14px;border-radius:15px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
+                      <div style="width:30px;height:30px;border-radius:9px;background:#22262e;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk';font-weight:700;font-size:14px;color:#9cc1fb;flex-shrink:0;">{{ d.idx }}</div>
+                      <div style="flex:1;min-width:0;">
+                        <div style="font-weight:700;font-size:15px;">{{ d.name }}</div>
+                        <div style="font-size:12.5px;color:#969ba3;margin-top:3px;">{{ d.params }}</div>
+                      </div>
+                      <span style="font-size:10.5px;padding:4px 8px;border-radius:7px;background:rgba(58,130,246,.14);color:#9cc1fb;font-weight:600;white-space:nowrap;">{{ d.typeLabel }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+                <button onClick="{{ toAddEx }}" style="width:100%;height:52px;margin-top:14px;border:1.5px dashed rgba(58,130,246,.45);border-radius:15px;background:rgba(58,130,246,.08);color:#9cc1fb;font-family:'Manrope';font-weight:700;font-size:15px;cursor:pointer;">+ Dodaj ćwiczenie</button>
+              </div>
+              <div style="padding:12px 22px 16px;background:#13151a;border-top:1px solid rgba(255,255,255,.07);">
+                <button onClick="{{ saveSet }}" style="width:100%;height:54px;border:none;border-radius:15px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;">Zapisz zestaw</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TRAINER: ADD EXERCISE -->
+          <sc-if value="{{ scTAddEx }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+              <div style="padding:14px 22px 6px;display:flex;align-items:center;gap:12px;">
+                <button onClick="{{ back }}" style="background:none;border:none;color:#969ba3;font-size:24px;cursor:pointer;">‹</button>
+                <div style="font-weight:700;font-size:17px;">Dodaj ćwiczenie</div>
+              </div>
+              <div class="lm-scroll" style="flex:1;overflow:auto;padding:10px 22px 16px;">
+                <div style="font-size:13px;font-weight:600;color:#969ba3;margin-bottom:8px;">Nazwa ćwiczenia</div>
+                <div style="height:52px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 16px;font-size:15.5px;color:#6b7178;">{{ exName }}</div>
+                <div style="font-size:13px;font-weight:600;color:#969ba3;margin:22px 0 10px;">Typ ćwiczenia</div>
+                <div style="display:flex;gap:9px;">
+                  <button onClick="{{ setW }}" style="{{ segW }}">Powtórzenia<br>+ waga</button>
+                  <button onClick="{{ setR }}" style="{{ segR }}">Same<br>powtórzenia</button>
+                  <button onClick="{{ setT }}" style="{{ segT }}">Czas</button>
+                </div>
+                <div style="font-size:13px;font-weight:600;color:#969ba3;margin:24px 0 12px;">Parametry domyślne</div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
+                    <div style="font-size:15px;font-weight:600;">Serie</div>
+                    <div style="display:flex;align-items:center;gap:14px;">
+                      <button onClick="{{ decSets }}" style="width:38px;height:38px;border-radius:11px;border:none;background:#22262e;color:#fff;font-size:22px;cursor:pointer;">−</button>
+                      <div style="min-width:48px;text-align:center;font-family:'Space Grotesk';font-weight:700;font-size:22px;">{{ exSets }}</div>
+                      <button onClick="{{ incSets }}" style="width:38px;height:38px;border-radius:11px;border:none;background:#3a82f6;color:#fff;font-size:22px;cursor:pointer;">+</button>
+                    </div>
+                  </div>
+                  <sc-if value="{{ exIsTime }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
+                      <div style="font-size:15px;font-weight:600;">Czas <span style="color:#686d75;font-weight:500;">(sek.)</span></div>
+                      <div style="display:flex;align-items:center;gap:14px;">
+                        <button onClick="{{ decSecs }}" style="width:38px;height:38px;border-radius:11px;border:none;background:#22262e;color:#fff;font-size:22px;cursor:pointer;">−</button>
+                        <div style="min-width:48px;text-align:center;font-family:'Space Grotesk';font-weight:700;font-size:22px;">{{ exSeconds }}</div>
+                        <button onClick="{{ incSecs }}" style="width:38px;height:38px;border-radius:11px;border:none;background:#3a82f6;color:#fff;font-size:22px;cursor:pointer;">+</button>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ exIsReps }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
+                      <div style="font-size:15px;font-weight:600;">Powtórzenia</div>
+                      <div style="display:flex;align-items:center;gap:14px;">
+                        <button onClick="{{ decReps }}" style="width:38px;height:38px;border-radius:11px;border:none;background:#22262e;color:#fff;font-size:22px;cursor:pointer;">−</button>
+                        <div style="min-width:48px;text-align:center;font-family:'Space Grotesk';font-weight:700;font-size:22px;">{{ exReps }}</div>
+                        <button onClick="{{ incReps }}" style="width:38px;height:38px;border-radius:11px;border:none;background:#3a82f6;color:#fff;font-size:22px;cursor:pointer;">+</button>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ exIsWeight }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
+                      <div style="font-size:15px;font-weight:600;">Powtórzenia</div>
+                      <div style="display:flex;align-items:center;gap:14px;">
+                        <button onClick="{{ decReps }}" style="width:38px;height:38px;border-radius:11px;border:none;background:#22262e;color:#fff;font-size:22px;cursor:pointer;">−</button>
+                        <div style="min-width:48px;text-align:center;font-family:'Space Grotesk';font-weight:700;font-size:22px;">{{ exReps }}</div>
+                        <button onClick="{{ incReps }}" style="width:38px;height:38px;border-radius:11px;border:none;background:#3a82f6;color:#fff;font-size:22px;cursor:pointer;">+</button>
+                      </div>
+                    </div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
+                      <div style="font-size:15px;font-weight:600;">Ciężar <span style="color:#686d75;font-weight:500;">(kg)</span></div>
+                      <div style="display:flex;align-items:center;gap:14px;">
+                        <button onClick="{{ decWeight }}" style="width:38px;height:38px;border-radius:11px;border:none;background:#22262e;color:#fff;font-size:22px;cursor:pointer;">−</button>
+                        <div style="min-width:48px;text-align:center;font-family:'Space Grotesk';font-weight:700;font-size:22px;">{{ exWeight }}</div>
+                        <button onClick="{{ incWeight }}" style="width:38px;height:38px;border-radius:11px;border:none;background:#3a82f6;color:#fff;font-size:22px;cursor:pointer;">+</button>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+              <div style="padding:12px 22px 16px;background:#13151a;border-top:1px solid rgba(255,255,255,.07);">
+                <button onClick="{{ addDraftExercise }}" style="width:100%;height:54px;border:none;border-radius:15px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;">Dodaj do zestawu</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TRAINER: ASSIGN -->
+          <sc-if value="{{ scTAssign }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+              <div style="padding:14px 22px 6px;display:flex;align-items:center;gap:12px;">
+                <button onClick="{{ back }}" style="background:none;border:none;color:#969ba3;font-size:24px;cursor:pointer;">‹</button>
+                <div style="font-weight:700;font-size:17px;">Przypisz zestaw</div>
+              </div>
+              <div class="lm-scroll" style="flex:1;overflow:auto;padding:10px 22px 16px;">
+                <div style="padding:16px 18px;border-radius:16px;background:rgba(58,130,246,.1);border:1px solid rgba(58,130,246,.3);">
+                  <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#9cc1fb;text-transform:uppercase;">Zestaw</div>
+                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:19px;margin-top:5px;">{{ assignSetName }}</div>
+                  <div style="font-size:13px;color:#969ba3;margin-top:4px;">5 ćwiczeń · szablon globalny</div>
+                </div>
+                <div style="font-size:13px;font-weight:700;letter-spacing:.5px;color:#686d75;text-transform:uppercase;margin:22px 2px 12px;">Wybierz podopiecznych</div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <sc-for list="{{ assignVM }}" as="a" hint-placeholder-count="4">
+                    <button onClick="{{ a.toggle }}" style="{{ a.rowStyle }}">
+                      <div style="width:42px;height:42px;border-radius:13px;background:{{ a.avBg }};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;font-family:'Space Grotesk';color:#fff;flex-shrink:0;">{{ a.initials }}</div>
+                      <div style="flex:1;text-align:left;font-weight:700;font-size:15px;color:#f3f4f6;">{{ a.name }}</div>
+                      <div style="{{ a.boxStyle }}">{{ a.mark }}</div>
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="padding:12px 22px 16px;background:#13151a;border-top:1px solid rgba(255,255,255,.07);">
+                <button onClick="{{ doAssign }}" style="width:100%;height:54px;border:none;border-radius:15px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;">Przypisz ({{ assignCount }})</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TRAINER: LIVE SESSION -->
+          <sc-if value="{{ scTLive }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;min-height:0;background:#0c0e12;">
+              <div style="padding:14px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);">
+                <button onClick="{{ back }}" style="background:none;border:none;color:#969ba3;font-size:22px;cursor:pointer;">‹</button>
+                <div style="text-align:center;">
+                  <div style="font-weight:700;font-size:15px;">Anna Nowak</div>
+                  <div style="font-size:11.5px;color:#686d75;">Push A — góra ciała</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,77,77,.14);"><span style="width:7px;height:7px;border-radius:50%;background:#ff4d4d;animation:lm-pulse 1.4s infinite;"></span><span style="font-size:11px;font-weight:700;color:#ff8d8d;">żywo</span></div>
+              </div>
+              <div class="lm-scroll" style="flex:1;overflow:auto;padding:16px 20px 16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span style="font-size:11.5px;font-weight:700;letter-spacing:1px;color:#9cc1fb;text-transform:uppercase;">Ćwiczenie {{ liveExNum }} / {{ liveExTotal }}</span>
+                </div>
+                <div style="font-family:'Space Grotesk';font-weight:700;font-size:27px;letter-spacing:-0.6px;line-height:1.1;margin-top:6px;">{{ liveExName }}</div>
+
+                <div style="display:flex;flex-direction:column;gap:10px;margin-top:18px;">
+                  <sc-for list="{{ liveSetRows }}" as="r" hint-placeholder-count="4">
+                    <div style="padding:14px 14px 15px;border-radius:16px;background:{{ r.rowBg }};border:1px solid {{ r.rowBorder }};">
+                      <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                          <span style="font-family:'Space Grotesk';font-weight:700;font-size:14px;color:#c2c7ce;">Seria {{ r.idx }}</span>
+                          <span style="font-size:11.5px;color:#686d75;">{{ r.prevLabel }}</span>
+                        </div>
+                        <span style="font-size:12px;font-weight:700;color:{{ r.deltaColor }};">{{ r.delta }}</span>
+                      </div>
+                      <div style="display:flex;align-items:flex-end;gap:12px;margin-top:12px;">
+                        <sc-if value="{{ r.isWeight }}" hint-placeholder-val="{{ true }}">
+                          <div style="flex:1;">
+                            <div style="font-size:10.5px;color:#686d75;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Ciężar</div>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                              <button onClick="{{ r.decW }}" style="width:32px;height:32px;border-radius:9px;border:none;background:#22262e;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;">−</button>
+                              <div style="flex:1;text-align:center;font-family:'Space Grotesk';font-weight:700;font-size:21px;">{{ r.w }}<span style="font-size:11px;color:#969ba3;font-weight:600;"> kg</span></div>
+                              <button onClick="{{ r.incW }}" style="width:32px;height:32px;border-radius:9px;border:none;background:#3a82f6;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;">+</button>
+                            </div>
+                          </div>
+                          <div style="flex:1;">
+                            <div style="font-size:10.5px;color:#686d75;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Powt.</div>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                              <button onClick="{{ r.decR }}" style="width:32px;height:32px;border-radius:9px;border:none;background:#22262e;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;">−</button>
+                              <div style="flex:1;text-align:center;font-family:'Space Grotesk';font-weight:700;font-size:21px;">{{ r.r }}</div>
+                              <button onClick="{{ r.incR }}" style="width:32px;height:32px;border-radius:9px;border:none;background:#3a82f6;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;">+</button>
+                            </div>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ r.isReps }}" hint-placeholder-val="{{ false }}">
+                          <div style="flex:1;">
+                            <div style="font-size:10.5px;color:#686d75;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Powtórzenia</div>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                              <button onClick="{{ r.decR }}" style="width:32px;height:32px;border-radius:9px;border:none;background:#22262e;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;">−</button>
+                              <div style="flex:1;text-align:center;font-family:'Space Grotesk';font-weight:700;font-size:21px;">{{ r.r }}</div>
+                              <button onClick="{{ r.incR }}" style="width:32px;height:32px;border-radius:9px;border:none;background:#3a82f6;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;">+</button>
+                            </div>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ r.isTime }}" hint-placeholder-val="{{ false }}">
+                          <div style="flex:1;">
+                            <div style="font-size:10.5px;color:#686d75;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Czas</div>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                              <button onClick="{{ r.decS }}" style="width:32px;height:32px;border-radius:9px;border:none;background:#22262e;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;">−</button>
+                              <div style="flex:1;text-align:center;font-family:'Space Grotesk';font-weight:700;font-size:21px;">{{ r.sec }}<span style="font-size:11px;color:#969ba3;font-weight:600;"> s</span></div>
+                              <button onClick="{{ r.incS }}" style="width:32px;height:32px;border-radius:9px;border:none;background:#3a82f6;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;">+</button>
+                            </div>
+                          </div>
+                        </sc-if>
+                        <button onClick="{{ r.toggle }}" style="{{ r.checkStyle }}">{{ r.checkMark }}</button>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <!-- rest timer -->
+                <div style="margin-top:16px;padding:16px 18px;border-radius:16px;background:#15181e;border:1px solid rgba(255,255,255,.07);">
+                  <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div style="font-size:12.5px;font-weight:700;color:#969ba3;text-transform:uppercase;letter-spacing:.5px;">Odpoczynek</div>
+                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;color:#fff;">{{ restLabel }}</div>
+                  </div>
+                  <div style="height:6px;border-radius:3px;background:#22262e;margin-top:10px;overflow:hidden;"><div style="height:100%;border-radius:3px;background:#3a82f6;width:{{ restPct }}%;"></div></div>
+                  <div style="display:flex;gap:9px;margin-top:13px;">
+                    <button onClick="{{ tickStart }}" style="flex:1;height:42px;border:none;border-radius:12px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:14px;cursor:pointer;">Start</button>
+                    <button onClick="{{ tickPause }}" style="flex:1;height:42px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:transparent;color:#f3f4f6;font-family:'Manrope';font-weight:600;font-size:14px;cursor:pointer;">Pauza</button>
+                    <button onClick="{{ tickAdd }}" style="width:54px;height:42px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:transparent;color:#f3f4f6;font-weight:700;font-size:13px;cursor:pointer;">+15s</button>
+                    <button onClick="{{ tickReset }}" style="width:46px;height:42px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:transparent;color:#969ba3;font-size:16px;cursor:pointer;">↺</button>
+                  </div>
+                </div>
+
+                <div style="margin-top:14px;padding:13px 16px;border-radius:13px;background:#15181e;display:flex;align-items:center;justify-content:space-between;">
+                  <div><div style="font-size:11px;color:#686d75;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Następne</div><div style="font-size:14px;font-weight:700;margin-top:2px;">{{ liveNextName }}</div></div>
+                  <button onClick="{{ nextEx }}" style="padding:9px 16px;border:none;border-radius:11px;background:#22262e;color:#9cc1fb;font-weight:700;font-size:13.5px;cursor:pointer;">Dalej ›</button>
+                </div>
+              </div>
+              <div style="padding:12px 20px 16px;background:#10131a;border-top:1px solid rgba(255,255,255,.07);">
+                <button onClick="{{ endLive }}" style="width:100%;height:52px;border:none;border-radius:14px;background:rgba(33,201,122,.16);border:1px solid rgba(33,201,122,.4);color:#7ee0ad;font-family:'Manrope';font-weight:700;font-size:15.5px;cursor:pointer;">✓ Zakończ i zapisz trening</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TRAINEE: HOME / TODAY -->
+          <sc-if value="{{ scCHome }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+              <div style="padding:16px 22px 12px;display:flex;align-items:center;justify-content:space-between;">
+                <div><div style="font-size:14px;color:#969ba3;">Cześć,</div><div style="font-family:'Space Grotesk';font-weight:700;font-size:25px;letter-spacing:-0.5px;">Anna 💪</div></div>
+                <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(145deg,#3a82f6,#2f6fd6);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;font-family:'Space Grotesk';">AN</div>
+              </div>
+              <div class="lm-scroll" style="flex:1;overflow:auto;padding:4px 22px 16px;">
+                <div style="padding:22px 20px;border-radius:22px;background:linear-gradient(160deg,#1c2330,#15181e);border:1px solid rgba(58,130,246,.25);position:relative;overflow:hidden;">
+                  <div style="position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,rgba(58,130,246,.3),transparent 70%);"></div>
+                  <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:#9cc1fb;text-transform:uppercase;">Dzisiejszy trening</div>
+                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:25px;letter-spacing:-0.5px;margin-top:6px;">Push A — góra ciała</div>
+                  <div style="font-size:13.5px;color:#969ba3;margin-top:6px;">5 ćwiczeń · ~45 min · prowadzi Marek</div>
+                  <div style="display:flex;flex-direction:column;gap:7px;margin-top:16px;">
+                    <sc-for list="{{ draftVM }}" as="d" hint-placeholder-count="5">
+                      <div style="display:flex;align-items:center;gap:11px;font-size:13.5px;">
+                        <span style="width:22px;height:22px;border-radius:7px;background:#22262e;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk';font-weight:700;font-size:11.5px;color:#9cc1fb;flex-shrink:0;">{{ d.idx }}</span>
+                        <span style="flex:1;color:#dfe2e7;">{{ d.name }}</span>
+                        <span style="font-size:12px;color:#686d75;">{{ d.params }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <button onClick="{{ startTraineeWorkout }}" style="width:100%;height:54px;margin-top:20px;border:none;border-radius:15px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;box-shadow:0 10px 26px rgba(58,130,246,.36);">Rozpocznij trening</button>
+                </div>
+                <div style="font-size:13px;font-weight:700;letter-spacing:.5px;color:#686d75;text-transform:uppercase;margin:22px 2px 12px;">Ostatni trening</div>
+                <div style="padding:16px;border-radius:16px;background:#191c22;border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;">
+                  <div><div style="font-weight:700;font-size:15px;">Push A — góra ciała</div><div style="font-size:12.5px;color:#969ba3;margin-top:3px;">2 dni temu · ukończony</div></div>
+                  <div style="text-align:right;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:18px;color:#21c97a;">+2.5 kg</div><div style="font-size:11.5px;color:#686d75;margin-top:2px;">wyciskanie</div></div>
+                </div>
+              </div>
+              <div style="{{ bottomNavStyle }}">
+                <sc-for list="{{ traineeNav }}" as="n" hint-placeholder-count="3">
+                  <button onClick="{{ n.go }}" style="{{ n.style }}"><span style="font-size:19px;">{{ n.icon }}</span><span style="font-size:11px;font-weight:600;">{{ n.label }}</span></button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TRAINEE: LIVE VIEW -->
+          <sc-if value="{{ scCLive }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;min-height:0;background:radial-gradient(420px 300px at 50% 0%, rgba(58,130,246,.16), #0a0c10 60%);">
+              <div style="padding:14px 20px;display:flex;align-items:center;justify-content:center;gap:9px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:#ff4d4d;animation:lm-pulse 1.4s infinite;"></span>
+                <span style="font-size:13px;font-weight:700;color:#ff8d8d;">Trener prowadzi · Marek</span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;text-align:center;">
+                <span style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:#9cc1fb;text-transform:uppercase;">Ćwiczenie {{ liveExNum }} / {{ liveExTotal }}</span>
+                <div style="font-family:'Space Grotesk';font-weight:700;font-size:30px;letter-spacing:-0.6px;line-height:1.1;margin-top:12px;">{{ liveExName }}</div>
+                <div style="font-size:14px;color:#969ba3;margin-top:10px;">Seria {{ cSetPos }}</div>
+                <div style="font-family:'Space Grotesk';font-weight:700;font-size:84px;letter-spacing:-2px;line-height:1;margin-top:22px;color:#fff;">{{ cWeight }}</div>
+                <div style="font-size:19px;color:#c2c7ce;font-weight:600;margin-top:6px;">{{ cReps }}</div>
+                <div style="margin-top:26px;display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);">
+                  <span style="font-size:13px;color:#969ba3;">Ukończone serie:</span>
+                  <span style="font-family:'Space Grotesk';font-weight:700;font-size:15px;color:#21c97a;">{{ cDoneCount }}</span>
+                </div>
+              </div>
+              <div style="padding:16px 22px;background:#0e1015;border-top:1px solid rgba(255,255,255,.06);">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <div style="font-size:12.5px;color:#969ba3;font-weight:600;">⏱ Odpoczynek</div>
+                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:20px;">{{ restLabel }}</div>
+                </div>
+                <div style="height:5px;border-radius:3px;background:#22262e;margin-top:9px;overflow:hidden;"><div style="height:100%;border-radius:3px;background:#3a82f6;width:{{ restPct }}%;"></div></div>
+                <div style="font-size:12px;color:#686d75;text-align:center;margin-top:12px;">Wartości aktualizują się na żywo — nic nie musisz wpisywać.</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TRAINEE: HISTORY -->
+          <sc-if value="{{ scCHistory }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+              <div style="padding:16px 22px 10px;">
+                <div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;letter-spacing:-0.5px;">Historia i progres</div>
+                <div style="font-size:13.5px;color:#969ba3;margin-top:4px;">Zapisane wartości startują kolejny trening</div>
+              </div>
+              <div class="lm-scroll" style="flex:1;overflow:auto;padding:8px 22px 16px;">
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                  <sc-for list="{{ historyVM }}" as="h" hint-placeholder-count="4">
+                    <div style="padding:16px 18px;border-radius:18px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
+                      <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+                        <div style="font-weight:700;font-size:15px;max-width:170px;">{{ h.name }}</div>
+                        <div style="text-align:right;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:19px;color:#fff;">{{ h.current }}</div><div style="font-size:12px;font-weight:700;color:#21c97a;margin-top:2px;">{{ h.delta }}</div></div>
+                      </div>
+                      <div style="display:flex;align-items:flex-end;gap:6px;height:90px;margin-top:14px;">
+                        <sc-for list="{{ h.bars }}" as="b" hint-placeholder-count="6">
+                          <div style="flex:1;display:flex;align-items:flex-end;height:100%;"><div style="width:100%;border-radius:5px 5px 0 0;height:{{ b.h }}px;background:{{ b.last }};"></div></div>
+                        </sc-for>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="{{ bottomNavStyle }}">
+                <sc-for list="{{ traineeNav }}" as="n" hint-placeholder-count="3">
+                  <button onClick="{{ n.go }}" style="{{ n.style }}"><span style="font-size:19px;">{{ n.icon }}</span><span style="font-size:11px;font-weight:600;">{{ n.label }}</span></button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+        </div>
+      </x-import>
+    </div>
+
+    <!-- RIGHT: notes panel -->
+    <div style="width:288px;flex-shrink:0;position:sticky;top:20px;">
+      <div style="padding:20px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#686d75;text-transform:uppercase;">Bieżący ekran</div>
+        <div style="font-family:'Space Grotesk';font-weight:700;font-size:21px;letter-spacing:-0.4px;margin-top:8px;">{{ screenTitle }}</div>
+        <div style="font-size:14px;color:#aab0b8;line-height:1.6;margin-top:12px;">{{ screenNote }}</div>
+        <div style="height:1px;background:rgba(255,255,255,.08);margin:18px 0;"></div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#686d75;text-transform:uppercase;margin-bottom:10px;">Wymagania (PRD)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px;">
+          <sc-for list="{{ screenRefs }}" as="r" hint-placeholder-count="3">
+            <span style="font-size:12px;font-weight:600;padding:5px 10px;border-radius:8px;background:rgba(58,130,246,.13);color:#9cc1fb;font-family:'Space Grotesk';">{{ r }}</span>
+          </sc-for>
+        </div>
+      </div>
+      <div style="padding:16px 20px;border-radius:16px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);margin-top:14px;font-size:12.5px;color:#797f87;line-height:1.6;">💡 Klikaj przyciski w telefonie albo wybieraj ekrany z listy po lewej. Wartości w sesji na żywo są edytowalne (− / +).</div>
+    </div>
+
+  </div>
+
+  <!-- ===== VARIANTS SECTION ===== -->
+  <div style="max-width:1500px;margin:64px auto 0;">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">
+      <div style="width:34px;height:34px;border-radius:10px;background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.3);display:flex;align-items:center;justify-content:center;"><span style="width:9px;height:9px;border-radius:50%;background:#ff4d4d;animation:lm-pulse 1.4s infinite;"></span></div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:26px;letter-spacing:-0.6px;">Sesja na żywo — 3 kierunki</div>
+    </div>
+    <div style="font-size:15px;color:#969ba3;max-width:720px;line-height:1.55;margin-bottom:30px;">To najtrudniejszy ekran (US-03 / FR-012). Trzy podejścia do tego samego problemu: jak czytelnie pokazać bieżącą serię i pozwolić wpisywać wartości jednym kciukiem. Wybierz kierunek do dopracowania — w prototypie powyżej użyto kierunku B.</div>
+
+    <div style="display:flex;gap:26px;flex-wrap:wrap;">
+
+      <!-- VARIANT A: jedna seria naraz -->
+      <div style="flex:0 0 auto;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="font-family:'Space Grotesk';font-weight:700;font-size:15px;color:#9cc1fb;">A</span><span style="font-weight:700;font-size:16px;">Jedna seria naraz</span></div>
+        <div style="font-size:13px;color:#797f87;max-width:380px;line-height:1.5;margin-bottom:14px;">Maksymalne skupienie. Wielkie liczby, ogromne przyciski, jedna decyzja na ekranie. Najłatwiejszy do obsługi kciukiem.</div>
+        <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="412px,892px">
+          <div style="height:100%;display:flex;flex-direction:column;background:#0c0e12;font-family:'Manrope',system-ui,sans-serif;color:#f3f4f6;">
+            <div style="padding:14px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);">
+              <span style="color:#969ba3;font-size:22px;">‹</span>
+              <div style="text-align:center;"><div style="font-weight:700;font-size:15px;">Anna Nowak</div><div style="font-size:11.5px;color:#686d75;">Wyciskanie sztangi</div></div>
+              <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,77,77,.14);"><span style="width:7px;height:7px;border-radius:50%;background:#ff4d4d;"></span><span style="font-size:11px;font-weight:700;color:#ff8d8d;">żywo</span></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;">
+              <div style="display:flex;gap:8px;margin-bottom:8px;"><span style="width:30px;height:6px;border-radius:3px;background:#21c97a;"></span><span style="width:30px;height:6px;border-radius:3px;background:#21c97a;"></span><span style="width:30px;height:6px;border-radius:3px;background:#3a82f6;"></span><span style="width:30px;height:6px;border-radius:3px;background:#22262e;"></span></div>
+              <div style="font-size:13px;color:#969ba3;font-weight:600;">Seria 3 z 4</div>
+              <div style="width:100%;margin-top:24px;padding:26px 20px;border-radius:24px;background:#15181e;border:1px solid rgba(58,130,246,.25);text-align:center;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#9cc1fb;text-transform:uppercase;">Ciężar</div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:18px;margin-top:14px;">
+                  <div style="width:56px;height:56px;border-radius:50%;background:#22262e;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;">−</div>
+                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:64px;letter-spacing:-2px;line-height:1;">62,5</div>
+                  <div style="width:56px;height:56px;border-radius:50%;background:#3a82f6;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;">+</div>
+                </div>
+                <div style="font-size:13px;color:#686d75;margin-top:6px;">kg · ost. 60 kg</div>
+                <div style="height:1px;background:rgba(255,255,255,.07);margin:20px 0;"></div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:16px;">
+                  <div style="width:40px;height:40px;border-radius:12px;background:#22262e;display:flex;align-items:center;justify-content:center;font-size:22px;">−</div>
+                  <div><div style="font-family:'Space Grotesk';font-weight:700;font-size:32px;">8</div><div style="font-size:11px;color:#686d75;">powtórzeń</div></div>
+                  <div style="width:40px;height:40px;border-radius:12px;background:#22262e;display:flex;align-items:center;justify-content:center;font-size:22px;">+</div>
+                </div>
+              </div>
+              <button style="width:100%;height:58px;margin-top:20px;border:none;border-radius:16px;background:#21c97a;color:#06281a;font-family:'Manrope';font-weight:800;font-size:17px;cursor:pointer;">Zatwierdź serię ✓</button>
+              <div style="margin-top:16px;font-size:13px;color:#686d75;">Odpoczynek po serii: <span style="color:#f3f4f6;font-weight:700;">1:30</span></div>
+            </div>
+          </div>
+        </x-import>
+      </div>
+
+      <!-- VARIANT B: pełna lista serii -->
+      <div style="flex:0 0 auto;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="font-family:'Space Grotesk';font-weight:700;font-size:15px;color:#9cc1fb;">B</span><span style="font-weight:700;font-size:16px;">Pełna lista serii</span><span style="font-size:10.5px;padding:3px 8px;border-radius:6px;background:rgba(33,201,122,.16);color:#7ee0ad;font-weight:700;">użyty w prototypie</span></div>
+        <div style="font-size:13px;color:#797f87;max-width:380px;line-height:1.5;margin-bottom:14px;">Wszystkie serie naraz, kompaktowe steppery. Trener widzi cały obraz ćwiczenia i progres względem poprzedniego treningu.</div>
+        <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="412px,892px">
+          <div style="height:100%;display:flex;flex-direction:column;background:#0c0e12;font-family:'Manrope',system-ui,sans-serif;color:#f3f4f6;">
+            <div style="padding:14px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);">
+              <span style="color:#969ba3;font-size:22px;">‹</span>
+              <div style="text-align:center;"><div style="font-weight:700;font-size:15px;">Anna Nowak</div><div style="font-size:11.5px;color:#686d75;">Push A — góra ciała</div></div>
+              <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,77,77,.14);"><span style="width:7px;height:7px;border-radius:50%;background:#ff4d4d;"></span><span style="font-size:11px;font-weight:700;color:#ff8d8d;">żywo</span></div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:16px 18px;">
+              <div style="font-size:11.5px;font-weight:700;letter-spacing:1px;color:#9cc1fb;text-transform:uppercase;">Ćwiczenie 1 / 5</div>
+              <div style="font-family:'Space Grotesk';font-weight:700;font-size:25px;letter-spacing:-0.5px;margin-top:4px;">Wyciskanie sztangi</div>
+              <div style="display:flex;flex-direction:column;gap:9px;margin-top:16px;">
+                <div style="padding:13px 14px;border-radius:15px;background:rgba(33,201,122,.07);border:1px solid rgba(33,201,122,.3);">
+                  <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-family:'Space Grotesk';font-weight:700;font-size:13.5px;color:#c2c7ce;">Seria 1 · zrobiona</span><span style="font-size:12px;font-weight:700;color:#21c97a;">▲ +2,5</span></div>
+                  <div style="display:flex;align-items:center;gap:10px;margin-top:8px;"><div style="flex:1;font-family:'Space Grotesk';font-weight:700;font-size:18px;">60<span style="font-size:11px;color:#969ba3;"> kg</span> · 8</div><div style="width:30px;height:30px;border-radius:9px;background:#21c97a;color:#06281a;display:flex;align-items:center;justify-content:center;font-weight:800;">✓</div></div>
+                </div>
+                <div style="padding:13px 14px;border-radius:15px;background:#191c22;border:1px solid rgba(58,130,246,.35);">
+                  <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-family:'Space Grotesk';font-weight:700;font-size:13.5px;color:#fff;">Seria 2 · teraz</span><span style="font-size:11px;color:#686d75;">ost. 57,5 × 8</span></div>
+                  <div style="display:flex;align-items:flex-end;gap:10px;margin-top:10px;">
+                    <div style="flex:1;display:flex;align-items:center;gap:7px;"><div style="width:30px;height:30px;border-radius:9px;background:#22262e;display:flex;align-items:center;justify-content:center;font-size:18px;">−</div><div style="flex:1;text-align:center;font-family:'Space Grotesk';font-weight:700;font-size:19px;">60<span style="font-size:10px;color:#969ba3;"> kg</span></div><div style="width:30px;height:30px;border-radius:9px;background:#3a82f6;display:flex;align-items:center;justify-content:center;font-size:18px;">+</div></div>
+                    <div style="flex:1;display:flex;align-items:center;gap:7px;"><div style="width:30px;height:30px;border-radius:9px;background:#22262e;display:flex;align-items:center;justify-content:center;font-size:18px;">−</div><div style="flex:1;text-align:center;font-family:'Space Grotesk';font-weight:700;font-size:19px;">8</div><div style="width:30px;height:30px;border-radius:9px;background:#3a82f6;display:flex;align-items:center;justify-content:center;font-size:18px;">+</div></div>
+                    <div style="width:34px;height:34px;border-radius:10px;border:2px solid rgba(255,255,255,.2);"></div>
+                  </div>
+                </div>
+                <div style="padding:13px 14px;border-radius:15px;background:#191c22;border:1px solid rgba(255,255,255,.07);opacity:.65;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-family:'Space Grotesk';font-weight:700;font-size:13.5px;color:#c2c7ce;">Seria 3</span><span style="font-size:11px;color:#686d75;">ost. 57,5 × 8</span></div>
+                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:16px;margin-top:6px;color:#969ba3;">60 kg · 8</div>
+                </div>
+              </div>
+              <div style="margin-top:14px;padding:13px 16px;border-radius:14px;background:#15181e;display:flex;align-items:center;justify-content:space-between;"><span style="font-size:12.5px;color:#969ba3;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Odpoczynek</span><span style="font-family:'Space Grotesk';font-weight:700;font-size:22px;">1:12</span></div>
+            </div>
+          </div>
+        </x-import>
+      </div>
+
+      <!-- VARIANT C: timer w centrum -->
+      <div style="flex:0 0 auto;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="font-family:'Space Grotesk';font-weight:700;font-size:15px;color:#9cc1fb;">C</span><span style="font-weight:700;font-size:16px;">Timer w centrum</span></div>
+        <div style="font-size:13px;color:#797f87;max-width:380px;line-height:1.5;margin-bottom:14px;">Odpoczynek między seriami jako bohater ekranu. Wielki pierścień odliczania, a tuż pod nim cel następnej serii gotowy do edycji.</div>
+        <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="412px,892px">
+          <div style="height:100%;display:flex;flex-direction:column;background:radial-gradient(420px 300px at 50% 12%, rgba(58,130,246,.16), #0a0c10 62%);font-family:'Manrope',system-ui,sans-serif;color:#f3f4f6;">
+            <div style="padding:14px 20px 12px;display:flex;align-items:center;justify-content:space-between;">
+              <span style="color:#969ba3;font-size:22px;">‹</span>
+              <div style="text-align:center;"><div style="font-weight:700;font-size:15px;">Anna Nowak</div><div style="font-size:11.5px;color:#686d75;">Wyciskanie sztangi · seria 3/4</div></div>
+              <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,77,77,.14);"><span style="width:7px;height:7px;border-radius:50%;background:#ff4d4d;"></span><span style="font-size:11px;font-weight:700;color:#ff8d8d;">żywo</span></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 26px;">
+              <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:#9cc1fb;text-transform:uppercase;">Odpoczynek</div>
+              <div style="width:208px;height:208px;border-radius:50%;margin-top:18px;background:conic-gradient(#3a82f6 0% 64%, #1c2027 64% 100%);display:flex;align-items:center;justify-content:center;">
+                <div style="width:172px;height:172px;border-radius:50%;background:#0c0e12;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:54px;letter-spacing:-1px;line-height:1;">1:12</div>
+                  <div style="font-size:12.5px;color:#686d75;margin-top:4px;">do następnej serii</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:20px;"><div style="padding:9px 16px;border-radius:999px;background:#22262e;font-size:13px;font-weight:700;color:#9cc1fb;">+15 s</div><div style="padding:9px 16px;border-radius:999px;background:#22262e;font-size:13px;font-weight:700;color:#9cc1fb;">Pomiń ›</div></div>
+              <div style="width:100%;margin-top:26px;padding:16px 18px;border-radius:18px;background:#15181e;border:1px solid rgba(255,255,255,.08);">
+                <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#686d75;text-transform:uppercase;">Następna seria</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
+                  <div style="display:flex;align-items:center;gap:8px;"><div style="width:32px;height:32px;border-radius:9px;background:#22262e;display:flex;align-items:center;justify-content:center;font-size:18px;">−</div><div style="font-family:'Space Grotesk';font-weight:700;font-size:22px;">62,5<span style="font-size:11px;color:#969ba3;"> kg</span></div><div style="width:32px;height:32px;border-radius:9px;background:#3a82f6;display:flex;align-items:center;justify-content:center;font-size:18px;">+</div></div>
+                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:18px;color:#c2c7ce;">× 8</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </x-import>
+      </div>
+
+    </div>
+    <div style="height:40px;"></div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    screen: 'welcome',
+    role: 'trainer',
+    stack: [],
+    exType: 'weight',
+    exSets: 3, exReps: 10, exWeight: 20, exSeconds: 45,
+    live: null,
+    liveEx: 0,
+    restRunning: false, restRemaining: 90, restTotal: 90,
+    setName: 'Push A — góra ciała',
+    exName: '',
+    assignSel: [0, 2],
+    draft: [
+      { name: 'Wyciskanie sztangi leżąc', type: 'weight', sets: 4, reps: 8, weight: 60 },
+      { name: 'Wyciskanie hantli, skos', type: 'weight', sets: 3, reps: 10, weight: 22 },
+      { name: 'Rozpiętki na bramie', type: 'weight', sets: 3, reps: 12, weight: 15 },
+      { name: 'Pompki', type: 'reps', sets: 3, reps: 15 },
+      { name: 'Deska (plank)', type: 'time', sets: 3, seconds: 60 },
+    ],
+  };
+
+  history = [
+    { name: 'Wyciskanie sztangi leżąc', current: '60 kg', delta: '+5 kg / mies.', up: true, bars: [40, 48, 52, 55, 58, 60] },
+    { name: 'Wyciskanie hantli, skos', current: '22 kg', delta: '+2 kg', up: true, bars: [16, 18, 18, 20, 20, 22] },
+    { name: 'Pompki', current: '15 powt.', delta: '+3', up: true, bars: [10, 11, 12, 13, 14, 15] },
+    { name: 'Deska (plank)', current: '60 s', delta: '+10 s', up: true, bars: [40, 45, 50, 50, 55, 60] },
+  ];
+
+  trainees = [
+    { name: 'Anna Nowak', initials: 'AN', avBg: 'linear-gradient(145deg,#3a82f6,#2f6fd6)', sub: 'Push A — góra ciała', last: '2 dni temu', lastColor: '#969ba3', streak: 6, statusDot: '#21c97a' },
+    { name: 'Piotr Zieliński', initials: 'PZ', avBg: 'linear-gradient(145deg,#8b5cf6,#6d3fd1)', sub: 'Full Body Start', last: 'wczoraj', lastColor: '#969ba3', streak: 3, statusDot: '#686d75' },
+    { name: 'Kasia Wójcik', initials: 'KW', avBg: 'linear-gradient(145deg,#f59e0b,#d97706)', sub: 'Push A — góra ciała', last: '5 dni temu', lastColor: '#969ba3', streak: 11, statusDot: '#686d75' },
+    { name: 'Tomek Lis', initials: 'TL', avBg: 'linear-gradient(145deg,#64748b,#475569)', sub: 'Brak przypisanego zestawu', last: 'nie zaczął', lastColor: '#686d75', streak: 0, statusDot: '#686d75' },
+  ];
+
+  sets = [
+    { name: 'Push A — góra ciała', tag: 'globalny', meta: '5 ćwiczeń · ~45 min', assigned: 'Anna, Kasia' },
+    { name: 'Full Body Start', tag: 'globalny', meta: '6 ćwiczeń · ~50 min · dla początkujących', assigned: 'Piotr' },
+    { name: 'Pull B — plecy', tag: 'globalny', meta: '5 ćwiczeń · ~40 min', assigned: 'nikt' },
+  ];
+
+  notes = {
+    welcome:   { title: 'Powitanie', note: 'Wejście do aplikacji. Mocny nagłówek komunikuje obietnicę produktu: trening bez liczenia powtórzeń.', refs: ['Vision'] },
+    role:      { title: 'Wybór roli', note: 'Użytkownik zakłada konto jako trener albo podopieczny. Rola decyduje o całym dalszym interfejsie.', refs: ['FR-001'] },
+    signup:    { title: 'Rejestracja', note: 'Minimalny formularz konta, świadomy wybranej roli. Pełna walidacja po stronie .NET API.', refs: ['FR-001'] },
+    pair:      { title: 'Parowanie kont', note: 'Trener udostępnia kod; podopieczny go wpisuje. Model: 1 trener → wielu podopiecznych, podopieczny → 1 trener.', refs: ['FR-002', 'FR-003'] },
+    t_dash:    { title: 'Pulpit trenera', note: 'Lista podopiecznych ze statusem i progresem. Punkt startowy dla codziennej pracy trenera.', refs: ['FR-002', 'FR-004'] },
+    t_trainee: { title: 'Podopieczny — szczegóły', note: 'Wgląd w dane treningowe i przypisany zestaw. Stąd trener startuje wspólny trening.', refs: ['FR-004', 'FR-010'] },
+    t_sets:    { title: 'Biblioteka zestawów', note: 'Globalne szablony zestawów, które można przypisać wielu podopiecznym.', refs: ['FR-008'] },
+    t_builder: { title: 'Kreator zestawu', note: 'Budowanie zestawu z ćwiczeń i ich parametrów (serie, powtórzenia, ciężar).', refs: ['FR-007', 'FR-008'] },
+    t_addex:   { title: 'Dodaj ćwiczenie', note: 'Ćwiczenie ma nazwę i typ: powtórzenia+waga, same powtórzenia, czas. Typ wyznacza parametry.', refs: ['FR-007'] },
+    t_assign:  { title: 'Przypisz zestaw', note: 'Przypisanie globalnego szablonu konkretnemu podopiecznemu (lub kilku naraz).', refs: ['FR-010'] },
+    t_live:    { title: 'Sesja na żywo — trener', note: 'Trener wpisuje wartości w trakcie treningu. Zmiany widzi też podopieczny (jedna wspólna sesja).', refs: ['FR-012', 'US-03'] },
+    c_home:    { title: 'Dziś — podopieczny', note: 'Plan na dziś. Jedno duże wezwanie do działania: rozpocznij trening.', refs: ['FR-005'] },
+    c_live:    { title: 'Sesja na żywo — podopieczny', note: 'Widok prowadzonego treningu: bieżące ćwiczenie, seria i ciężar dużą czcionką. Aktualizuje się bez odświeżania.', refs: ['FR-012', 'NFR'] },
+    c_history: { title: 'Historia i progres', note: 'Zapisane wartości stają się punktem startu na kolejny trening. Widoczny progres ciężaru w czasie.', refs: ['FR-011', 'US-02'] },
+  };
+
+  // ----- navigation -----
+  go(screen) {
+    this.setState(s => ({ screen, stack: [...s.stack, s.screen] }));
+  }
+  back = () => {
+    this.setState(s => {
+      const stack = [...s.stack];
+      const prev = stack.pop() || 'welcome';
+      return { screen: prev, stack };
+    });
+  };
+
+  noteKey() {
+    const s = this.state.screen;
+    if (s === 't_dash') return 't_dash';
+    return s;
+  }
+
+  componentWillUnmount() { if (this._t) clearInterval(this._t); }
+
+  startLiveSession() {
+    const live = this.state.draft.map(ex => {
+      const sets = [];
+      for (let i = 0; i < ex.sets; i++) {
+        if (ex.type === 'weight') sets.push({ prevW: ex.weight - 2.5, prevR: ex.reps, w: ex.weight, r: ex.reps, done: false });
+        else if (ex.type === 'reps') sets.push({ prevR: ex.reps - 1, r: ex.reps, done: false });
+        else sets.push({ prevSec: ex.seconds - 5, sec: ex.seconds, done: false });
+      }
+      return { name: ex.name, type: ex.type, sets };
+    });
+    this.setState({ live, liveEx: 0 });
+  }
+
+  adjustLive(setIdx, field, delta) {
+    this.setState(s => {
+      const live = s.live.map(e => ({ ...e, sets: e.sets.map(x => ({ ...x })) }));
+      const cur = live[s.liveEx].sets[setIdx];
+      cur[field] = Math.max(0, +(cur[field] + delta).toFixed(1));
+      return { live };
+    });
+  }
+  toggleDone(setIdx) {
+    this.setState(s => {
+      const live = s.live.map(e => ({ ...e, sets: e.sets.map(x => ({ ...x })) }));
+      const cur = live[s.liveEx].sets[setIdx];
+      cur.done = !cur.done;
+      return { live };
+    });
+  }
+
+  // ----- rest timer -----
+  tickStart = () => {
+    if (this._t) clearInterval(this._t);
+    this.setState(s => ({ restRunning: true, restRemaining: s.restRemaining <= 0 ? s.restTotal : s.restRemaining }));
+    this._t = setInterval(() => {
+      this.setState(s => {
+        if (s.restRemaining <= 1) { clearInterval(this._t); this._t = null; return { restRemaining: 0, restRunning: false }; }
+        return { restRemaining: s.restRemaining - 1 };
+      });
+    }, 1000);
+  };
+  tickPause = () => { if (this._t) { clearInterval(this._t); this._t = null; } this.setState({ restRunning: false }); };
+  tickReset = () => { if (this._t) { clearInterval(this._t); this._t = null; } this.setState(s => ({ restRunning: false, restRemaining: s.restTotal })); };
+  tickAdd = () => this.setState(s => ({ restRemaining: s.restRemaining + 15, restTotal: s.restTotal + 15 }));
+
+  setExType = (t) => this.setState({ exType: t });
+  stepEx(field, delta, min) { this.setState(s => ({ [field]: Math.max(min, +(s[field] + delta).toFixed(1)) })); }
+  addDraftExercise = () => {
+    const st = this.state;
+    const ex = { name: (st.exName && st.exName !== 'np. Wyciskanie sztangi') ? st.exName : 'Nowe ćwiczenie', type: st.exType, sets: st.exSets };
+    if (st.exType === 'weight') { ex.reps = st.exReps; ex.weight = st.exWeight; }
+    else if (st.exType === 'reps') { ex.reps = st.exReps; }
+    else { ex.seconds = st.exSeconds; }
+    this.setState(s => ({ draft: [...s.draft, ex], exName: '' }));
+    this.back();
+  };
+  toggleAssign = (i) => this.setState(s => ({ assignSel: s.assignSel.includes(i) ? s.assignSel.filter(x => x !== i) : [...s.assignSel, i] }));
+  nextEx = () => this.setState(s => ({ liveEx: Math.min(s.live.length - 1, s.liveEx + 1) }));
+  prevEx = () => this.setState(s => ({ liveEx: Math.max(0, s.liveEx - 1) }));
+  selectExercise = (i) => this.setState({ liveEx: i });
+  confirmSet = () => {
+    this.setState(s => {
+      const live = s.live.map(e => ({ ...e, sets: e.sets.map(x => ({ ...x })) }));
+      const ex = live[s.liveEx];
+      let aIdx = ex.sets.findIndex(x => !x.done);
+      if (aIdx === -1) aIdx = ex.sets.length - 1;
+      ex.sets[aIdx].done = true;
+      let liveEx = s.liveEx;
+      if (ex.sets.every(x => x.done)) {
+        const next = live.findIndex(e => e.sets.some(x => !x.done));
+        if (next !== -1) liveEx = next;
+      }
+      return { live, liveEx };
+    });
+  };
+  goLive = (screen) => { if (!this.state.live) this.startLiveSession(); this.go(screen); };
+
+  fmt(t) { const m = Math.floor(t / 60); const x = t % 60; return m + ':' + String(x).padStart(2, '0'); }
+
+  renderVals() {
+    const s = this.state.screen;
+    const isTrainer = this.state.role === 'trainer';
+    const isTrainee = this.state.role === 'trainee';
+    const roleLabel = isTrainer ? 'Trener' : 'Podopieczny';
+
+    // ----- nav index -----
+    const itemStyle = (id) => {
+      const active = s === id || (id === 't_dash' && s === 't_dash');
+      return `display:flex;align-items:center;gap:10px;width:100%;padding:8px 11px;border-radius:10px;border:1px solid ${active ? 'rgba(58,130,246,.4)' : 'transparent'};background:${active ? 'rgba(58,130,246,.14)' : 'transparent'};color:${active ? '#fff' : '#9aa0a8'};font-family:'Manrope';font-weight:${active ? 700 : 500};font-size:13.5px;cursor:pointer;`;
+    };
+    const dot = (id) => (s === id ? '#3a82f6' : 'rgba(255,255,255,.18)');
+    const mk = (label, id, custom) => ({ label, go: custom || (() => this.go(id)), style: itemStyle(id), dot: dot(id) });
+    const navGroups = [
+      { title: 'Onboarding', color: '#686d75', items: [mk('Powitanie', 'welcome'), mk('Wybór roli', 'role'), mk('Rejestracja', 'signup'), mk('Parowanie', 'pair')] },
+      { title: 'Trener', color: '#9cc1fb', items: [mk('Pulpit', 't_dash'), mk('Podopieczny', 't_trainee'), mk('Biblioteka zestawów', 't_sets'), mk('Kreator zestawu', 't_builder'), mk('Dodaj ćwiczenie', 't_addex'), mk('Przypisz zestaw', 't_assign'), mk('Sesja na żywo', 't_live', () => this.goLive('t_live'))] },
+      { title: 'Podopieczny', color: '#7ee0ad', items: [mk('Dziś / trening', 'c_home'), mk('Sesja (widok)', 'c_live', () => this.goLive('c_live')), mk('Historia i progres', 'c_history')] },
+    ];
+
+    // ----- bottom nav -----
+    const bottomNavStyle = "display:flex;align-items:center;justify-content:space-around;padding:10px 8px 12px;background:#13151a;border-top:1px solid rgba(255,255,255,.07);";
+    const navBtn = (icon, label, id, activeIds) => {
+      const active = activeIds.includes(s);
+      return { icon, label, go: () => this.go(id), style: `display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:4px 12px;color:${active ? '#3a82f6' : '#686d75'};` };
+    };
+    const trainerNav = [
+      navBtn('▦', 'Pulpit', 't_dash', ['t_dash', 't_trainee']),
+      navBtn('▤', 'Zestawy', 't_sets', ['t_sets', 't_builder', 't_addex']),
+      navBtn('●', 'Trening', 't_live', ['t_live', 't_assign']),
+      navBtn('☰', 'Profil', 't_dash', []),
+    ];
+
+    // ----- notes -----
+    const n = this.notes[this.noteKey()] || { title: '', note: '', refs: [] };
+
+    // ----- pair code boxes -----
+    const codeStr = '7F2K9D';
+    const codeBoxes = codeStr.split('').map((ch, i) => ({ ch, border: i < 3 ? 'rgba(58,130,246,.5)' : 'rgba(255,255,255,.08)' }));
+
+    // ----- role cards highlight -----
+    const cardBase = 'width:100%;padding:18px;border-radius:18px;background:#191c22;cursor:pointer;';
+    const roleCardTrainee = cardBase + `border:1.5px solid ${isTrainee ? '#3a82f6' : 'rgba(255,255,255,.08)'};box-shadow:${isTrainee ? '0 0 0 4px rgba(58,130,246,.12)' : 'none'};`;
+    const roleCardTrainer = cardBase + `border:1.5px solid ${isTrainer ? '#3a82f6' : 'rgba(255,255,255,.08)'};box-shadow:${isTrainer ? '0 0 0 4px rgba(58,130,246,.12)' : 'none'};`;
+
+    // ----- trainees VM -----
+    const trainees = this.trainees.map((t, i) => ({ ...t, open: () => this.go('t_trainee') }));
+    const traineeNav = [
+      navBtn('▦', 'Dziś', 'c_home', ['c_home']),
+      navBtn('◷', 'Historia', 'c_history', ['c_history']),
+      navBtn('☰', 'Profil', 'c_home', []),
+    ];
+
+    // ----- builder / draft VM -----
+    const typeChip = { weight: 'Powt. + waga', reps: 'Powtórzenia', time: 'Czas' };
+    const draftVM = this.state.draft.map((ex, i) => ({
+      name: ex.name,
+      typeLabel: typeChip[ex.type],
+      idx: i + 1,
+      params: ex.type === 'weight' ? `${ex.sets} serie · ${ex.reps} powt. · ${ex.weight} kg`
+        : ex.type === 'reps' ? `${ex.sets} serie · ${ex.reps} powt.`
+        : `${ex.sets} serie · ${ex.seconds}s`,
+    }));
+    const draftCount = this.state.draft.length;
+
+    // ----- add exercise VM -----
+    const exIsWeight = this.state.exType === 'weight';
+    const exIsReps = this.state.exType === 'reps';
+    const exIsTime = this.state.exType === 'time';
+    const segStyle = (on) => `flex:1;padding:13px 6px;border-radius:12px;border:1px solid ${on ? '#3a82f6' : 'rgba(255,255,255,.1)'};background:${on ? 'rgba(58,130,246,.16)' : '#191c22'};color:${on ? '#fff' : '#9aa0a8'};font-family:'Manrope';font-weight:600;font-size:12.5px;cursor:pointer;line-height:1.3;`;
+
+    // ----- assign VM -----
+    const assignVM = this.trainees.map((t, i) => {
+      const sel = this.state.assignSel.includes(i);
+      return {
+        name: t.name, initials: t.initials, avBg: t.avBg,
+        toggle: () => this.toggleAssign(i),
+        mark: sel ? '✓' : '',
+        boxStyle: `width:26px;height:26px;border-radius:8px;border:2px solid ${sel ? '#3a82f6' : 'rgba(255,255,255,.22)'};background:${sel ? '#3a82f6' : 'transparent'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;flex-shrink:0;`,
+        rowStyle: `display:flex;align-items:center;gap:14px;padding:13px 14px;border-radius:15px;background:#191c22;border:1px solid ${sel ? 'rgba(58,130,246,.4)' : 'rgba(255,255,255,.07)'};cursor:pointer;`,
+      };
+    });
+    const assignCount = this.state.assignSel.length;
+
+    // ----- live VM -----
+    const live = this.state.live;
+    let liveReady = !!live, liveExName = '', liveExNum = 1, liveExTotal = (live ? live.length : 5), liveSetRows = [], liveNextName = '—', liveIsWeight = true, liveIsReps = false, liveIsTime = false;
+    let cWeight = '—', cReps = '', cSetPos = '1 / 1', cDoneCount = 0;
+    if (live) {
+      const ex = live[this.state.liveEx] || live[0];
+      liveExName = ex.name;
+      liveExNum = this.state.liveEx + 1;
+      liveIsWeight = ex.type === 'weight'; liveIsReps = ex.type === 'reps'; liveIsTime = ex.type === 'time';
+      liveNextName = live[this.state.liveEx + 1] ? live[this.state.liveEx + 1].name : 'Koniec treningu';
+      liveSetRows = ex.sets.map((st, i) => {
+        const dW = ex.type === 'weight' ? +(st.w - st.prevW).toFixed(1) : (ex.type === 'reps' ? st.r - st.prevR : st.sec - st.prevSec);
+        return {
+          idx: i + 1, done: st.done, w: st.w, r: st.r, sec: st.sec,
+          prevLabel: ex.type === 'weight' ? `ost. ${st.prevW} kg × ${st.prevR}` : ex.type === 'reps' ? `ost. ${st.prevR} powt.` : `ost. ${st.prevSec}s`,
+          delta: dW > 0 ? `▲ +${dW}` : (dW < 0 ? `▼ ${dW}` : '='),
+          deltaColor: dW > 0 ? '#21c97a' : (dW < 0 ? '#ff8d8d' : '#686d75'),
+          isWeight: ex.type === 'weight', isReps: ex.type === 'reps', isTime: ex.type === 'time',
+          incW: () => this.adjustLive(i, 'w', 2.5), decW: () => this.adjustLive(i, 'w', -2.5),
+          incR: () => this.adjustLive(i, 'r', 1), decR: () => this.adjustLive(i, 'r', -1),
+          incS: () => this.adjustLive(i, 'sec', 5), decS: () => this.adjustLive(i, 'sec', -5),
+          toggle: () => this.toggleDone(i),
+          rowBg: st.done ? 'rgba(33,201,122,.07)' : '#191c22',
+          rowBorder: st.done ? 'rgba(33,201,122,.32)' : 'rgba(255,255,255,.07)',
+          checkStyle: `width:34px;height:34px;border-radius:10px;border:2px solid ${st.done ? '#21c97a' : 'rgba(255,255,255,.2)'};background:${st.done ? '#21c97a' : 'transparent'};color:#0c0d10;font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;`,
+          checkMark: st.done ? '✓' : '',
+        };
+      });
+      const firstUndone = ex.sets.findIndex(x => !x.done);
+      const ci = firstUndone === -1 ? ex.sets.length - 1 : firstUndone;
+      const cs = ex.sets[ci];
+      cSetPos = `${ci + 1} / ${ex.sets.length}`;
+      cDoneCount = ex.sets.filter(x => x.done).length;
+      if (ex.type === 'weight') { cWeight = cs.w + ' kg'; cReps = '× ' + cs.r + ' powt.'; }
+      else if (ex.type === 'reps') { cWeight = cs.r + ''; cReps = 'powtórzeń'; }
+      else { cWeight = cs.sec + ' s'; cReps = 'utrzymaj'; }
+    }
+    const restLabel = this.fmt(this.state.restRemaining);
+    const restPct = this.state.restTotal ? Math.max(0, (this.state.restRemaining / this.state.restTotal) * 100) : 0;
+
+    // ----- history VM -----
+    const historyVM = this.history.map(h => {
+      const mx = Math.max(...h.bars);
+      return { name: h.name, current: h.current, delta: h.delta, bars: h.bars.map((v, i) => ({ h: Math.round(20 + (v / mx) * 70), last: i === h.bars.length - 1 ? '#3a82f6' : '#2c333d' })) };
+    });
+
+    return {
+      // flags
+      scWelcome: s === 'welcome', scRole: s === 'role', scSignup: s === 'signup', scPair: s === 'pair',
+      scTDash: s === 't_dash', scTTrainee: s === 't_trainee', scTSets: s === 't_sets',
+      scTBuilder: s === 't_builder', scTAddEx: s === 't_addex', scTAssign: s === 't_assign', scTLive: s === 't_live',
+      scCHome: s === 'c_home', scCLive: s === 'c_live', scCHistory: s === 'c_history',
+      isTrainer, isTrainee, roleLabel,
+      // nav
+      navGroups, bottomNavStyle, trainerNav,
+      // notes
+      screenTitle: n.title, screenNote: n.note, screenRefs: n.refs,
+      // data
+      trainees, sets: this.sets, codeBoxes,
+      roleCardTrainee, roleCardTrainer,
+      signupName: isTrainer ? 'Marek Kowalski' : 'Anna Nowak',
+      signupEmail: isTrainer ? 'marek.k@example.com' : 'anna.nowak@example.com',
+      // handlers
+      toRole: () => this.go('role'),
+      pickTrainer: () => this.setState({ role: 'trainer' }),
+      pickTrainee: () => this.setState({ role: 'trainee' }),
+      toSignup: () => this.go('signup'),
+      toPair: () => this.go('pair'),
+      toDash: () => this.go('t_dash'),
+      toHome: () => this.go('c_home'),
+      toSets: () => this.go('t_sets'),
+      toBuilder: () => this.go('t_builder'),
+      toAssign: () => this.go('t_assign'),
+      startLive: () => { this.startLiveSession(); this.go('t_live'); },
+      devW: 412, devH: 892,
+      // builder
+      draftVM, draftCount, setName: this.state.setName,
+      toAddEx: () => this.go('t_addex'), saveSet: () => this.go('t_sets'),
+      // add exercise
+      exIsWeight, exIsReps, exIsTime,
+      exName: this.state.exName || 'np. Wyciskanie sztangi',
+      segW: segStyle(exIsWeight), segR: segStyle(exIsReps), segT: segStyle(exIsTime),
+      setW: () => this.setExType('weight'), setR: () => this.setExType('reps'), setT: () => this.setExType('time'),
+      exSets: this.state.exSets, exReps: this.state.exReps, exWeight: this.state.exWeight, exSeconds: this.state.exSeconds,
+      incSets: () => this.stepEx('exSets', 1, 1), decSets: () => this.stepEx('exSets', -1, 1),
+      incReps: () => this.stepEx('exReps', 1, 1), decReps: () => this.stepEx('exReps', -1, 1),
+      incWeight: () => this.stepEx('exWeight', 2.5, 0), decWeight: () => this.stepEx('exWeight', -2.5, 0),
+      incSecs: () => this.stepEx('exSeconds', 5, 5), decSecs: () => this.stepEx('exSeconds', -5, 5),
+      addDraftExercise: this.addDraftExercise,
+      // assign
+      assignVM, assignCount, assignSetName: this.state.setName, doAssign: () => this.go('t_trainee'),
+      // live (trainer)
+      liveReady, liveExName, liveExNum, liveExTotal, liveSetRows, liveNextName,
+      liveIsWeight, liveIsReps, liveIsTime,
+      restLabel, restRunning: this.state.restRunning, restPct,
+      tickStart: this.tickStart, tickPause: this.tickPause, tickReset: this.tickReset, tickAdd: this.tickAdd,
+      nextEx: this.nextEx, prevEx: this.prevEx, endLive: () => this.go('t_dash'),
+      // trainee
+      startTraineeWorkout: () => this.goLive('c_live'),
+      cWeight, cReps, cSetPos, cDoneCount, traineeNav,
+      historyVM,
+      back: this.back,
+    };
+  }
+}
+</script>
+</body>
+</html>

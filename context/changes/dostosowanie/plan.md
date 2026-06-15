@@ -373,31 +373,31 @@ Rolling back after deployment requires compatibility awareness: once mobile expe
 
 #### Automated
 
-- [x] 1.1 `dotnet restore LiftMate.slnx` succeeds from `apps/api`.
-- [x] 1.2 `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api`.
-- [x] 1.3 `dotnet test LiftMate.slnx --no-build` succeeds from `apps/api`.
+- [x] 1.1 `dotnet restore LiftMate.slnx` succeeds from `apps/api` - 0400412.
+- [x] 1.2 `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api` - 0400412.
+- [x] 1.3 `dotnet test LiftMate.slnx --no-build` succeeds from `apps/api` - 0400412.
 
 #### Manual
 
-- [x] 1.4 A test registration through the API returns `user.displayName` in the auth response.
-- [x] 1.5 `/auth/me` returns the same `displayName` and the trainee's `trainerUserId` when linked.
-- [x] 1.6 A trainer can generate an invite code and a trainee can claim it with a separate authenticated request.
-- [x] 1.7 A trainer cannot create a shared session for an unpaired trainee or another trainer's paired trainee.
+- [x] 1.4 A test registration through the API returns `user.displayName` in the auth response - 0400412.
+- [x] 1.5 `/auth/me` returns the same `displayName` and the trainee's `trainerUserId` when linked - 0400412.
+- [x] 1.6 A trainer can generate an invite code and a trainee can claim it with a separate authenticated request - 0400412.
+- [x] 1.7 A trainer cannot create a shared session for an unpaired trainee or another trainer's paired trainee - 0400412.
 
 ### Phase 2: Mobile Auth Contract
 
 #### Automated
 
-- [ ] 2.1 `flutter test test/auth_api_client_test.dart` succeeds from `apps/mobile`.
-- [ ] 2.2 `flutter test` succeeds from `apps/mobile`.
-- [ ] 2.3 `flutter analyze` succeeds from `apps/mobile`.
+- [x] 2.1 `flutter test test/auth_api_client_test.dart` succeeds from `apps/mobile`.
+- [x] 2.2 `flutter test` succeeds from `apps/mobile`.
+- [x] 2.3 `flutter analyze` succeeds from `apps/mobile`.
 
 #### Manual
 
-- [ ] 2.4 Mobile registration sends `displayName` to `/auth/register`.
-- [ ] 2.5 Existing login still works with responses that include `displayName`.
-- [ ] 2.6 Mobile pairing methods call `/trainer/invite-code` and `/trainee/trainer-link` with bearer tokens.
-- [ ] 2.7 Mobile trainee code entry trims whitespace and normalizes to uppercase before submitting.
+- [x] 2.4 Mobile registration sends `displayName` to `/auth/register`.
+- [x] 2.5 Existing login still works with responses that include `displayName`.
+- [x] 2.6 Mobile pairing methods call `/trainer/invite-code` and `/trainee/trainer-link` with bearer tokens.
+- [x] 2.7 Mobile trainee code entry trims whitespace and normalizes to uppercase before submitting.
 
 ### Phase 3: Mobile Onboarding UI
 

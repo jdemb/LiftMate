@@ -871,15 +871,16 @@ Make Azure-hosted verification part of the plan because the previous physical-de
 - [x] 8.3 `flutter analyze` succeeds from `apps/mobile`
 - [x] 8.4 GitHub Actions deploy run for `deploy-2026-05-26` succeeds, including the Azure SQL migration step
 - [x] 8.5 Azure SQL migration list includes the new active-session uniqueness migration
+- [x] 8.6 Widget test proves the active-session fetch fallback recovers after a reconnect/missed start notification without manual session ID entry - 2026-06-08
 
 #### Manual
 
-- [ ] 8.6 Azure App Service realtime transport setting is verified and documented
-- [ ] 8.7 Public Azure `/health` returns `200`
-- [ ] 8.8 Trainer and trainee physical release builds both authenticate against Azure
-- [ ] 8.9 Trainer creates a session by trainee email; the trainee already logged in receives the active session without manual refresh
-- [ ] 8.10 Trainer creates a session while the trainee is logged out; the trainee sees it immediately after login
-- [ ] 8.11 Neither physical-device UI exposes `Session ID` or `Join session` as the normal test path
-- [ ] 8.12 Value updates from trainer and trainee appear on the other client without manual refresh
-- [ ] 8.13 Complete or cancel blocks further value edits on both devices
-- [ ] 8.14 If SignalR falls back, reconnects, or misses a start notification, the active-session fetch fallback recovers without manual session ID entry
+- [x] 8.7 Azure App Service realtime transport setting is verified and documented - 2026-06-08 `webSocketsEnabled=true` for `liftmate-api-dev-jdemb` in `rg-liftmate-dev`
+- [x] 8.8 Public Azure `/health` returns `200` - 2026-06-08 returned `status=ok`
+- [x] 8.9 Trainer and trainee physical release builds both authenticate against Azure - confirmed by physical-device tests on 2026-06-08
+- [x] 8.10 Trainer creates a session by trainee email; the trainee already logged in receives the active session without manual refresh - confirmed by physical-device tests on 2026-06-08
+- [x] 8.11 Trainer creates a session while the trainee is logged out; the trainee sees it immediately after login - confirmed by physical-device tests on 2026-06-08
+- [x] 8.12 Neither physical-device UI exposes `Session ID` or `Join session` as the normal test path - confirmed by physical-device tests on 2026-06-08
+- [x] 8.13 Value updates from trainer and trainee appear on the other client without manual refresh - confirmed by physical-device tests on 2026-06-08
+- [x] 8.14 Complete or cancel blocks further value edits on both devices - confirmed by physical-device tests on 2026-06-08
+- [x] 8.15 If SignalR falls back, reconnects, or misses a start notification, the active-session fetch fallback recovers without manual session ID entry - covered by the 2026-06-08 widget regression that forces a missed start and reconnect-triggered active-session fetch

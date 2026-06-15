@@ -21,7 +21,7 @@ The current mobile app still routes through `AuthScreen` from `apps/mobile/lib/m
 
 After authentication, trainers land on a dashboard based on `t_dash`: their invite code is available after onboarding, an empty-state CTA helps them invite a first trainee, and linked trainees appear in a list. Selecting a trainee opens a relationship detail screen based on `t_trainee`, with identity/status information and future placeholders for training data.
 
-After authentication, trainees land on a home/status screen based on `c_home`: if linked, they see their trainer relationship; if unlinked, they see a clear prompt to enter a trainer code. A trainee can claim a new trainer code even if already linked; the MVP behavior is overwrite/re-pair, so the latest valid code becomes authoritative.
+After authentication, trainees land on a home/status screen based on `c_home`: if linked, they see their trainer relationship; if unlinked, they see a clear prompt to enter a trainer code. A trainee can claim a new trainer code even if already linked; the MVP behavior is overwrite/re-pair, so the latest valid code becomes authoritative. Re-pairing also closes any active shared session for that trainee so a previous trainer does not keep access through session participant IDs.
 
 Backend exposes relationship-specific read endpoints rather than expanding `/auth/me` into a relationship dashboard contract. The plan adds only the minimal mutation needed by the chosen lifecycle decision: trainee re-pairing via the existing claim-code flow overwrites `TrainerUserId`.
 
@@ -42,6 +42,7 @@ In scope:
 
 - Add backend relationship read contracts for trainer trainee-list, trainee current-trainer status, and trainer invite-code retrieval/generation.
 - Change trainee code claiming so a valid code overwrites an existing trainer link instead of returning conflict.
+- Close active shared sessions for the trainee during re-pair and prevent old trainers from retaining active-session access through stored participant IDs.
 - Keep the one-trainer-per-trainee invariant by storing only one `TrainerUserId`.
 - Update backend tests for trainer list, trainee status, invite-code read, and re-pair overwrite behavior.
 - Add mobile relationship models and API client/controller methods.
@@ -63,7 +64,7 @@ Out of scope:
 
 ## Architecture / Approach
 
-This is a vertical relationship-management slice layered on top of the auth/pairing contract. The backend keeps `ApplicationUser.TrainerUserId` as the source of truth, adds relationship-specific response DTOs, and exposes small authorized endpoints. Mobile adds a relationship client/controller next to auth and renders post-auth role destinations with local screen state. The design file is the visual contract, but workout/progress data shown in the prototype is reduced to empty or placeholder states until later roadmap slices provide real data.
+This is a vertical relationship-management slice layered on top of the auth/pairing contract. The backend keeps `ApplicationUser.TrainerUserId` as the source of truth, adds relationship-specific response DTOs, and exposes small authorized endpoints. Re-pairing updates that source of truth and closes any active shared session that still names the old trainer as a participant. Mobile adds a relationship client/controller next to auth and renders post-auth role destinations with local screen state. The design file is the visual contract, but workout/progress data shown in the prototype is reduced to empty or placeholder states until later roadmap slices provide real data.
 
 ```mermaid
 flowchart LR
@@ -115,7 +116,13 @@ Keep `UserResponse` limited to identity basics and `TrainerUserId`.
 
 **Intent:** Support the chosen re-pair lifecycle.
 
-**Contract:** `POST /trainee/trainer-link` no longer rejects an already linked trainee. A valid code overwrites `TrainerUserId` with the trainer behind the code, updates `LastUsedAt`, and returns the updated `UserResponse`. It still rejects invalid code, non-trainee tokens, trainer-owned misuse, and self-pairing.
+**Contract:** `POST /trainee/trainer-link` no longer rejects an already linked trainee. A valid code overwrites `TrainerUserId` with the trainer behind the code, updates `LastUsedAt`, closes any active shared session where this trainee is a participant, and returns the updated `UserResponse`. It still rejects invalid code, non-trainee tokens, trainer-owned misuse, and self-pairing. Invalid claim attempts must not close sessions or change the existing trainer link.
+
+#### `apps/api/LiftMate.Api/SharedSessions/SharedSessionEndpoints.cs`
+
+**Intent:** Prevent a previous trainer from retaining active-session access after the trainee re-pairs.
+
+**Contract:** Shared-session access for trainer actions must require both stored session participation and the current relationship: the trainer user must still equal the trainee's current `TrainerUserId`. Trainee access remains based on the trainee's own participant ID so a trainee can still see their session state if needed. New trainer session creation continues to use the current relationship check.
 
 #### `apps/api/LiftMate.Api.Tests/Auth/PairingEndpointTests.cs`
 
@@ -128,8 +135,16 @@ Keep `UserResponse` limited to identity basics and `TrainerUserId`.
 - Trainee relationship summary returns `trainer: null` before linking.
 - Trainee relationship summary returns trainer identity after linking.
 - Claiming a second valid trainer code overwrites the previous `TrainerUserId`.
+- Claiming a second valid trainer code closes the trainee's active shared session with the old trainer.
 - Invalid code still fails without changing the existing trainer link.
+- Invalid code still fails without closing active sessions.
 - Trainer-only and trainee-only policies protect the new endpoints.
+
+#### `apps/api/LiftMate.Api.Tests/SharedSessions/SharedSessionEndpointTests.cs`
+
+**Intent:** Lock access-control behavior after re-pair.
+
+**Contract:** Tests prove an old trainer cannot read, update, complete, or cancel an active session after the trainee re-pairs to another trainer. Tests also prove invalid re-pair attempts do not close active sessions or remove the old trainer's access.
 
 ### Success Criteria
 
@@ -144,6 +159,7 @@ Keep `UserResponse` limited to identity basics and `TrainerUserId`.
 - A trainer can call `GET /trainer/relationship` and receive an invite code plus only their linked trainees.
 - A trainee can call `GET /trainee/relationship` before and after pairing and see `null` then trainer identity.
 - A trainee linked to trainer A can submit trainer B's valid code and `/auth/me` then shows trainer B.
+- After re-pair, trainer A can no longer access an active shared session for that trainee.
 
 ---
 
@@ -176,33 +192,32 @@ JSON parsing should be strict for required fields and tolerate `trainer: null`.
 
 - `getTrainerRelationship(accessToken)`
 - `getTraineeRelationship(accessToken)`
-- `claimTrainerInviteCode(accessToken, code)`
 
-The claim method can delegate to the existing auth API only if `dostosowanie` lands that method there; otherwise this client owns the call. Code input is trimmed and uppercased before request submission.
+Do not duplicate `POST /trainee/trainer-link` here. `dostosowanie` already adds claim-code support to `AuthApiClient` and `AuthController`; the relationship layer should reuse that mutation.
 
 #### `apps/mobile/lib/relationships/relationship_controller.dart` (new)
 
 **Intent:** Provide screen-friendly loading/error/data state for post-auth relationship screens.
 
-**Contract:** Controller accepts `RelationshipApiClient`, an access-token provider or current tokens from `AuthController`, and exposes:
+**Contract:** Controller accepts `RelationshipApiClient`, `AuthController`, and exposes:
 
 - `loadForUser(AuthUser user)`
 - `claimTrainerCode(String code)`
 - `reload()`
 
-Successful trainee claim refreshes both relationship summary and the authenticated user if the existing `AuthController` exposes a refresh/me path after `dostosowanie`; otherwise the relationship screen state is updated from the relationship endpoint and auth refresh is left to a later app restart.
+`claimTrainerCode` calls the existing `AuthController.claimTrainerInviteCode`, which owns token access, code normalization, `POST /trainee/trainer-link`, and authenticated-user state updates. After a successful claim, the relationship controller reloads `GET /trainee/relationship`.
 
 #### `apps/mobile/test/relationship_api_client_test.dart` (new)
 
 **Intent:** Lock mobile/backend relationship contracts.
 
-**Contract:** Tests cover trainer summary parsing, trainee summary with null trainer, trainee summary with trainer, claim-code normalization, 401/403/409/error mapping, and invalid JSON handling.
+**Contract:** Tests cover trainer summary parsing, trainee summary with null trainer, trainee summary with trainer, 401/403/error mapping, and invalid JSON handling.
 
 #### `apps/mobile/test/relationship_controller_test.dart` (new or existing auth-controller test extension)
 
 **Intent:** Lock role-based loading and re-pair state transitions.
 
-**Contract:** Tests cover trainer load, trainee linked load, trainee unlinked load, claim success, claim failure preserving current state, and missing-token error behavior.
+**Contract:** Tests cover trainer load, trainee linked load, trainee unlinked load, claim success through `AuthController.claimTrainerInviteCode`, claim failure preserving current relationship state, and missing-token error behavior surfaced by the auth controller.
 
 ### Success Criteria
 
@@ -217,7 +232,7 @@ Successful trainee claim refreshes both relationship summary and the authenticat
 
 - Mobile calls `GET /trainer/relationship` with a trainer token after login.
 - Mobile calls `GET /trainee/relationship` with a trainee token after login.
-- Mobile submits trainer codes uppercase and trimmed when re-pairing.
+- Mobile re-pairing uses `AuthController.claimTrainerInviteCode`; relationship state reloads after success.
 
 ---
 
@@ -352,15 +367,15 @@ Dashboard counters from the design should either be omitted or rendered as relat
 
 ## Performance Considerations
 
-Relationship summaries are small and can be loaded on post-auth screen entry. Trainer trainee-list queries should use the existing `TrainerUserId` index. Do not add realtime subscriptions for relationship changes in this slice; manual reload after code claim is enough for MVP. Avoid rendering design placeholder stats that would require fake workout data or extra backend calls.
+Relationship summaries are small and can be loaded on post-auth screen entry. Trainer trainee-list queries should use the existing `TrainerUserId` index. Re-pair needs one bounded active-session lookup/update for the trainee so old trainer access closes at the same time as the relationship change. Do not add realtime subscriptions for relationship changes in this slice; manual reload after code claim is enough for MVP. Avoid rendering design placeholder stats that would require fake workout data or extra backend calls.
 
 ## Migration Notes
 
-This plan assumes the `dostosowanie` migration has already added `DisplayName`, `TrainerUserId`, and `TrainerInviteCodes`. No new database table is expected. Re-pair overwrite changes endpoint behavior only; it does not require schema changes. If `dostosowanie` has not landed yet, implement this plan after rebasing on that migration and contract.
+This plan assumes the `dostosowanie` migration has already added `DisplayName`, `TrainerUserId`, and `TrainerInviteCodes`. No new database table is expected. Re-pair overwrite and active-session closure change endpoint behavior only; they do not require schema changes. If `dostosowanie` has not landed yet, implement this plan after rebasing on that migration and contract.
 
 ## Rollback Notes
 
-Backend relationship read endpoints are additive. Rolling back mobile post-auth screens can return users to the temporary authenticated panel as long as auth and pairing contracts from `dostosowanie` remain. Reverting re-pair overwrite to conflict behavior may strand users who already changed trainer links, so rollback should be accompanied by a product decision on which trainer link remains authoritative.
+Backend relationship read endpoints are additive. Rolling back mobile post-auth screens can return users to the temporary authenticated panel as long as auth and pairing contracts from `dostosowanie` remain. Reverting re-pair overwrite to conflict behavior may strand users who already changed trainer links, so rollback should be accompanied by a product decision on which trainer link remains authoritative. If active-session closure is rolled back, old-trainer access must be re-audited before deployment.
 
 ## References
 
@@ -369,6 +384,7 @@ Backend relationship read endpoints are additive. Rolling back mobile post-auth 
 - Design prototype: `apps/mobile/design/LiftMate.dc.html`
 - Design screens: `t_dash`, `t_trainee`, `c_home`, `pair`
 - Backend pairing endpoints: `apps/api/LiftMate.Api/Auth/PairingEndpoints.cs`
+- Backend shared-session endpoints: `apps/api/LiftMate.Api/SharedSessions/SharedSessionEndpoints.cs`
 - Backend auth contracts: `apps/api/LiftMate.Api/Auth/AuthContracts.cs`
 - User relationship model: `apps/api/LiftMate.Api/Auth/ApplicationUser.cs`
 - Mobile auth client: `apps/mobile/lib/auth/auth_api_client.dart`
@@ -392,6 +408,7 @@ Backend relationship read endpoints are additive. Rolling back mobile post-auth 
 - [ ] 1.4 A trainer can call `GET /trainer/relationship` and receive an invite code plus only their linked trainees.
 - [ ] 1.5 A trainee can call `GET /trainee/relationship` before and after pairing and see `null` then trainer identity.
 - [ ] 1.6 A trainee linked to trainer A can submit trainer B's valid code and `/auth/me` then shows trainer B.
+- [ ] 1.7 After re-pair, trainer A can no longer access an active shared session for that trainee.
 
 ### Phase 2: Mobile Relationship Contract
 
@@ -406,7 +423,7 @@ Backend relationship read endpoints are additive. Rolling back mobile post-auth 
 
 - [ ] 2.5 Mobile calls `GET /trainer/relationship` with a trainer token after login.
 - [ ] 2.6 Mobile calls `GET /trainee/relationship` with a trainee token after login.
-- [ ] 2.7 Mobile submits trainer codes uppercase and trimmed when re-pairing.
+- [ ] 2.7 Mobile re-pairing uses `AuthController.claimTrainerInviteCode`; relationship state reloads after success.
 
 ### Phase 3: Post-auth Role Screens
 

@@ -403,18 +403,18 @@ Rolling back after deployment requires compatibility awareness: once mobile expe
 
 #### Automated
 
-- [x] 3.1 `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile`.
-- [x] 3.2 `flutter test` succeeds from `apps/mobile`.
-- [x] 3.3 `flutter analyze` succeeds from `apps/mobile`.
+- [x] 3.1 `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile` - 0094a47.
+- [x] 3.2 `flutter test` succeeds from `apps/mobile` - 0094a47.
+- [x] 3.3 `flutter analyze` succeeds from `apps/mobile` - 0094a47.
 
 #### Manual
 
-- [x] 3.4 On a phone-sized viewport, onboarding text and controls do not overlap.
-- [x] 3.5 `Załóż konto` reaches role selection and signup.
-- [x] 3.6 `Mam już konto` reaches login.
-- [x] 3.7 Signup for trainer and trainee roles preserves the selected role.
-- [x] 3.8 Trainer signup reaches pair screen and displays a generated trainer invite code.
-- [x] 3.9 Trainee signup reaches pair screen and can claim a trainer invite code before continuing.
-- [x] 3.10 Auth errors remain visible without exposing password or invitation code.
-- [x] 3.11 Technical diagnostics are absent from the auth UI.
-- [x] 3.12 `AuthScreen` no longer exposes constructor parameters used only by the removed diagnostics.
+- [x] 3.4 On a phone-sized viewport, onboarding text and controls do not overlap - 0094a47.
+- [x] 3.5 `Załóż konto` reaches role selection and signup - 0094a47.
+- [x] 3.6 `Mam już konto` reaches login - 0094a47.
+- [x] 3.7 Signup for trainer and trainee roles preserves the selected role - 0094a47.
+- [x] 3.8 Trainer signup reaches pair screen and displays a generated trainer invite code - 0094a47.
+- [x] 3.9 Trainee signup reaches pair screen and can claim a trainer invite code before continuing - 0094a47.
+- [x] 3.10 Auth errors remain visible without exposing password or invitation code - 0094a47.
+- [x] 3.11 Technical diagnostics are absent from the auth UI - 0094a47.
+- [x] 3.12 `AuthScreen` no longer exposes constructor parameters used only by the removed diagnostics - 0094a47.

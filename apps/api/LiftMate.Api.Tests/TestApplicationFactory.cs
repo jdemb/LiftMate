@@ -26,7 +26,6 @@ public sealed class TestApplicationFactory : WebApplicationFactory<Program>
                 ["Jwt:SigningKey"] = "test-signing-key-with-enough-entropy-for-hmac",
                 ["Jwt:AccessTokenMinutes"] = "15",
                 ["Jwt:RefreshTokenDays"] = "30",
-                ["Auth:RegistrationInviteCode"] = "test-invite-code",
             });
         });
 

@@ -21,7 +21,6 @@ public static class AuthEndpoints
 
     private static async Task<IResult> Register(
         RegisterRequest request,
-        RegistrationGate registrationGate,
         UserManager<ApplicationUser> userManager,
         TokenService tokenService,
         CancellationToken cancellationToken)
@@ -30,11 +29,6 @@ public static class AuthEndpoints
         if (!UserRole.All.Contains(role, StringComparer.Ordinal))
         {
             return Results.BadRequest(new { error = "Invalid role." });
-        }
-
-        if (!registrationGate.Allows(request.InvitationCode))
-        {
-            return Results.Forbid();
         }
 
         var email = request.Email.Trim();

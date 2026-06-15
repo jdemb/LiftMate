@@ -2,7 +2,7 @@
 
 ## Overview
 
-Przebudować istniejący przepływ logowania i tworzenia konta w aplikacji mobilnej tak, żeby odpowiadał projektowi z `apps/mobile/design/LiftMate.dc.html`, przy zachowaniu działającego kontraktu auth, rozszerzeniu backendu o imię i nazwisko użytkownika oraz dodaniu podstawowego parowania trener-podopieczny kodem zaproszenia. Zakres obejmuje pełny onboarding auth: powitanie, wybór roli, osobny login, rejestrację oraz ekran parowania po rejestracji, ale nie obejmuje docelowych dashboardów trenera i podopiecznego.
+Przebudować istniejący przepływ logowania i tworzenia konta w aplikacji mobilnej tak, żeby odpowiadał projektowi z `apps/mobile/design/LiftMate.dc.html`, rozszerzyć backend o imię i nazwisko użytkownika oraz dodać podstawowe parowanie trener-podopieczny kodem zaproszenia trenera. Zakres obejmuje pełny onboarding auth: powitanie, wybór roli, osobny login, rejestrację oraz ekran parowania po rejestracji, ale nie obejmuje docelowych dashboardów trenera i podopiecznego.
 
 ## Current State Analysis
 
@@ -18,7 +18,7 @@ Użytkownik widzi produktowy onboarding możliwie najbliższy designowi: powitan
 
 Po udanym loginie albo rejestracji aplikacja nadal przechodzi do tymczasowego stanu zalogowanego, bez wdrażania dashboardów z designu. Diagnostyka API i panele probe/shared-session nie są częścią auth UI.
 
-Backend zapisuje i zwraca `displayName` dla użytkownika, a mobilny klient wysyła je przy rejestracji i parsuje z odpowiedzi auth. Trener może wygenerować kod zaproszenia w osobnym ekranie parowania, przekazać go podopiecznemu poza aplikacją, a podopieczny może wprowadzić ten kod dopiero na osobnym ekranie `Połącz się z trenerem` i zostać przypisany do trenera.
+Backend zapisuje i zwraca `displayName` dla użytkownika, a mobilny klient wysyła je przy rejestracji i parsuje z odpowiedzi auth. Rejestracja nie pokazuje ani nie wymaga osobnego ekranu `Kod dostępu`, bo taki ekran nie istnieje w designie. Trener po uzupełnieniu danych konta przechodzi bezpośrednio na ekran `Zaproś podopiecznego`, gdzie automatycznie generuje się kod trenera do przekazania poza aplikacją. Podopieczny po uzupełnieniu danych konta przechodzi bezpośrednio na ekran `Połącz się z trenerem`, gdzie wpisuje kod otrzymany od trenera.
 
 ## Decisions
 
@@ -27,7 +27,7 @@ Backend zapisuje i zwraca `displayName` dla użytkownika, a mobilny klient wysy�
 | Scope | Full auth onboarding: welcome, role, login, signup, pair | This follows the Design flow while keeping dashboard work out of scope. |
 | Language | Mixed UI | Product-facing onboarding text follows the Polish design; existing API error messages can stay technical/English. |
 | Name field | Extend backend and mobile contract | The design contains name input and the user explicitly chose real persistence over visual-only input. |
-| Registration gate | Keep global `invitationCode` in registration | This preserves the current backend registration gate. |
+| Registration gate | Remove global `invitationCode` from registration | The Design has no `Kod dostępu` screen; the only user-facing code in onboarding is the trainer invite code. |
 | Trainer-trainee pairing | Add invite-code endpoints in this phase | This makes the Design pair screens functional without implementing a future trainer settings window. |
 | Login | Separate login screen in the same style | The existing login remains functional while matching the multi-step onboarding structure. |
 | Diagnostics | Remove from auth UI | Auth screens become product-facing instead of test panels. |
@@ -43,7 +43,7 @@ In scope:
 - Update mobile auth models, client, controller, and tests to send and parse `displayName`.
 - Update mobile auth client/controller for invite-code generation and trainee pairing.
 - Rework `AuthScreen` into a multi-step onboarding UI based on `welcome`, `role`, `login`, `signup`, and `pair`.
-- Keep global registration `invitationCode` as part of registration.
+- Remove the global registration `invitationCode` gate from the auth onboarding and API registration contract.
 - Remove API diagnostics and auth diagnostic panels from the auth screen surface.
 - Preserve authenticated state and logout capability as a temporary post-auth screen.
 - Update automated tests for backend auth, mobile auth client, and mobile auth widget behavior.
@@ -54,6 +54,7 @@ Out of scope:
 - Future trainer access to the invite-code screen outside onboarding.
 - In-app delivery/sharing of trainer invite codes; sending the code happens outside the app.
 - Invite-code lifecycle beyond MVP generation/claiming, such as expiration controls, revocation UI, or multi-code management.
+- Trainer approval, admin verification, or any other gate deciding who is allowed to create a trainer account.
 - Password reset, social login, e-mail verification, and account settings.
 - Pixel-perfect reproduction of the design export; implementation should be as close as practical, but can adapt vertical spacing and scrolling where the HTML prototype height is imperfect.
 
@@ -200,7 +201,7 @@ Update the Flutter auth layer so it sends, receives, stores in memory, and tests
 
 **Intent:** Send display name during registration.
 
-**Contract:** `register` accepts `displayName` and posts `displayName` alongside `email`, `password`, `role`, and global registration `invitationCode`. Add `generateTrainerInviteCode(accessToken)` and `claimTrainerInviteCode(accessToken, code)` methods matching backend endpoints. Mobile trims and uppercases trainer-code input before submission, matching backend normalization.
+**Contract:** `register` accepts `displayName` and posts only `email`, `password`, `role`, and `displayName`. Add `generateTrainerInviteCode(accessToken)` and `claimTrainerInviteCode(accessToken, code)` methods matching backend endpoints. Mobile trims and uppercases trainer-code input before submission, matching backend normalization.
 
 #### `apps/mobile/lib/auth/auth_controller.dart`
 
@@ -260,7 +261,7 @@ Replace the current technical auth screen with a product-facing onboarding flow 
 - Welcome screen with LiftMate branding and actions: `Załóż konto`, `Mam już konto`.
 - Role selection screen with trainer and trainee choices.
 - Separate login form with e-mail and password.
-- Signup form with display name, e-mail, password, role context, and invitation code.
+- Signup form with display name, e-mail, password, and role context.
 - Pair screen after registration flow that reflects the selected role:
   - trainer variant calls trainer invite-code generation and displays the code to share outside the app;
   - trainee variant accepts a trainer code, calls the trainee claim endpoint, and only then continues to the temporary authenticated panel.
@@ -281,7 +282,7 @@ Replace the current technical auth screen with a product-facing onboarding flow 
 
 **Intent:** Verify the new flow as a user-visible onboarding experience.
 
-**Contract:** Widget tests cover welcome screen, role selection, login submission, signup submission with display name and global registration invitation code, trainer code display, trainee code claim, pairing error display without secret leakage, and logout returning to onboarding.
+**Contract:** Widget tests cover welcome screen, role selection, login submission, signup submission with display name, trainer code display, trainee code claim, pairing error display without secret leakage, and logout returning to onboarding.
 
 ### Success Criteria
 
@@ -311,6 +312,8 @@ Replace the current technical auth screen with a product-facing onboarding flow 
 
 Tighten the implemented onboarding UI so it follows `apps/mobile/design/LiftMate.dc.html` as closely as practical, while fixing the incorrect placement of registration and trainer invite codes.
 
+Phase 4 is a historical design-fidelity phase already partially completed in commit `7b97602`. It moved the UI toward the design and separated code concepts visually, but it did not fully remove the old global registration `invitationCode` contract. Phase 5 supersedes that old assumption and owns the backend/mobile contract change.
+
 ### Changes Required
 
 #### `apps/mobile/pubspec.yaml` and font assets under `apps/mobile/assets/fonts/`
@@ -333,8 +336,8 @@ Tighten the implemented onboarding UI so it follows `apps/mobile/design/LiftMate
 
 - Welcome screen uses the design logo mark, `LiftMate` wordmark, headline `Trenuj bez myślenia o liczbach.`, body copy from the design, radial gradient/glow background, `Załóż konto` primary button with blue glow, and `Mam już konto` outlined secondary button.
 - Role screen uses title `Jak korzystasz z LiftMate?`, subtitle `Wybierz rolę. Zmienisz ją w ustawieniach.`, role cards labelled `Jestem podopiecznym` and `Jestem trenerem`, matching icon/emoji treatment, selected-state border/background, and `Dalej`.
-- Signup screen uses the design copy `Załóż konto`, role subtitle, and fields `Imię i nazwisko`, `E-mail`, `Hasło`; it does not show the global registration invitation code inline next to those personal fields.
-- Trainee registration must continue to send the existing global registration `invitationCode` to `/auth/register`, but the UI must not confuse it with the trainer invite code. If the backend still requires the global registration gate, collect it in a clearly separate auth gate step or visually separate section that is not the design's trainer-code pairing screen.
+- Signup screen uses the design copy `Załóż konto`, role subtitle, and fields `Imię i nazwisko`, `E-mail`, `Hasło`; it does not show any global registration invitation code inline beside personal data.
+- Trainee registration keeps the trainer invite code out of the signup form; after account creation, the trainee enters only the trainer invite code on the design's `Połącz się z trenerem` pairing screen. Removing the backend/mobile global `invitationCode` contract is handled by Phase 5.
 - Trainer registration must not display the global registration code next to personal data, and must never ask for or show a trainee/trainer pairing code before account creation succeeds.
 - After trainer signup, show the design `Zaproś podopiecznego` screen with `Twój kod zaproszenia`, large spaced code, `Kopiuj kod`, and `Przejdź do pulpitu`.
 - After trainee signup, show the design `Połącz się z trenerem` screen with separated code boxes and `Połącz konto`; this is the trainer invite code, not the global registration code.
@@ -346,10 +349,9 @@ Tighten the implemented onboarding UI so it follows `apps/mobile/design/LiftMate
 
 **Contract:** The implementation has separate state, controllers, labels, and tests for:
 
-- global registration invitation code: used only for `/auth/register`;
 - trainer invite code: generated by `/trainer/invite-code` and claimed through `/trainee/trainer-link`.
 
-The trainer role should not show the global registration invitation code beside `Imię i nazwisko`, `E-mail`, and `Hasło`. The trainee role should not enter the trainer invite code until the post-registration `Połącz się z trenerem` screen.
+The implementation should not contain a global registration-code field beside personal signup data. The trainer role should generate and show the trainer invite code only on the post-registration `Zaproś podopiecznego` screen. The trainee role should not enter the trainer invite code until the post-registration `Połącz się z trenerem` screen. Full removal of the global registration-code step and request payload is Phase 5 scope.
 
 #### `apps/mobile/test/auth_screen_test.dart`
 
@@ -363,7 +365,7 @@ The trainer role should not show the global registration invitation code beside 
 - trainee signup screen renders personal fields and does not render `Kod trenera` before registration succeeds;
 - trainer post-signup screen renders `Zaproś podopiecznego`, `Twój kod zaproszenia`, generated code, `Kopiuj kod`, and `Przejdź do pulpitu`;
 - trainee post-signup screen renders `Połącz się z trenerem`, code boxes/input, and `Połącz konto`;
-- register requests still include the global `invitationCode` required by the backend, but tests make clear this is not the trainer invite code.
+- tests make clear the trainer invite code is separate from signup personal data. Phase 5 updates register requests so they no longer include a global `invitationCode`.
 
 ### Success Criteria
 
@@ -384,6 +386,103 @@ The trainer role should not show the global registration invitation code beside 
 
 ---
 
+## Phase 5: Auth Flow Correction to Match Design
+
+### Goal
+
+Remove the non-design `Kod dostępu` registration gate and make the signup-to-pair flow match `apps/mobile/design/LiftMate.dc.html`: trainer signup immediately opens `Zaproś podopiecznego` with a generated trainer code, and trainee signup immediately opens `Połącz się z trenerem` to enter that trainer code.
+
+### Changes Required
+
+#### `apps/api/LiftMate.Api/Auth/AuthContracts.cs`
+
+**Intent:** Make the backend registration contract match the design signup form.
+
+**Contract:** `RegisterRequest` contains only `Email`, `Password`, `Role`, and `DisplayName`. It no longer contains `InvitationCode`.
+
+#### `apps/api/LiftMate.Api/Auth/AuthEndpoints.cs`, `Program.cs`, `appsettings.json`
+
+**Intent:** Remove the old global registration gate that created the non-design `Kod dostępu` screen.
+
+**Contract:** `/auth/register` no longer depends on `RegistrationGate`, no longer reads `Auth:RegistrationInviteCode`, and no longer rejects registration because of a missing or invalid global invite code. Existing role, duplicate-email, display-name, and password validations remain.
+
+This intentionally makes trainer signup open for this phase. Do not reintroduce a hidden trainer approval code or an alternate global invite gate to compensate; future trainer verification/approval belongs to a separate change.
+
+#### `apps/api/LiftMate.Api/Auth/RegistrationGate.cs`
+
+**Intent:** Delete dead gate code after the registration contract stops using it.
+
+**Contract:** Remove the class and all service/config references to it. Do not replace it with another user-facing registration code.
+
+#### `apps/api/LiftMate.Api.Tests/Auth/AuthEndpointTests.cs` and `TestApplicationFactory.cs`
+
+**Intent:** Lock the corrected backend contract.
+
+**Contract:** Auth endpoint tests post register payloads without `InvitationCode`, remove the invalid global invite-code rejection test, and keep coverage for invalid role, blank display name, duplicate email, login, `/auth/me`, refresh, and logout.
+
+#### `apps/mobile/lib/auth/auth_api_client.dart`
+
+**Intent:** Make mobile registration submit the same fields as the design signup form.
+
+**Contract:** `register` no longer accepts or sends `invitationCode`. Request body contains only `email`, `password`, `role`, and `displayName`.
+
+#### `apps/mobile/lib/auth/auth_controller.dart`
+
+**Intent:** Remove global registration-code state from the controller API.
+
+**Contract:** `AuthController.register` no longer accepts `invitationCode`; trainer invite-code generation and trainee trainer-link claiming remain separate authenticated calls after successful registration.
+
+#### `apps/mobile/lib/auth/auth_screen.dart`
+
+**Intent:** Make the visible flow match the design, not an invented auth gate.
+
+**Contract:** Remove `_AuthStep.registrationCode`, `_registrationCodeFormKey`, `_invitationCodeController`, `_RegistrationCodeForm`, and all `Kod dostępu` / `Kod rejestracji` copy. `Utwórz konto` on the signup screen calls registration directly. After successful trainer registration, the screen switches to `Zaproś podopiecznego` and automatically calls `/trainer/invite-code`; after successful trainee registration, the screen switches to `Połącz się z trenerem`.
+
+#### `apps/mobile/lib/auth/auth_screen.dart`
+
+**Intent:** Correct first-screen visual drift reported during device/design review.
+
+**Contract:** Welcome screen uses the design logo mark structure from `LiftMate.dc.html` (left vertical bar, center horizontal bar, right vertical bar), displays the wordmark beside the icon, removes the extra body copy `Trener ustawia plan...`, and uses the design primary button color `#3a82f6` with the same glow direction/intensity as the prototype.
+
+#### `apps/mobile/test/auth_api_client_test.dart`
+
+**Intent:** Lock the mobile registration payload against reintroducing the global code.
+
+**Contract:** Register tests expect no `invitationCode` key. Secret-leakage tests use password/error-only assertions and no longer mention a registration invite secret.
+
+#### `apps/mobile/test/auth_screen_test.dart`
+
+**Intent:** Lock the corrected design flow end to end.
+
+**Contract:** Widget tests assert:
+
+- welcome screen has no extra body copy below the headline;
+- `Kod dostępu` and `Kod rejestracji` never render in auth onboarding;
+- trainer signup sends registration immediately and then renders `Zaproś podopiecznego`, `Twój kod zaproszenia`, generated code, `Kopiuj kod`, and `Przejdź do pulpitu`;
+- trainee signup sends registration immediately and then renders `Połącz się z trenerem`, code boxes/input, and `Połącz konto`;
+- register requests contain `email`, `password`, `role`, and `displayName`, with no global invite-code field.
+
+### Success Criteria
+
+#### Automated Verification
+
+- `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api`.
+- `dotnet test LiftMate.slnx --no-build` succeeds from `apps/api`.
+- `flutter test test/auth_api_client_test.dart` succeeds from `apps/mobile`.
+- `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile`.
+- `flutter test` succeeds from `apps/mobile`.
+- `flutter analyze` succeeds from `apps/mobile`.
+
+#### Manual Verification
+
+- Welcome screen icon, wordmark placement, headline, button color, and absence of extra body copy match `LiftMate.dc.html`.
+- There is no `Kod dostępu` or `Kod rejestracji` screen anywhere in auth onboarding.
+- Trainer signup with name, e-mail, and password opens `Zaproś podopiecznego` and displays the generated trainer invite code.
+- Trainee signup with name, e-mail, and password opens `Połącz się z trenerem` and accepts the trainer invite code.
+- The only code a user sees during onboarding is the trainer invite code used to connect trainee to trainer.
+
+---
+
 ## Testing Strategy
 
 ### Unit / Contract Tests
@@ -391,7 +490,7 @@ The trainer role should not show the global registration invitation code beside 
 - Backend auth endpoint tests for register/login/me with `displayName`.
 - Backend pairing endpoint tests for trainer code generation and trainee code claiming.
 - Backend shared-session tests for enforcing trainer-trainee pairing before session creation.
-- Mobile `AuthApiClient` tests for register payload and auth response parsing.
+- Mobile `AuthApiClient` tests for register payload without global invitation code and auth response parsing.
 - Mobile `AuthApiClient` tests for pairing endpoint payloads and responses.
 - Mobile model fixture updates anywhere `AuthUser` or auth JSON is constructed.
 
@@ -400,13 +499,13 @@ The trainer role should not show the global registration invitation code beside 
 - Welcome screen renders initial actions.
 - Role selection changes selected role before signup.
 - Login submits credentials through `AuthController`.
-- Signup submits display name, e-mail, password, role, and invitation code.
+- Signup submits display name, e-mail, password, and role without any global invitation code.
 - Trainer pair screen requests and displays a trainer invite code.
 - Trainee pair screen submits a trainer invite code and updates the authenticated user.
-- Error state renders API message and does not leak secrets.
+- Error state renders API message and does not leak password or trainer-code secrets.
 - Authenticated temporary panel still allows logout.
 - Auth widget-test setup no longer constructs diagnostic-only API clients or health-check callbacks.
-- Design fidelity tests cover visible copy, role-card labels, separated trainer/global code flow, and post-signup invite/pair screens.
+- Design fidelity tests cover visible copy, role-card labels, absence of `Kod dostępu`, and post-signup invite/pair screens.
 
 ### Manual Testing Steps
 
@@ -414,11 +513,11 @@ The trainer role should not show the global registration invitation code beside 
 2. Verify the welcome screen uses the design logo mark, gradient/glow background, headline, typography, CTA glow, and secondary outlined button.
 3. Tap `Mam już konto`, submit login, and confirm authenticated state appears.
 4. Logout, tap `Załóż konto`, select each role card, and verify signup role context.
-5. Register a trainer with a valid global registration invitation code and confirm the pair screen displays a generated trainer invite code.
-6. Register a trainee with a valid global registration invitation code, enter the trainer invite code with mixed case or surrounding whitespace, and confirm `/auth/me` shows the trainee assigned to that trainer.
+5. Register a trainer with name, e-mail, and password, then confirm the pair screen displays a generated trainer invite code.
+6. Register a trainee with name, e-mail, and password, enter the trainer invite code with mixed case or surrounding whitespace, and confirm `/auth/me` shows the trainee assigned to that trainer.
 7. Confirm a different trainer cannot start a shared session for that paired trainee.
-8. Trigger invalid global registration and trainer invite codes and confirm errors are readable and secrets are not shown.
-9. Confirm the global registration invitation code and trainer invite code are visually separated and never appear as the same field.
+8. Trigger invalid trainer invite codes and confirm errors are readable and secrets are not shown.
+9. Confirm no global registration invitation code appears anywhere in onboarding.
 
 ## Performance Considerations
 
@@ -430,7 +529,9 @@ The backend migration must add `DisplayName` and nullable `TrainerUserId` to `As
 
 ## Rollback Notes
 
-Rolling back after deployment requires compatibility awareness: once mobile expects `displayName` and pairing endpoints, backend responses without them will fail strict parsing or pairing calls. If a staged rollout is needed, first deploy backend support, then mobile. Do not deploy the mobile contract change before backend support.
+Rolling back after deployment requires compatibility awareness: once mobile expects `displayName`, no registration `invitationCode`, and pairing endpoints, backend responses without them will fail strict parsing or pairing calls. If a staged rollout is needed, first deploy backend support, then mobile. Do not deploy the mobile contract change before backend support.
+
+Removing the registration gate also changes access control posture: trainer account creation becomes open in this phase. If that is later rejected as a product/security decision, roll forward with a dedicated trainer verification or approval flow rather than restoring the non-design `Kod dostępu` gate.
 
 ## References
 
@@ -517,3 +618,22 @@ Rolling back after deployment requires compatibility awareness: once mobile expe
 - [ ] 4.7 Trainee signup does not ask for a trainer invite code until the separate `Połącz się z trenerem` screen.
 - [ ] 4.8 Trainer invite code display matches the design's separate `Zaproś podopiecznego` screen.
 - [ ] 4.9 The implementation remains scrollable and readable on small phones even where the HTML prototype has imperfect screen height.
+
+### Phase 5: Auth Flow Correction to Match Design
+
+#### Automated
+
+- [x] 5.1 `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api`.
+- [x] 5.2 `dotnet test LiftMate.slnx --no-build` succeeds from `apps/api`.
+- [x] 5.3 `flutter test test/auth_api_client_test.dart` succeeds from `apps/mobile`.
+- [x] 5.4 `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile`.
+- [x] 5.5 `flutter test` succeeds from `apps/mobile`.
+- [x] 5.6 `flutter analyze` succeeds from `apps/mobile`.
+
+#### Manual
+
+- [ ] 5.7 Welcome screen icon, wordmark placement, headline, button color, and absence of extra body copy match `LiftMate.dc.html`.
+- [ ] 5.8 There is no `Kod dostępu` or `Kod rejestracji` screen anywhere in auth onboarding.
+- [ ] 5.9 Trainer signup with name, e-mail, and password opens `Zaproś podopiecznego` and displays the generated trainer invite code.
+- [ ] 5.10 Trainee signup with name, e-mail, and password opens `Połącz się z trenerem` and accepts the trainer invite code.
+- [ ] 5.11 The only code a user sees during onboarding is the trainer invite code used to connect trainee to trainer.

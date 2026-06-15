@@ -14,7 +14,7 @@ void main() {
       expect(client.timeout, const Duration(seconds: 30));
     });
 
-    test('register posts invite code and parses auth session', () async {
+    test('register posts design signup fields and parses auth session', () async {
       final client = AuthApiClient(
         baseUrl: 'https://api.example.test/',
         httpClient: MockClient((request) async {
@@ -28,7 +28,6 @@ void main() {
             'password': 'Password123!',
             'role': 'trainer',
             'displayName': 'Test Trainer',
-            'invitationCode': 'invite-123',
           });
 
           return http.Response(
@@ -44,7 +43,6 @@ void main() {
         password: 'Password123!',
         role: UserRole.trainer,
         displayName: 'Test Trainer',
-        invitationCode: 'invite-123',
       );
 
       expect(result.status, AuthApiStatus.success);
@@ -252,7 +250,7 @@ void main() {
       final client = AuthApiClient(
         baseUrl: 'https://api.example.test',
         httpClient: MockClient((request) async {
-          return http.Response('{"message":"Invalid invitation code."}', 403);
+          return http.Response('{"message":"Registration failed."}', 400);
         }),
       );
 
@@ -261,13 +259,11 @@ void main() {
         password: 'Password123!',
         role: UserRole.trainer,
         displayName: 'Test Trainer',
-        invitationCode: 'super-secret-invite',
       );
 
-      expect(result.status, AuthApiStatus.forbidden);
-      expect(result.statusCode, 403);
-      expect(result.message, contains('Invalid invitation code'));
-      expect(result.message, isNot(contains('super-secret-invite')));
+      expect(result.status, AuthApiStatus.badRequest);
+      expect(result.statusCode, 400);
+      expect(result.message, contains('Registration failed'));
       expect(result.message, isNot(contains('Password123')));
     });
 

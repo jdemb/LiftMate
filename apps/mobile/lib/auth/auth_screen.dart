@@ -16,7 +16,6 @@ enum _AuthStep {
   role,
   login,
   signup,
-  registrationCode,
 }
 
 class AuthScreen extends StatefulWidget {
@@ -34,11 +33,9 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final _loginFormKey = GlobalKey<FormState>();
   final _signupFormKey = GlobalKey<FormState>();
-  final _registrationCodeFormKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _displayNameController = TextEditingController();
-  final _invitationCodeController = TextEditingController();
   final _trainerCodeController = TextEditingController();
 
   _AuthStep _step = _AuthStep.welcome;
@@ -61,7 +58,6 @@ class _AuthScreenState extends State<AuthScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _displayNameController.dispose();
-    _invitationCodeController.dispose();
     _trainerCodeController.dispose();
     super.dispose();
   }
@@ -84,18 +80,8 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  void _continueSignup() {
+  Future<void> _register() async {
     if (!_signupFormKey.currentState!.validate()) {
-      return;
-    }
-
-    setState(() {
-      _step = _AuthStep.registrationCode;
-    });
-  }
-
-  Future<void> _registerWithInvitationCode() async {
-    if (!_registrationCodeFormKey.currentState!.validate()) {
       return;
     }
 
@@ -105,7 +91,6 @@ class _AuthScreenState extends State<AuthScreen> {
       password: _passwordController.text,
       role: role,
       displayName: _displayNameController.text.trim(),
-      invitationCode: _invitationCodeController.text.trim(),
     );
 
     if (result.isSuccess) {
@@ -259,22 +244,17 @@ class _AuthScreenState extends State<AuthScreen> {
                       errorMessage: errorMessage,
                       loginFormKey: _loginFormKey,
                       signupFormKey: _signupFormKey,
-                      registrationCodeFormKey: _registrationCodeFormKey,
                       emailController: _emailController,
                       passwordController: _passwordController,
                       displayNameController: _displayNameController,
-                      invitationCodeController: _invitationCodeController,
                       onShowLogin: () => setState(() => _step = _AuthStep.login),
                       onShowRoleSelection: () =>
                           setState(() => _step = _AuthStep.role),
                       onBack: _backToWelcome,
-                      onBackToSignup: () =>
-                          setState(() => _step = _AuthStep.signup),
                       onRoleSelected: _selectRole,
                       onContinueRole: _continueToSignup,
                       onLogin: _login,
-                      onContinueSignup: _continueSignup,
-                      onRegister: _registerWithInvitationCode,
+                      onRegister: _register,
                     ),
                 ],
               ),
@@ -319,19 +299,15 @@ class _OnboardingPanel extends StatelessWidget {
     required this.isLoading,
     required this.loginFormKey,
     required this.signupFormKey,
-    required this.registrationCodeFormKey,
     required this.emailController,
     required this.passwordController,
     required this.displayNameController,
-    required this.invitationCodeController,
     required this.onShowLogin,
     required this.onShowRoleSelection,
     required this.onBack,
-    required this.onBackToSignup,
     required this.onRoleSelected,
     required this.onContinueRole,
     required this.onLogin,
-    required this.onContinueSignup,
     required this.onRegister,
     this.errorMessage,
   });
@@ -341,19 +317,15 @@ class _OnboardingPanel extends StatelessWidget {
   final bool isLoading;
   final GlobalKey<FormState> loginFormKey;
   final GlobalKey<FormState> signupFormKey;
-  final GlobalKey<FormState> registrationCodeFormKey;
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final TextEditingController displayNameController;
-  final TextEditingController invitationCodeController;
   final VoidCallback onShowLogin;
   final VoidCallback onShowRoleSelection;
   final VoidCallback onBack;
-  final VoidCallback onBackToSignup;
   final ValueChanged<UserRole> onRoleSelected;
   final VoidCallback onContinueRole;
   final Future<void> Function() onLogin;
-  final VoidCallback onContinueSignup;
   final Future<void> Function() onRegister;
   final String? errorMessage;
 
@@ -389,14 +361,6 @@ class _OnboardingPanel extends StatelessWidget {
           displayNameController: displayNameController,
           errorMessage: errorMessage,
           onBack: onBack,
-          onContinue: onContinueSignup,
-        ),
-      _AuthStep.registrationCode => _RegistrationCodeForm(
-          formKey: registrationCodeFormKey,
-          isLoading: isLoading,
-          invitationCodeController: invitationCodeController,
-          errorMessage: errorMessage,
-          onBack: onBackToSignup,
           onRegister: onRegister,
         ),
     };
@@ -421,17 +385,21 @@ class _WelcomeStep extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _LiftMateLogo(size: 60),
-          const SizedBox(height: 18),
-          const Text(
-            'LiftMate',
-            style: TextStyle(
-              fontFamily: 'Space Grotesk',
-              fontWeight: FontWeight.w700,
-              fontSize: 31,
-              letterSpacing: -1,
-              color: _lmText,
-            ),
+          const Row(
+            children: [
+              _LiftMateLogo(size: 60),
+              SizedBox(width: 15),
+              Text(
+                'LiftMate',
+                style: TextStyle(
+                  fontFamily: 'Space Grotesk',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 31,
+                  letterSpacing: -1,
+                  color: _lmText,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 38),
           const Text(
@@ -445,16 +413,7 @@ class _WelcomeStep extends StatelessWidget {
               color: _lmText,
             ),
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'Trener ustawia plan, Ty widzisz co robić, ile podnieść i kiedy poprawiasz wynik.',
-            style: TextStyle(
-              color: _lmMuted,
-              fontSize: 15,
-              height: 1.55,
-            ),
-          ),
-          const SizedBox(height: 96),
+          const SizedBox(height: 296),
           _PrimaryActionButton(
             label: 'Załóż konto',
             onPressed: isLoading ? null : onCreateAccount,
@@ -582,7 +541,7 @@ class _SignupForm extends StatelessWidget {
     required this.passwordController,
     required this.displayNameController,
     required this.onBack,
-    required this.onContinue,
+    required this.onRegister,
     this.errorMessage,
   });
 
@@ -593,7 +552,7 @@ class _SignupForm extends StatelessWidget {
   final TextEditingController passwordController;
   final TextEditingController displayNameController;
   final VoidCallback onBack;
-  final VoidCallback onContinue;
+  final Future<void> Function() onRegister;
   final String? errorMessage;
 
   @override
@@ -644,55 +603,6 @@ class _SignupForm extends StatelessWidget {
             controller: passwordController,
             obscureText: true,
             suffix: 'Pokaż',
-          ),
-          _ErrorText(message: errorMessage),
-          const SizedBox(height: 24),
-          _PrimaryActionButton(
-            label: 'Utwórz konto',
-            onPressed: isLoading ? null : onContinue,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RegistrationCodeForm extends StatelessWidget {
-  const _RegistrationCodeForm({
-    required this.formKey,
-    required this.isLoading,
-    required this.invitationCodeController,
-    required this.onBack,
-    required this.onRegister,
-    this.errorMessage,
-  });
-
-  final GlobalKey<FormState> formKey;
-  final bool isLoading;
-  final TextEditingController invitationCodeController;
-  final VoidCallback onBack;
-  final Future<void> Function() onRegister;
-  final String? errorMessage;
-
-  @override
-  Widget build(BuildContext context) {
-    return Form(
-      key: formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _BackButton(onPressed: onBack),
-          const SizedBox(height: 18),
-          const _ScreenTitle(
-            'Kod dostępu',
-            subtitle:
-                'Wpisz kod rejestracji aplikacji. To nie jest kod trenera.',
-          ),
-          const SizedBox(height: 28),
-          _DesignedField(
-            label: 'Kod rejestracji',
-            controller: invitationCodeController,
-            textInputAction: TextInputAction.done,
           ),
           _ErrorText(message: errorMessage),
           const SizedBox(height: 24),
@@ -899,7 +809,6 @@ class _LiftMateLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final barWidth = size * 0.12;
     return Container(
       width: size,
       height: size,
@@ -920,15 +829,15 @@ class _LiftMateLogo extends StatelessWidget {
       ),
       child: Center(
         child: SizedBox(
-          width: size * 0.42,
-          height: size * 0.44,
+          width: size * 0.48,
+          height: size * 0.45,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _LogoBar(width: barWidth, height: size * 0.26),
-              _LogoBar(width: barWidth, height: size * 0.44),
-              _LogoBar(width: barWidth, height: size * 0.34),
+              _LogoBar(width: size * 0.13, height: size * 0.45),
+              _LogoBar(width: size * 0.22, height: size * 0.13),
+              _LogoBar(width: size * 0.13, height: size * 0.45),
             ],
           ),
         ),

@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
-
 import 'auth_controller.dart';
 import 'auth_models.dart';
+
+const _lmBg = Color(0xFF101216);
+const _lmPanel = Color(0xFF191C22);
+const _lmBlue = Color(0xFF3A82F6);
+const _lmBlueDark = Color(0xFF2F6FD6);
+const _lmText = Color(0xFFF3F4F6);
+const _lmMuted = Color(0xFF969BA3);
+const _lmDim = Color(0xFF686D75);
+const _lmSuccess = Color(0xFF21C97A);
 
 enum _AuthStep {
   welcome,
   role,
   login,
   signup,
+  registrationCode,
 }
 
 class AuthScreen extends StatefulWidget {
@@ -25,6 +34,7 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final _loginFormKey = GlobalKey<FormState>();
   final _signupFormKey = GlobalKey<FormState>();
+  final _registrationCodeFormKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _displayNameController = TextEditingController();
@@ -32,7 +42,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _trainerCodeController = TextEditingController();
 
   _AuthStep _step = _AuthStep.welcome;
-  UserRole _selectedRole = UserRole.trainer;
+  UserRole _selectedRole = UserRole.trainee;
   UserRole? _pendingPairRole;
   String? _trainerInviteCode;
   String? _pairingError;
@@ -74,8 +84,18 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Future<void> _signup() async {
+  void _continueSignup() {
     if (!_signupFormKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _step = _AuthStep.registrationCode;
+    });
+  }
+
+  Future<void> _registerWithInvitationCode() async {
+    if (!_registrationCodeFormKey.currentState!.validate()) {
       return;
     }
 
@@ -95,6 +115,10 @@ class _AuthScreenState extends State<AuthScreen> {
         _trainerInviteCode = null;
         _trainerCodeController.clear();
       });
+
+      if (role == UserRole.trainer) {
+        await _generateTrainerCode();
+      }
     }
   }
 
@@ -148,7 +172,7 @@ class _AuthScreenState extends State<AuthScreen> {
     });
   }
 
-  Future<void> _finishTrainerPairing() async {
+  Future<void> _finishPairing() async {
     setState(() {
       _pendingPairRole = null;
     });
@@ -184,6 +208,13 @@ class _AuthScreenState extends State<AuthScreen> {
     });
   }
 
+  void _backToWelcome() {
+    setState(() {
+      _step = _AuthStep.welcome;
+      _pairingError = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = widget.authController.state;
@@ -193,17 +224,15 @@ class _AuthScreenState extends State<AuthScreen> {
         state.status == AuthControllerStatus.error ? state.message : null;
 
     return Scaffold(
-      body: SafeArea(
+      body: _GradientScaffold(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
+            constraints: const BoxConstraints(maxWidth: 430),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
+              padding: const EdgeInsets.fromLTRB(28, 40, 28, 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _BrandHeader(),
-                  const SizedBox(height: 28),
                   if (user != null && _pendingPairRole != null)
                     _PairingPanel(
                       role: _pendingPairRole!,
@@ -211,9 +240,10 @@ class _AuthScreenState extends State<AuthScreen> {
                       trainerCodeController: _trainerCodeController,
                       isLoading: _isPairing,
                       errorMessage: _pairingError,
-                      onGenerateTrainerCode: _generateTrainerCode,
+                      onRetryTrainerCode: _generateTrainerCode,
                       onClaimTrainerCode: _claimTrainerCode,
-                      onContinue: _finishTrainerPairing,
+                      onContinue: _finishPairing,
+                      onTrainerCodeChanged: () => setState(() {}),
                     )
                   else if (state.status == AuthControllerStatus.authenticated &&
                       user != null)
@@ -229,6 +259,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       errorMessage: errorMessage,
                       loginFormKey: _loginFormKey,
                       signupFormKey: _signupFormKey,
+                      registrationCodeFormKey: _registrationCodeFormKey,
                       emailController: _emailController,
                       passwordController: _passwordController,
                       displayNameController: _displayNameController,
@@ -236,11 +267,14 @@ class _AuthScreenState extends State<AuthScreen> {
                       onShowLogin: () => setState(() => _step = _AuthStep.login),
                       onShowRoleSelection: () =>
                           setState(() => _step = _AuthStep.role),
-                      onBack: () => setState(() => _step = _AuthStep.welcome),
+                      onBack: _backToWelcome,
+                      onBackToSignup: () =>
+                          setState(() => _step = _AuthStep.signup),
                       onRoleSelected: _selectRole,
                       onContinueRole: _continueToSignup,
                       onLogin: _login,
-                      onSignup: _signup,
+                      onContinueSignup: _continueSignup,
+                      onRegister: _registerWithInvitationCode,
                     ),
                 ],
               ),
@@ -252,33 +286,28 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 }
 
-class _BrandHeader extends StatelessWidget {
-  const _BrandHeader();
+class _GradientScaffold extends StatelessWidget {
+  const _GradientScaffold({
+    required this.child,
+  });
+
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.fitness_center, color: Colors.white),
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment(0.55, -0.92),
+          radius: 0.92,
+          colors: [
+            Color(0x383A82F6),
+            _lmBg,
+          ],
+          stops: [0, 0.72],
         ),
-        const SizedBox(height: 18),
-        Text('LiftMate', style: theme.textTheme.displaySmall),
-        const SizedBox(height: 8),
-        Text(
-          'Trening prowadzony blisko celu, bez zgadywania.',
-          style: theme.textTheme.bodyLarge,
-        ),
-      ],
+      ),
+      child: SafeArea(child: child),
     );
   }
 }
@@ -290,6 +319,7 @@ class _OnboardingPanel extends StatelessWidget {
     required this.isLoading,
     required this.loginFormKey,
     required this.signupFormKey,
+    required this.registrationCodeFormKey,
     required this.emailController,
     required this.passwordController,
     required this.displayNameController,
@@ -297,10 +327,12 @@ class _OnboardingPanel extends StatelessWidget {
     required this.onShowLogin,
     required this.onShowRoleSelection,
     required this.onBack,
+    required this.onBackToSignup,
     required this.onRoleSelected,
     required this.onContinueRole,
     required this.onLogin,
-    required this.onSignup,
+    required this.onContinueSignup,
+    required this.onRegister,
     this.errorMessage,
   });
 
@@ -309,6 +341,7 @@ class _OnboardingPanel extends StatelessWidget {
   final bool isLoading;
   final GlobalKey<FormState> loginFormKey;
   final GlobalKey<FormState> signupFormKey;
+  final GlobalKey<FormState> registrationCodeFormKey;
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final TextEditingController displayNameController;
@@ -316,10 +349,12 @@ class _OnboardingPanel extends StatelessWidget {
   final VoidCallback onShowLogin;
   final VoidCallback onShowRoleSelection;
   final VoidCallback onBack;
+  final VoidCallback onBackToSignup;
   final ValueChanged<UserRole> onRoleSelected;
   final VoidCallback onContinueRole;
   final Future<void> Function() onLogin;
-  final Future<void> Function() onSignup;
+  final VoidCallback onContinueSignup;
+  final Future<void> Function() onRegister;
   final String? errorMessage;
 
   @override
@@ -352,10 +387,17 @@ class _OnboardingPanel extends StatelessWidget {
           emailController: emailController,
           passwordController: passwordController,
           displayNameController: displayNameController,
-          invitationCodeController: invitationCodeController,
           errorMessage: errorMessage,
           onBack: onBack,
-          onSignup: onSignup,
+          onContinue: onContinueSignup,
+        ),
+      _AuthStep.registrationCode => _RegistrationCodeForm(
+          formKey: registrationCodeFormKey,
+          isLoading: isLoading,
+          invitationCodeController: invitationCodeController,
+          errorMessage: errorMessage,
+          onBack: onBackToSignup,
+          onRegister: onRegister,
         ),
     };
   }
@@ -374,21 +416,57 @@ class _WelcomeStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        FilledButton.icon(
-          onPressed: isLoading ? null : onCreateAccount,
-          icon: const Icon(Icons.person_add_alt_1),
-          label: const Text('Załóż konto'),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: isLoading ? null : onLogin,
-          icon: const Icon(Icons.login),
-          label: const Text('Mam już konto'),
-        ),
-      ],
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 620),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _LiftMateLogo(size: 60),
+          const SizedBox(height: 18),
+          const Text(
+            'LiftMate',
+            style: TextStyle(
+              fontFamily: 'Space Grotesk',
+              fontWeight: FontWeight.w700,
+              fontSize: 31,
+              letterSpacing: -1,
+              color: _lmText,
+            ),
+          ),
+          const SizedBox(height: 38),
+          const Text(
+            'Trenuj bez myślenia\no liczbach.',
+            style: TextStyle(
+              fontFamily: 'Space Grotesk',
+              fontWeight: FontWeight.w700,
+              fontSize: 46,
+              height: 1.02,
+              letterSpacing: -1.5,
+              color: _lmText,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Trener ustawia plan, Ty widzisz co robić, ile podnieść i kiedy poprawiasz wynik.',
+            style: TextStyle(
+              color: _lmMuted,
+              fontSize: 15,
+              height: 1.55,
+            ),
+          ),
+          const SizedBox(height: 96),
+          _PrimaryActionButton(
+            label: 'Załóż konto',
+            onPressed: isLoading ? null : onCreateAccount,
+            hasGlow: true,
+          ),
+          const SizedBox(height: 12),
+          _SecondaryActionButton(
+            label: 'Mam już konto',
+            onPressed: isLoading ? null : onLogin,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -408,41 +486,33 @@ class _RoleStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Wybierz rolę', style: theme.textTheme.headlineSmall),
-        const SizedBox(height: 16),
-        SegmentedButton<UserRole>(
-          segments: const [
-            ButtonSegment(
-              value: UserRole.trainer,
-              icon: Icon(Icons.sports),
-              label: Text('Trener'),
-            ),
-            ButtonSegment(
-              value: UserRole.trainee,
-              icon: Icon(Icons.accessibility_new),
-              label: Text('Podopieczny'),
-            ),
-          ],
-          selected: {selectedRole},
-          onSelectionChanged: (selection) => onRoleSelected(selection.single),
+        _BackButton(onPressed: onBack),
+        const SizedBox(height: 18),
+        const _ScreenTitle(
+          'Jak korzystasz\nz LiftMate?',
+          subtitle: 'Wybierz rolę. Zmienisz ją w ustawieniach.',
         ),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: onContinue,
-          icon: const Icon(Icons.arrow_forward),
-          label: const Text('Dalej'),
+        const SizedBox(height: 28),
+        _RoleCard(
+          selected: selectedRole == UserRole.trainee,
+          emoji: '🏋️',
+          title: 'Jestem podopiecznym',
+          subtitle: 'Wykonuję plan ułożony przez trenera',
+          onTap: () => onRoleSelected(UserRole.trainee),
         ),
-        const SizedBox(height: 8),
-        TextButton.icon(
-          onPressed: onBack,
-          icon: const Icon(Icons.arrow_back),
-          label: const Text('Wróć'),
+        const SizedBox(height: 12),
+        _RoleCard(
+          selected: selectedRole == UserRole.trainer,
+          emoji: '📋',
+          title: 'Jestem trenerem',
+          subtitle: 'Układam plany i prowadzę podopiecznych',
+          onTap: () => onRoleSelected(UserRole.trainer),
         ),
+        const SizedBox(height: 24),
+        _PrimaryActionButton(label: 'Dalej', onPressed: onContinue),
       ],
     );
   }
@@ -469,29 +539,33 @@ class _LoginForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Form(
       key: formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Logowanie', style: theme.textTheme.headlineSmall),
-          const SizedBox(height: 16),
-          _EmailField(controller: emailController),
-          const SizedBox(height: 12),
-          _PasswordField(controller: passwordController),
-          _ErrorText(message: errorMessage),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: isLoading ? null : onLogin,
-            icon: const Icon(Icons.login),
-            label: const Text('Zaloguj'),
+          _BackButton(onPressed: onBack),
+          const SizedBox(height: 18),
+          const _ScreenTitle('Mam już konto'),
+          const SizedBox(height: 28),
+          _DesignedField(
+            label: 'E-mail',
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
           ),
-          TextButton.icon(
-            onPressed: isLoading ? null : onBack,
-            icon: const Icon(Icons.arrow_back),
-            label: const Text('Wróć'),
+          const SizedBox(height: 14),
+          _DesignedField(
+            label: 'Hasło',
+            controller: passwordController,
+            obscureText: true,
+            suffix: 'Pokaż',
+          ),
+          _ErrorText(message: errorMessage),
+          const SizedBox(height: 24),
+          _PrimaryActionButton(
+            label: 'Zaloguj',
+            onPressed: isLoading ? null : onLogin,
           ),
         ],
       ),
@@ -507,9 +581,8 @@ class _SignupForm extends StatelessWidget {
     required this.emailController,
     required this.passwordController,
     required this.displayNameController,
-    required this.invitationCodeController,
     required this.onBack,
-    required this.onSignup,
+    required this.onContinue,
     this.errorMessage,
   });
 
@@ -519,14 +592,12 @@ class _SignupForm extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final TextEditingController displayNameController;
-  final TextEditingController invitationCodeController;
   final VoidCallback onBack;
-  final Future<void> Function() onSignup;
+  final VoidCallback onContinue;
   final String? errorMessage;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final roleLabel = role == UserRole.trainer ? 'Trener' : 'Podopieczny';
 
     return Form(
@@ -534,44 +605,100 @@ class _SignupForm extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Nowe konto', style: theme.textTheme.headlineSmall),
-          const SizedBox(height: 6),
-          Text('Rola: $roleLabel', style: theme.textTheme.bodyMedium),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: displayNameController,
-            decoration: const InputDecoration(
-              labelText: 'Imię i nazwisko',
-              prefixIcon: Icon(Icons.badge_outlined),
-            ),
-            textInputAction: TextInputAction.next,
-            validator: _requiredValidator,
+          _BackButton(onPressed: onBack),
+          const SizedBox(height: 18),
+          const _ScreenTitle('Załóż konto'),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text(
+                'Rola: ',
+                style: TextStyle(color: _lmMuted, fontSize: 14.5),
+              ),
+              Text(
+                roleLabel,
+                style: const TextStyle(
+                  color: Color(0xFF9CC1FB),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14.5,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          _EmailField(controller: emailController),
-          const SizedBox(height: 12),
-          _PasswordField(controller: passwordController),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: invitationCodeController,
-            decoration: const InputDecoration(
-              labelText: 'Kod rejestracji',
-              prefixIcon: Icon(Icons.key),
-            ),
-            textInputAction: TextInputAction.done,
-            validator: _requiredValidator,
+          const SizedBox(height: 28),
+          _DesignedField(
+            label: 'Imię i nazwisko',
+            controller: displayNameController,
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: 14),
+          _DesignedField(
+            label: 'E-mail',
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: 14),
+          _DesignedField(
+            label: 'Hasło',
+            controller: passwordController,
+            obscureText: true,
+            suffix: 'Pokaż',
           ),
           _ErrorText(message: errorMessage),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: isLoading ? null : onSignup,
-            icon: const Icon(Icons.arrow_forward),
-            label: const Text('Kontynuuj'),
+          const SizedBox(height: 24),
+          _PrimaryActionButton(
+            label: 'Utwórz konto',
+            onPressed: isLoading ? null : onContinue,
           ),
-          TextButton.icon(
-            onPressed: isLoading ? null : onBack,
-            icon: const Icon(Icons.arrow_back),
-            label: const Text('Wróć'),
+        ],
+      ),
+    );
+  }
+}
+
+class _RegistrationCodeForm extends StatelessWidget {
+  const _RegistrationCodeForm({
+    required this.formKey,
+    required this.isLoading,
+    required this.invitationCodeController,
+    required this.onBack,
+    required this.onRegister,
+    this.errorMessage,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final bool isLoading;
+  final TextEditingController invitationCodeController;
+  final VoidCallback onBack;
+  final Future<void> Function() onRegister;
+  final String? errorMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _BackButton(onPressed: onBack),
+          const SizedBox(height: 18),
+          const _ScreenTitle(
+            'Kod dostępu',
+            subtitle:
+                'Wpisz kod rejestracji aplikacji. To nie jest kod trenera.',
+          ),
+          const SizedBox(height: 28),
+          _DesignedField(
+            label: 'Kod rejestracji',
+            controller: invitationCodeController,
+            textInputAction: TextInputAction.done,
+          ),
+          _ErrorText(message: errorMessage),
+          const SizedBox(height: 24),
+          _PrimaryActionButton(
+            label: 'Utwórz konto',
+            onPressed: isLoading ? null : onRegister,
           ),
         ],
       ),
@@ -584,9 +711,10 @@ class _PairingPanel extends StatelessWidget {
     required this.role,
     required this.trainerCodeController,
     required this.isLoading,
-    required this.onGenerateTrainerCode,
+    required this.onRetryTrainerCode,
     required this.onClaimTrainerCode,
     required this.onContinue,
+    required this.onTrainerCodeChanged,
     this.trainerInviteCode,
     this.errorMessage,
   });
@@ -594,117 +722,123 @@ class _PairingPanel extends StatelessWidget {
   final UserRole role;
   final TextEditingController trainerCodeController;
   final bool isLoading;
-  final Future<void> Function() onGenerateTrainerCode;
+  final Future<void> Function() onRetryTrainerCode;
   final Future<void> Function() onClaimTrainerCode;
   final Future<void> Function() onContinue;
+  final VoidCallback onTrainerCodeChanged;
   final String? trainerInviteCode;
   final String? errorMessage;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isTrainer = role == UserRole.trainer;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          isTrainer ? 'Kod dla podopiecznego' : 'Połącz z trenerem',
-          style: theme.textTheme.headlineSmall,
-        ),
-        const SizedBox(height: 12),
+        _BackButton(onPressed: onContinue),
+        const SizedBox(height: 18),
         if (isTrainer)
-          _TrainerPairingContent(
+          _TrainerInvitePanel(
             code: trainerInviteCode,
             isLoading: isLoading,
-            onGenerateTrainerCode: onGenerateTrainerCode,
+            errorMessage: errorMessage,
+            onRetryTrainerCode: onRetryTrainerCode,
             onContinue: onContinue,
           )
         else
-          _TraineePairingContent(
+          _TraineePairPanel(
             controller: trainerCodeController,
             isLoading: isLoading,
+            errorMessage: errorMessage,
+            onChanged: onTrainerCodeChanged,
             onClaimTrainerCode: onClaimTrainerCode,
           ),
-        _ErrorText(message: errorMessage),
       ],
     );
   }
 }
 
-class _TrainerPairingContent extends StatelessWidget {
-  const _TrainerPairingContent({
+class _TrainerInvitePanel extends StatelessWidget {
+  const _TrainerInvitePanel({
     required this.isLoading,
-    required this.onGenerateTrainerCode,
+    required this.onRetryTrainerCode,
     required this.onContinue,
     this.code,
+    this.errorMessage,
   });
 
   final bool isLoading;
-  final Future<void> Function() onGenerateTrainerCode;
+  final Future<void> Function() onRetryTrainerCode;
   final Future<void> Function() onContinue;
   final String? code;
+  final String? errorMessage;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (code != null) ...[
-          SelectableText(
-            code!,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.displaySmall,
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
+        const _ScreenTitle(
+          'Zaproś\npodopiecznego',
+          subtitle:
+              'Przekaż ten kod podopiecznemu. Po wpisaniu pojawi się na Twojej liście.',
+        ),
+        const SizedBox(height: 24),
+        _InviteCodeCard(code: code, isLoading: isLoading),
+        _ErrorText(message: errorMessage),
+        const SizedBox(height: 22),
+        if (code == null && !isLoading)
+          _SecondaryActionButton(
+            label: 'Spróbuj ponownie',
+            onPressed: onRetryTrainerCode,
+          )
+        else
+          _PrimaryActionButton(
+            label: 'Przejdź do pulpitu',
             onPressed: isLoading ? null : onContinue,
-            icon: const Icon(Icons.check),
-            label: const Text('Przejdź dalej'),
-          ),
-        ] else
-          FilledButton.icon(
-            onPressed: isLoading ? null : onGenerateTrainerCode,
-            icon: const Icon(Icons.ios_share),
-            label: const Text('Wygeneruj kod'),
           ),
       ],
     );
   }
 }
 
-class _TraineePairingContent extends StatelessWidget {
-  const _TraineePairingContent({
+class _TraineePairPanel extends StatelessWidget {
+  const _TraineePairPanel({
     required this.controller,
     required this.isLoading,
+    required this.onChanged,
     required this.onClaimTrainerCode,
+    this.errorMessage,
   });
 
   final TextEditingController controller;
   final bool isLoading;
+  final VoidCallback onChanged;
   final Future<void> Function() onClaimTrainerCode;
+  final String? errorMessage;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextFormField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Kod trenera',
-            prefixIcon: Icon(Icons.qr_code_2),
-          ),
-          textCapitalization: TextCapitalization.characters,
-          textInputAction: TextInputAction.done,
+        const _ScreenTitle(
+          'Połącz się\nz trenerem',
+          subtitle: 'Wpisz kod, który otrzymasz od swojego trenera.',
         ),
-        const SizedBox(height: 16),
-        FilledButton.icon(
+        const SizedBox(height: 28),
+        _TrainerCodeInput(controller: controller, onChanged: onChanged),
+        const SizedBox(height: 18),
+        _SuccessHint(
+          visible: controller.text.trim().length >= 6,
+          text: 'Znaleziono kod trenera',
+        ),
+        _ErrorText(message: errorMessage),
+        const SizedBox(height: 24),
+        _PrimaryActionButton(
+          label: 'Połącz konto',
           onPressed: isLoading ? null : onClaimTrainerCode,
-          icon: const Icon(Icons.link),
-          label: const Text('Połącz konto'),
         ),
       ],
     );
@@ -722,68 +856,622 @@ class _AuthenticatedPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final roleLabel = user.role == UserRole.trainer ? 'Trener' : 'Podopieczny';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Witaj, ${user.displayName}', style: theme.textTheme.headlineSmall),
-        const SizedBox(height: 12),
-        Text(user.email),
-        Text('Rola: $roleLabel'),
-        if (user.trainerUserId != null) Text('Trener: ${user.trainerUserId}'),
-        const SizedBox(height: 20),
-        OutlinedButton.icon(
-          onPressed: onLogout,
-          icon: const Icon(Icons.logout),
-          label: const Text('Wyloguj'),
+        _HeaderRow(user: user),
+        const SizedBox(height: 28),
+        _InfoPanel(
+          children: [
+            const Text(
+              'Tymczasowy panel',
+              style: TextStyle(
+                fontFamily: 'Space Grotesk',
+                fontWeight: FontWeight.w700,
+                fontSize: 22,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(user.email, style: const TextStyle(color: _lmMuted)),
+            Text('Rola: $roleLabel', style: const TextStyle(color: _lmMuted)),
+            if (user.trainerUserId != null)
+              Text(
+                'Trener: ${user.trainerUserId}',
+                style: const TextStyle(color: _lmMuted),
+              ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        _SecondaryActionButton(label: 'Wyloguj', onPressed: onLogout),
+      ],
+    );
+  }
+}
+
+class _LiftMateLogo extends StatelessWidget {
+  const _LiftMateLogo({
+    this.size = 46,
+  });
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final barWidth = size * 0.12;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_lmBlue, _lmBlueDark],
+        ),
+        borderRadius: BorderRadius.circular(size * 0.3),
+        boxShadow: [
+          BoxShadow(
+            color: _lmBlue.withValues(alpha: 0.42),
+            blurRadius: size * 0.56,
+            offset: Offset(0, size * 0.22),
+          ),
+        ],
+      ),
+      child: Center(
+        child: SizedBox(
+          width: size * 0.42,
+          height: size * 0.44,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _LogoBar(width: barWidth, height: size * 0.26),
+              _LogoBar(width: barWidth, height: size * 0.44),
+              _LogoBar(width: barWidth, height: size * 0.34),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LogoBar extends StatelessWidget {
+  const _LogoBar({
+    required this.width,
+    required this.height,
+  });
+
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(width),
+      ),
+    );
+  }
+}
+
+class _ScreenTitle extends StatelessWidget {
+  const _ScreenTitle(
+    this.title, {
+    this.subtitle,
+  });
+
+  final String title;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontFamily: 'Space Grotesk',
+            fontWeight: FontWeight.w700,
+            fontSize: 30,
+            height: 1.1,
+            letterSpacing: -0.8,
+            color: _lmText,
+          ),
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            subtitle!,
+            style: const TextStyle(
+              color: _lmMuted,
+              fontSize: 14.5,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _RoleCard extends StatelessWidget {
+  const _RoleCard({
+    required this.selected,
+    required this.emoji,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final String emoji;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: selected ? _lmBlue.withValues(alpha: 0.16) : _lmPanel,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected ? _lmBlue : Colors.white.withValues(alpha: 0.08),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: _lmBlue.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              alignment: Alignment.center,
+              child: Text(emoji, style: const TextStyle(fontSize: 26)),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontFamily: 'Space Grotesk',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 19,
+                      color: _lmText,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: _lmMuted,
+                      fontSize: 13.5,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: selected ? _lmBlue : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: selected ? _lmBlue : Colors.white.withValues(alpha: 0.22),
+                  width: 2,
+                ),
+              ),
+              child: selected
+                  ? const Icon(Icons.check, size: 16, color: Colors.white)
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DesignedField extends StatelessWidget {
+  const _DesignedField({
+    required this.label,
+    required this.controller,
+    this.keyboardType,
+    this.textInputAction,
+    this.obscureText = false,
+    this.suffix,
+  });
+
+  final String label;
+  final TextEditingController controller;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final bool obscureText;
+  final String? suffix;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: _lmMuted,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          key: ValueKey('field-$label'),
+          controller: controller,
+          decoration: InputDecoration(
+            suffixText: suffix,
+            suffixStyle: const TextStyle(
+              color: _lmBlue,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0,
+            ),
+          ),
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          textInputAction: textInputAction,
+          validator: _requiredValidator,
         ),
       ],
     );
   }
 }
 
-class _EmailField extends StatelessWidget {
-  const _EmailField({
+class _TrainerCodeInput extends StatelessWidget {
+  const _TrainerCodeInput({
     required this.controller,
+    required this.onChanged,
   });
 
   final TextEditingController controller;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      decoration: const InputDecoration(
-        labelText: 'E-mail',
-        prefixIcon: Icon(Icons.mail_outline),
-      ),
-      keyboardType: TextInputType.emailAddress,
-      textInputAction: TextInputAction.next,
-      validator: _requiredValidator,
+    final normalized = controller.text.trim().toUpperCase();
+    final chars = List<String>.generate(
+      6,
+      (index) => index < normalized.length ? normalized[index] : '',
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 62,
+          child: Stack(
+            children: [
+              Row(
+                children: [
+                  for (var index = 0; index < chars.length; index++) ...[
+                    Expanded(child: _CodeBox(ch: chars[index])),
+                    if (index < chars.length - 1) const SizedBox(width: 8),
+                  ],
+                ],
+              ),
+              Positioned.fill(
+                child: TextFormField(
+                  key: const ValueKey('field-Kod trenera'),
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                    counterText: '',
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    filled: false,
+                  ),
+                  cursorColor: Colors.transparent,
+                  keyboardType: TextInputType.text,
+                  obscureText: false,
+                  showCursor: false,
+                  style: const TextStyle(color: Colors.transparent),
+                  textCapitalization: TextCapitalization.characters,
+                  textInputAction: TextInputAction.done,
+                  onChanged: (_) => onChanged(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _PasswordField extends StatelessWidget {
-  const _PasswordField({
-    required this.controller,
+class _CodeBox extends StatelessWidget {
+  const _CodeBox({
+    required this.ch,
   });
 
-  final TextEditingController controller;
+  final String ch;
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      decoration: const InputDecoration(
-        labelText: 'Hasło',
-        prefixIcon: Icon(Icons.lock_outline),
+    return Container(
+      height: 62,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: _lmPanel,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: ch.isEmpty ? Colors.white.withValues(alpha: 0.08) : _lmBlue,
+        ),
       ),
-      obscureText: true,
-      textInputAction: TextInputAction.done,
-      validator: _requiredValidator,
+      child: Text(
+        ch,
+        style: const TextStyle(
+          fontFamily: 'Space Grotesk',
+          fontSize: 26,
+          fontWeight: FontWeight.w700,
+          color: _lmText,
+        ),
+      ),
+    );
+  }
+}
+
+class _InviteCodeCard extends StatelessWidget {
+  const _InviteCodeCard({
+    required this.isLoading,
+    this.code,
+  });
+
+  final bool isLoading;
+  final String? code;
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoPanel(
+      children: [
+        const Text(
+          'Twój kod zaproszenia',
+          style: TextStyle(
+            color: _lmDim,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          isLoading ? '...' : code ?? '------',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontFamily: 'Space Grotesk',
+            fontWeight: FontWeight.w700,
+            fontSize: 44,
+            letterSpacing: 8,
+            color: _lmText,
+          ),
+        ),
+        const SizedBox(height: 18),
+        Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+            decoration: BoxDecoration(
+              color: _lmBlue.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Text(
+              '⧉ Kopiuj kod',
+              style: TextStyle(
+                color: Color(0xFF9CC1FB),
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InfoPanel extends StatelessWidget {
+  const _InfoPanel({
+    required this.children,
+  });
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _lmPanel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );
+  }
+}
+
+class _HeaderRow extends StatelessWidget {
+  const _HeaderRow({
+    required this.user,
+  });
+
+  final AuthUser user;
+
+  @override
+  Widget build(BuildContext context) {
+    final initials = user.displayName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .take(2)
+        .map((part) => part.characters.first.toUpperCase())
+        .join();
+
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Cześć,', style: TextStyle(color: _lmMuted)),
+              Text(
+                user.displayName,
+                style: const TextStyle(
+                  fontFamily: 'Space Grotesk',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 26,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(colors: [_lmBlue, _lmBlueDark]),
+          ),
+          child: Text(
+            initials.isEmpty ? 'LM' : initials,
+            style: const TextStyle(
+              fontFamily: 'Space Grotesk',
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PrimaryActionButton extends StatelessWidget {
+  const _PrimaryActionButton({
+    required this.label,
+    required this.onPressed,
+    this.hasGlow = false,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final bool hasGlow;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: hasGlow && onPressed != null
+            ? [
+                BoxShadow(
+                  color: _lmBlue.withValues(alpha: 0.4),
+                  blurRadius: 26,
+                  offset: const Offset(0, 10),
+                ),
+              ]
+            : null,
+      ),
+      child: FilledButton(
+        onPressed: onPressed,
+        child: Text(label),
+      ),
+    );
+  }
+}
+
+class _SecondaryActionButton extends StatelessWidget {
+  const _SecondaryActionButton({
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      child: Text(label),
+    );
+  }
+}
+
+class _BackButton extends StatelessWidget {
+  const _BackButton({
+    required this.onPressed,
+  });
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: IconButton(
+        onPressed: onPressed,
+        icon: const Icon(Icons.chevron_left, size: 30, color: _lmMuted),
+      ),
+    );
+  }
+}
+
+class _SuccessHint extends StatelessWidget {
+  const _SuccessHint({
+    required this.visible,
+    required this.text,
+  });
+
+  final bool visible;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!visible) {
+      return const SizedBox.shrink();
+    }
+
+    return Row(
+      children: [
+        const Icon(Icons.check, color: _lmSuccess, size: 18),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: const TextStyle(
+            color: Color(0xFF7EE0AD),
+            fontWeight: FontWeight.w600,
+            fontSize: 13.5,
+          ),
+        ),
+      ],
     );
   }
 }

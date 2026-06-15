@@ -8,17 +8,17 @@ Przebudować istniejący przepływ logowania i tworzenia konta w aplikacji mobil
 
 Obecny Flutter auth UI jest skupiony w `apps/mobile/lib/auth/auth_screen.dart`: jeden ekran przełącza tryb `Sign in` / `Create account`, pokazuje role, kod zaproszenia, diagnostykę API oraz po zalogowaniu panele techniczne `RoleProbePanel` i `SharedSessionDiagnosticPanel`. `apps/mobile/lib/main.dart` uruchamia `AuthScreen` bez globalnego motywu dopasowanego do designu.
 
-Design w `apps/mobile/design/LiftMate.dc.html` rozbija onboarding na kroki: `welcome`, `role`, `signup`, `pair`, a notatki designu wiążą je z FR-001, FR-002 i FR-003. Design używa ciemnego tła, niebieskiego koloru akcentu, fontów Space Grotesk / Manrope, polskich tekstów produktowych i osobnego wyboru roli.
+Design w `apps/mobile/design/LiftMate.dc.html` rozbija onboarding na kroki: `welcome`, `role`, `signup`, `pair`, a notatki designu wiążą je z FR-001, FR-002 i FR-003. Design używa ciemnego radialnego gradientu tła, niebieskiego koloru akcentu, logo LiftMate z gradientowym znakiem, fontów Space Grotesk / Manrope, polskich tekstów produktowych, kart wyboru roli `Jestem podopiecznym` / `Jestem trenerem`, dużych zaokrąglonych pól i niebieskich przycisków z poświatą.
 
 Backend auth ma obecnie `RegisterRequest(Email, Password, Role, InvitationCode)` i `UserResponse(Id, Email, Role)` w `apps/api/LiftMate.Api/Auth/AuthContracts.cs`. `ApplicationUser` przechowuje `LiftMateRole`, ale nie przechowuje imienia i nazwiska ani przypisania podopiecznego do trenera. Istniejące shared-session używa `TrainerUserId` i `TraineeUserId` na sesji, ale nie ma osobnej trwałej relacji trener-podopieczny. `TokenService.ToUserResponse` zwraca tylko `id`, `email`, `role`. Istnieją testy API i mobilne testy klienta oraz ekranu auth, które trzeba zaktualizować razem z kontraktem.
 
 ## Desired End State
 
-Użytkownik widzi produktowy onboarding zgodny z designem: powitanie LiftMate, wybór roli, osobny ekran logowania oraz ekran rejestracji z imieniem i nazwiskiem, e-mailem, hasłem i kodem zaproszenia. Teksty produktowe są po polsku, a techniczne komunikaty API mogą pozostać po angielsku.
+Użytkownik widzi produktowy onboarding możliwie najbliższy designowi: powitanie LiftMate z logo, gradientem tła i poświatą CTA, wybór roli w kartach, osobny ekran logowania oraz ekran rejestracji z imieniem i nazwiskiem, e-mailem i hasłem. Teksty produktowe są takie same jak w designie tam, gdzie design je definiuje, a techniczne komunikaty API mogą pozostać po angielsku.
 
 Po udanym loginie albo rejestracji aplikacja nadal przechodzi do tymczasowego stanu zalogowanego, bez wdrażania dashboardów z designu. Diagnostyka API i panele probe/shared-session nie są częścią auth UI.
 
-Backend zapisuje i zwraca `displayName` dla użytkownika, a mobilny klient wysyła je przy rejestracji i parsuje z odpowiedzi auth. Trener może wygenerować kod zaproszenia w ekranie parowania, przekazać go podopiecznemu poza aplikacją, a podopieczny może wprowadzić ten kod w onboardingu i zostać przypisany do trenera.
+Backend zapisuje i zwraca `displayName` dla użytkownika, a mobilny klient wysyła je przy rejestracji i parsuje z odpowiedzi auth. Trener może wygenerować kod zaproszenia w osobnym ekranie parowania, przekazać go podopiecznemu poza aplikacją, a podopieczny może wprowadzić ten kod dopiero na osobnym ekranie `Połącz się z trenerem` i zostać przypisany do trenera.
 
 ## Decisions
 
@@ -55,7 +55,7 @@ Out of scope:
 - In-app delivery/sharing of trainer invite codes; sending the code happens outside the app.
 - Invite-code lifecycle beyond MVP generation/claiming, such as expiration controls, revocation UI, or multi-code management.
 - Password reset, social login, e-mail verification, and account settings.
-- Full typography asset integration if bundled font files are not already available; use theme-compatible fallback unless fonts are deliberately added.
+- Pixel-perfect reproduction of the design export; implementation should be as close as practical, but can adapt vertical spacing and scrolling where the HTML prototype height is imperfect.
 
 ## Architecture / Approach
 
@@ -305,6 +305,85 @@ Replace the current technical auth screen with a product-facing onboarding flow 
 
 ---
 
+## Phase 4: Design Fidelity and Code Separation Fix
+
+### Goal
+
+Tighten the implemented onboarding UI so it follows `apps/mobile/design/LiftMate.dc.html` as closely as practical, while fixing the incorrect placement of registration and trainer invite codes.
+
+### Changes Required
+
+#### `apps/mobile/pubspec.yaml` and font assets under `apps/mobile/assets/fonts/`
+
+**Intent:** Match the typography in the design instead of relying on Flutter's default font.
+
+**Contract:** Bundle and register the same font families used by the design export: `Space Grotesk` for logo/headlines/code displays and `Manrope` for body text, labels, fields, and buttons. If font files are not already in the repo, add the required `.ttf` assets under a dedicated mobile assets folder and declare them in `pubspec.yaml`. Do not leave `Roboto` as the primary app font for this onboarding surface.
+
+#### `apps/mobile/lib/main.dart`
+
+**Intent:** Make the global auth theme align with the design system.
+
+**Contract:** The theme uses the design colors and component proportions as the baseline: dark background around `#101216`, radial blue glow using `#3a82f6`, muted text around `#969ba3`, fields around `#191c22`, borders using low-opacity white, button radius around 15-16 px, field radius around 14 px, and primary button glow comparable to `box-shadow: 0 10px 26px rgba(58,130,246,.4)`. Material defaults are acceptable only where they do not visibly fight the design.
+
+#### `apps/mobile/lib/auth/auth_screen.dart`
+
+**Intent:** Replace the Material-looking approximation with a close Flutter adaptation of the design auth screens.
+
+**Contract:** The auth screens match the design structure, visual hierarchy, and visible copy as closely as practical:
+
+- Welcome screen uses the design logo mark, `LiftMate` wordmark, headline `Trenuj bez myślenia o liczbach.`, body copy from the design, radial gradient/glow background, `Załóż konto` primary button with blue glow, and `Mam już konto` outlined secondary button.
+- Role screen uses title `Jak korzystasz z LiftMate?`, subtitle `Wybierz rolę. Zmienisz ją w ustawieniach.`, role cards labelled `Jestem podopiecznym` and `Jestem trenerem`, matching icon/emoji treatment, selected-state border/background, and `Dalej`.
+- Signup screen uses the design copy `Załóż konto`, role subtitle, and fields `Imię i nazwisko`, `E-mail`, `Hasło`; it does not show the global registration invitation code inline next to those personal fields.
+- Trainee registration must continue to send the existing global registration `invitationCode` to `/auth/register`, but the UI must not confuse it with the trainer invite code. If the backend still requires the global registration gate, collect it in a clearly separate auth gate step or visually separate section that is not the design's trainer-code pairing screen.
+- Trainer registration must not display the global registration code next to personal data, and must never ask for or show a trainee/trainer pairing code before account creation succeeds.
+- After trainer signup, show the design `Zaproś podopiecznego` screen with `Twój kod zaproszenia`, large spaced code, `Kopiuj kod`, and `Przejdź do pulpitu`.
+- After trainee signup, show the design `Połącz się z trenerem` screen with separated code boxes and `Połącz konto`; this is the trainer invite code, not the global registration code.
+- Back arrows, spacing, card shapes, text sizes, field fills, and button states should be adapted from the HTML values rather than default Material components where practical.
+
+#### `apps/mobile/lib/auth/auth_screen.dart`
+
+**Intent:** Make the two code concepts impossible to confuse.
+
+**Contract:** The implementation has separate state, controllers, labels, and tests for:
+
+- global registration invitation code: used only for `/auth/register`;
+- trainer invite code: generated by `/trainer/invite-code` and claimed through `/trainee/trainer-link`.
+
+The trainer role should not show the global registration invitation code beside `Imię i nazwisko`, `E-mail`, and `Hasło`. The trainee role should not enter the trainer invite code until the post-registration `Połącz się z trenerem` screen.
+
+#### `apps/mobile/test/auth_screen_test.dart`
+
+**Intent:** Lock the corrected flow and visible design copy.
+
+**Contract:** Widget tests verify the design-specific visible copy and separation rules:
+
+- welcome screen renders `Trenuj bez myślenia o liczbach.`, `Załóż konto`, and `Mam już konto`;
+- role screen renders `Jestem podopiecznym`, `Jestem trenerem`, and `Jak korzystasz z LiftMate?`;
+- trainer signup screen renders personal fields but does not render `Kod trenera`, `Twój kod zaproszenia`, or an inline registration-code field beside personal data;
+- trainee signup screen renders personal fields and does not render `Kod trenera` before registration succeeds;
+- trainer post-signup screen renders `Zaproś podopiecznego`, `Twój kod zaproszenia`, generated code, `Kopiuj kod`, and `Przejdź do pulpitu`;
+- trainee post-signup screen renders `Połącz się z trenerem`, code boxes/input, and `Połącz konto`;
+- register requests still include the global `invitationCode` required by the backend, but tests make clear this is not the trainer invite code.
+
+### Success Criteria
+
+#### Automated Verification
+
+- `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile`.
+- `flutter test` succeeds from `apps/mobile`.
+- `flutter analyze` succeeds from `apps/mobile`.
+
+#### Manual Verification
+
+- On a phone-sized viewport, auth onboarding is visibly close to the design: radial gradient background, logo mark, Space Grotesk/Manrope typography, blue CTA glow, card-style role selection, dark filled inputs, and matching button shapes.
+- The welcome, role, signup, trainee pair, and trainer invite screens use the same primary user-facing copy as the design.
+- Trainer signup does not show the global registration code next to personal fields.
+- Trainee signup does not ask for a trainer invite code until the separate `Połącz się z trenerem` screen.
+- Trainer invite code display matches the design's separate `Zaproś podopiecznego` screen.
+- The implementation remains scrollable and readable on small phones even where the HTML prototype has imperfect screen height.
+
+---
+
 ## Testing Strategy
 
 ### Unit / Contract Tests
@@ -327,20 +406,23 @@ Replace the current technical auth screen with a product-facing onboarding flow 
 - Error state renders API message and does not leak secrets.
 - Authenticated temporary panel still allows logout.
 - Auth widget-test setup no longer constructs diagnostic-only API clients or health-check callbacks.
+- Design fidelity tests cover visible copy, role-card labels, separated trainer/global code flow, and post-signup invite/pair screens.
 
 ### Manual Testing Steps
 
 1. Launch the mobile app and verify the welcome screen matches the dark LiftMate style.
-2. Tap `Mam już konto`, submit login, and confirm authenticated state appears.
-3. Logout, tap `Załóż konto`, select each role, and verify signup role context.
-4. Register a trainer with a valid global registration invitation code and confirm the pair screen displays a generated trainer invite code.
-5. Register a trainee with a valid global registration invitation code, enter the trainer invite code with mixed case or surrounding whitespace, and confirm `/auth/me` shows the trainee assigned to that trainer.
-6. Confirm a different trainer cannot start a shared session for that paired trainee.
-7. Trigger invalid global registration and trainer invite codes and confirm errors are readable and secrets are not shown.
+2. Verify the welcome screen uses the design logo mark, gradient/glow background, headline, typography, CTA glow, and secondary outlined button.
+3. Tap `Mam już konto`, submit login, and confirm authenticated state appears.
+4. Logout, tap `Załóż konto`, select each role card, and verify signup role context.
+5. Register a trainer with a valid global registration invitation code and confirm the pair screen displays a generated trainer invite code.
+6. Register a trainee with a valid global registration invitation code, enter the trainer invite code with mixed case or surrounding whitespace, and confirm `/auth/me` shows the trainee assigned to that trainer.
+7. Confirm a different trainer cannot start a shared session for that paired trainee.
+8. Trigger invalid global registration and trainer invite codes and confirm errors are readable and secrets are not shown.
+9. Confirm the global registration invitation code and trainer invite code are visually separated and never appear as the same field.
 
 ## Performance Considerations
 
-This change is UI and auth-contract focused. No high-volume data path is introduced. Trainer invite-code generation should use a short indexed code lookup and retry on rare uniqueness collisions. Use the fixed character set `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`, store codes uppercase, and normalize trainee input before lookup. Keep onboarding state local to `AuthScreen` to avoid unnecessary app-wide state management. Avoid expensive layout work or external runtime dependencies for the design export.
+This change is UI and auth-contract focused. No high-volume data path is introduced. Trainer invite-code generation should use a short indexed code lookup and retry on rare uniqueness collisions. Use the fixed character set `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`, store codes uppercase, and normalize trainee input before lookup. Keep onboarding state local to `AuthScreen` to avoid unnecessary app-wide state management. Avoid expensive layout work or external runtime dependencies for the design export. Font assets are acceptable because they are static app assets; avoid runtime font downloads.
 
 ## Migration Notes
 
@@ -418,3 +500,20 @@ Rolling back after deployment requires compatibility awareness: once mobile expe
 - [x] 3.10 Auth errors remain visible without exposing password or invitation code - 0094a47.
 - [x] 3.11 Technical diagnostics are absent from the auth UI - 0094a47.
 - [x] 3.12 `AuthScreen` no longer exposes constructor parameters used only by the removed diagnostics - 0094a47.
+
+### Phase 4: Design Fidelity and Code Separation Fix
+
+#### Automated
+
+- [x] 4.1 `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile`.
+- [x] 4.2 `flutter test` succeeds from `apps/mobile`.
+- [x] 4.3 `flutter analyze` succeeds from `apps/mobile`.
+
+#### Manual
+
+- [ ] 4.4 On a phone-sized viewport, auth onboarding is visibly close to the design: radial gradient background, logo mark, Space Grotesk/Manrope typography, blue CTA glow, card-style role selection, dark filled inputs, and matching button shapes.
+- [ ] 4.5 The welcome, role, signup, trainee pair, and trainer invite screens use the same primary user-facing copy as the design.
+- [ ] 4.6 Trainer signup does not show the global registration code next to personal fields.
+- [ ] 4.7 Trainee signup does not ask for a trainer invite code until the separate `Połącz się z trenerem` screen.
+- [ ] 4.8 Trainer invite code display matches the design's separate `Zaproś podopiecznego` screen.
+- [ ] 4.9 The implementation remains scrollable and readable on small phones even where the HTML prototype has imperfect screen height.

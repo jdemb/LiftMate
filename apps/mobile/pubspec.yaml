@@ -22,3 +22,10 @@ flutter:
   uses-material-design: true
   assets:
     - config/app_config.json
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope.ttf
+    - family: Space Grotesk
+      fonts:
+        - asset: assets/fonts/SpaceGrotesk.ttf

@@ -1,27 +1,18 @@
 import 'package:flutter/material.dart';
 
 import 'app_config.dart';
-import 'api_health_client.dart';
 import 'auth/auth_api_client.dart';
 import 'auth/auth_controller.dart';
 import 'auth/auth_screen.dart';
 import 'auth/token_store.dart';
-import 'shared_sessions/shared_session_api_client.dart';
-import 'shared_sessions/shared_session_realtime_client.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final config = await AppConfig.load();
   final authApiClient = AuthApiClient(baseUrl: config.apiBaseUrl);
-  final sharedSessionApiClient = SharedSessionApiClient(baseUrl: config.apiBaseUrl);
   runApp(
     MainApp(
-      apiHealthClient: ApiHealthClient(baseUrl: config.apiBaseUrl),
-      authApiClient: authApiClient,
-      sharedSessionApiClient: sharedSessionApiClient,
-      sharedSessionRealtimeClientFactory: () =>
-          SignalRSharedSessionRealtimeClient(baseUrl: config.apiBaseUrl),
       authController: AuthController(
         authApiClient: authApiClient,
         tokenStore: SecureTokenStore(),
@@ -32,31 +23,53 @@ Future<void> main() async {
 
 class MainApp extends StatelessWidget {
   const MainApp({
-    required this.apiHealthClient,
-    required this.authApiClient,
-    required this.sharedSessionApiClient,
-    required this.sharedSessionRealtimeClientFactory,
     required this.authController,
     super.key,
   });
 
-  final ApiHealthClient apiHealthClient;
-  final AuthApiClient authApiClient;
-  final SharedSessionApiClient sharedSessionApiClient;
-  final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
   final AuthController authController;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: _liftMateTheme(),
       home: AuthScreen(
         authController: authController,
-        authApiClient: authApiClient,
-        sharedSessionApiClient: sharedSessionApiClient,
-        sharedSessionRealtimeClientFactory: sharedSessionRealtimeClientFactory,
-        healthUri: apiHealthClient.healthUri,
-        checkHealth: apiHealthClient.check,
       ),
     );
   }
+}
+
+ThemeData _liftMateTheme() {
+  final colorScheme = ColorScheme.fromSeed(
+    seedColor: const Color(0xFF2F80ED),
+    brightness: Brightness.dark,
+  );
+
+  return ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    colorScheme: colorScheme,
+    scaffoldBackgroundColor: const Color(0xFF07111F),
+    fontFamily: 'Roboto',
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFF101B2D),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    ),
+  );
 }

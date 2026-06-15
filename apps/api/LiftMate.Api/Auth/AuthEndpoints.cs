@@ -44,10 +44,17 @@ public static class AuthEndpoints
             return Results.Conflict(new { error = "Email already registered." });
         }
 
+        var displayName = request.DisplayName.Trim();
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            return Results.BadRequest(new { error = "Display name is required." });
+        }
+
         var user = new ApplicationUser
         {
             Email = email,
             UserName = email,
+            DisplayName = displayName,
             LiftMateRole = role,
         };
 

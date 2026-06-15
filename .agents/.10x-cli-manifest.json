@@ -2,8 +2,8 @@
   "package": "@przeprogramowani/10x-cli",
   "version": "1.3.2",
   "manifestVersion": 2,
-  "lastApplied": "2026-06-01T18:11:54.979Z",
-  "lessonId": "m2l2",
+  "lastApplied": "2026-06-15T15:47:10.222Z",
+  "lessonId": "m2l4",
   "course": "10xdevs3",
   "tool": "codex",
   "files": {
@@ -107,6 +107,21 @@
         ]
       },
       "10x-archive": {
+        "files": [
+          "SKILL.md"
+        ]
+      },
+      "10x-impl-review": {
+        "files": [
+          "SKILL.md"
+        ]
+      },
+      "10x-frame": {
+        "files": [
+          "SKILL.md"
+        ]
+      },
+      "10x-research": {
         "files": [
           "SKILL.md"
         ]

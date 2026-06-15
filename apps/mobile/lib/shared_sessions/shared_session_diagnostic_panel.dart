@@ -40,6 +40,7 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
       SharedSessionConnectionStatus.disconnected;
   String? _message;
   bool _isBusy = false;
+  bool _isLoadingActiveSession = false;
 
   @override
   void initState() {
@@ -57,6 +58,9 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
         setState(() {
           _connectionStatus = status;
         });
+      }
+      if (status == SharedSessionConnectionStatus.connected) {
+        unawaited(_recoverActiveSessionAfterReconnect());
       }
     });
     _errorsSubscription = _realtimeClient.errors.listen(_setMessage);
@@ -204,24 +208,45 @@ class _SharedSessionDiagnosticPanelState extends State<SharedSessionDiagnosticPa
   }
 
   Future<void> _loadActiveSession() async {
-    final accessToken = _accessToken;
-    if (accessToken == null) {
+    await _fetchActiveSession(connectRealtime: true);
+  }
+
+  Future<void> _recoverActiveSessionAfterReconnect() async {
+    if (_session != null || _isLoadingActiveSession) {
       return;
     }
 
-    await _run(() async {
-      await _connectRealtime(accessToken);
-      final result = await widget.sharedSessionApiClient.getActive(
-        accessToken: accessToken,
-      );
+    await _fetchActiveSession(connectRealtime: false);
+  }
 
-      if (result.status == SharedSessionApiStatus.notFound) {
-        _setMessage(_waitingMessage);
-        return;
-      }
+  Future<void> _fetchActiveSession({
+    required bool connectRealtime,
+  }) async {
+    final accessToken = _accessToken;
+    if (accessToken == null || _isLoadingActiveSession || !mounted) {
+      return;
+    }
 
-      await _applyResult(result, joinRealtime: true);
-    });
+    _isLoadingActiveSession = true;
+    try {
+      await _run(() async {
+        if (connectRealtime) {
+          await _connectRealtime(accessToken);
+        }
+        final result = await widget.sharedSessionApiClient.getActive(
+          accessToken: accessToken,
+        );
+
+        if (result.status == SharedSessionApiStatus.notFound) {
+          _setMessage(_waitingMessage);
+          return;
+        }
+
+        await _applyResult(result, joinRealtime: true);
+      });
+    } finally {
+      _isLoadingActiveSession = false;
+    }
   }
 
   Future<void> _connectRealtime(String accessToken) async {

@@ -49,6 +49,7 @@ class AuthApiClient {
     required String email,
     required String password,
     required UserRole role,
+    required String displayName,
     required String invitationCode,
   }) {
     return _send<AuthSession>(
@@ -58,11 +59,42 @@ class AuthApiClient {
         'email': email,
         'password': password,
         'role': role.wireName,
+        'displayName': displayName,
         'invitationCode': invitationCode,
       },
       successStatusCodes: {201},
       parse: AuthSession.fromJson,
       invalidJsonMessage: 'Invalid auth response JSON.',
+    );
+  }
+
+  Future<AuthApiResult<TrainerInviteCode>> generateTrainerInviteCode({
+    required String accessToken,
+  }) {
+    return _send<TrainerInviteCode>(
+      method: 'POST',
+      path: '/trainer/invite-code',
+      accessToken: accessToken,
+      successStatusCodes: {200},
+      parse: TrainerInviteCode.fromJson,
+      invalidJsonMessage: 'Invalid trainer invite code response JSON.',
+    );
+  }
+
+  Future<AuthApiResult<AuthUser>> claimTrainerInviteCode({
+    required String accessToken,
+    required String code,
+  }) {
+    return _send<AuthUser>(
+      method: 'POST',
+      path: '/trainee/trainer-link',
+      accessToken: accessToken,
+      body: {
+        'code': normalizeTrainerInviteCode(code),
+      },
+      successStatusCodes: {200},
+      parse: AuthUser.fromJson,
+      invalidJsonMessage: 'Invalid trainer link response JSON.',
     );
   }
 
@@ -341,5 +373,9 @@ class AuthApiClient {
     }
 
     return value.trim();
+  }
+
+  static String normalizeTrainerInviteCode(String code) {
+    return code.trim().toUpperCase();
   }
 }

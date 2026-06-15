@@ -26,18 +26,28 @@ class AuthUser {
     required this.id,
     required this.email,
     required this.role,
+    required this.displayName,
+    this.trainerUserId,
   });
 
   final String id;
   final String email;
   final UserRole role;
+  final String displayName;
+  final String? trainerUserId;
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     final id = json['id'];
     final email = json['email'];
     final role = UserRole.tryParse(json['role']);
+    final displayName = json['displayName'];
+    final trainerUserId = json['trainerUserId'];
 
-    if (id is! String || email is! String || role == null) {
+    if (id is! String ||
+        email is! String ||
+        role == null ||
+        displayName is! String ||
+        (trainerUserId != null && trainerUserId is! String)) {
       throw const FormatException('Invalid auth user response body.');
     }
 
@@ -45,6 +55,8 @@ class AuthUser {
       id: id,
       email: email,
       role: role,
+      displayName: displayName,
+      trainerUserId: trainerUserId,
     );
   }
 }
@@ -98,5 +110,22 @@ class RoleProbeResult {
     }
 
     return RoleProbeResult(role: role);
+  }
+}
+
+class TrainerInviteCode {
+  const TrainerInviteCode({
+    required this.code,
+  });
+
+  final String code;
+
+  factory TrainerInviteCode.fromJson(Map<String, dynamic> json) {
+    final code = json['code'];
+    if (code is! String) {
+      throw const FormatException('Invalid trainer invite code response body.');
+    }
+
+    return TrainerInviteCode(code: code);
   }
 }

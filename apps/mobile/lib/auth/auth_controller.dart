@@ -87,7 +87,6 @@ class AuthController extends ChangeNotifier {
     required String password,
     required UserRole role,
     required String displayName,
-    required String invitationCode,
   }) async {
     _setState(const AuthControllerState.loading());
 
@@ -96,7 +95,6 @@ class AuthController extends ChangeNotifier {
       password: password,
       role: role,
       displayName: displayName,
-      invitationCode: invitationCode,
     );
     await _storeSessionOrShowError(result);
 

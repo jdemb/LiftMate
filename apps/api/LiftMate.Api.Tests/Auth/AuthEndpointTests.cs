@@ -15,7 +15,7 @@ public sealed class AuthEndpointTests(TestApplicationFactory factory)
 
         var registerResponse = await client.PostAsJsonAsync(
             "/auth/register",
-            new RegisterRequest(email, "Pass123$Strong", "trainer", "Test Trainer", "test-invite-code"));
+            new RegisterRequest(email, "Pass123$Strong", "trainer", "Test Trainer"));
         var registered = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
 
         Assert.Equal(HttpStatusCode.Created, registerResponse.StatusCode);
@@ -65,25 +65,13 @@ public sealed class AuthEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
-    public async Task RegisterRejectsInvalidInviteCode()
-    {
-        using var client = factory.CreateClient();
-
-        var response = await client.PostAsJsonAsync(
-            "/auth/register",
-            new RegisterRequest(TestEmail(), "Pass123$Strong", "trainer", "Test Trainer", "wrong-code"));
-
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-    }
-
-    [Fact]
     public async Task RegisterRejectsInvalidRole()
     {
         using var client = factory.CreateClient();
 
         var response = await client.PostAsJsonAsync(
             "/auth/register",
-            new RegisterRequest(TestEmail(), "Pass123$Strong", "admin", "Test Trainer", "test-invite-code"));
+            new RegisterRequest(TestEmail(), "Pass123$Strong", "admin", "Test Trainer"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -95,7 +83,7 @@ public sealed class AuthEndpointTests(TestApplicationFactory factory)
 
         var response = await client.PostAsJsonAsync(
             "/auth/register",
-            new RegisterRequest(TestEmail(), "Pass123$Strong", "trainer", "   ", "test-invite-code"));
+            new RegisterRequest(TestEmail(), "Pass123$Strong", "trainer", "   "));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -105,7 +93,7 @@ public sealed class AuthEndpointTests(TestApplicationFactory factory)
     {
         using var client = factory.CreateClient();
         var email = TestEmail();
-        var request = new RegisterRequest(email, "Pass123$Strong", "trainee", "Test Trainee", "test-invite-code");
+        var request = new RegisterRequest(email, "Pass123$Strong", "trainee", "Test Trainee");
 
         var firstResponse = await client.PostAsJsonAsync("/auth/register", request);
         var secondResponse = await client.PostAsJsonAsync("/auth/register", request);
@@ -152,7 +140,7 @@ public sealed class AuthEndpointTests(TestApplicationFactory factory)
         var displayName = role == "trainer" ? "Test Trainer" : "Test Trainee";
         var response = await client.PostAsJsonAsync(
             "/auth/register",
-            new RegisterRequest(TestEmail(), "Pass123$Strong", role, displayName, "test-invite-code"));
+            new RegisterRequest(TestEmail(), "Pass123$Strong", role, displayName));
         var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -162,7 +150,7 @@ public sealed class AuthEndpointTests(TestApplicationFactory factory)
 
     internal static string TestEmail() => $"user-{Guid.NewGuid():N}@example.test";
 
-    internal sealed record RegisterRequest(string Email, string Password, string Role, string DisplayName, string InvitationCode);
+    internal sealed record RegisterRequest(string Email, string Password, string Role, string DisplayName);
 
     internal sealed record LoginRequest(string Email, string Password);
 

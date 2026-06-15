@@ -41,8 +41,9 @@ class MainApp extends StatelessWidget {
 }
 
 ThemeData _liftMateTheme() {
+  const primary = Color(0xFF3A82F6);
   final colorScheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xFF2F80ED),
+    seedColor: primary,
     brightness: Brightness.dark,
   );
 
@@ -50,25 +51,53 @@ ThemeData _liftMateTheme() {
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: colorScheme,
-    scaffoldBackgroundColor: const Color(0xFF07111F),
-    fontFamily: 'Roboto',
+    scaffoldBackgroundColor: const Color(0xFF101216),
+    fontFamily: 'Manrope',
+    textTheme: ThemeData.dark().textTheme.apply(
+          fontFamily: 'Manrope',
+          bodyColor: const Color(0xFFF3F4F6),
+          displayColor: const Color(0xFFF3F4F6),
+        ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF101B2D),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+      fillColor: const Color(0xFF191C22),
+      labelStyle: const TextStyle(
+        color: Color(0xFF969BA3),
+        fontWeight: FontWeight.w600,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: primary),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(52),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        minimumSize: const Size.fromHeight(54),
+        textStyle: const TextStyle(
+          fontFamily: 'Manrope',
+          fontWeight: FontWeight.w700,
+          fontSize: 16,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(52),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        foregroundColor: const Color(0xFFF3F4F6),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+        minimumSize: const Size.fromHeight(54),
+        textStyle: const TextStyle(
+          fontFamily: 'Manrope',
+          fontWeight: FontWeight.w600,
+          fontSize: 16,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       ),
     ),
   );

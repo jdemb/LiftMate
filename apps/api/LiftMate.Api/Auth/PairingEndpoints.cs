@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using LiftMate.Api.Data;
 using LiftMate.Api.SharedSessions;
+using LiftMate.Api.WorkoutSets;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -202,6 +203,7 @@ public static class PairingEndpoints
         trainee.TrainerUserId = inviteCode.TrainerUserId;
         inviteCode.LastUsedAt = DateTimeOffset.UtcNow;
         List<SharedSession> cancelledSessions = [];
+        List<WorkoutSetAssignment> staleAssignments = [];
         if (previousTrainerUserId is not null &&
             !string.Equals(previousTrainerUserId, inviteCode.TrainerUserId, StringComparison.Ordinal))
         {
@@ -220,6 +222,15 @@ public static class PairingEndpoints
                 session.UpdatedAt = now;
                 session.ClosedAt = now;
             }
+
+            staleAssignments = await dbContext.WorkoutSetAssignments
+                .Include(assignment => assignment.WorkoutSet)
+                .Where(assignment =>
+                    assignment.TraineeUserId == trainee.Id &&
+                    assignment.WorkoutSet != null &&
+                    assignment.WorkoutSet.TrainerUserId == previousTrainerUserId)
+                .ToListAsync(cancellationToken);
+            dbContext.WorkoutSetAssignments.RemoveRange(staleAssignments);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);

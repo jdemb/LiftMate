@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_controller.dart';
 import '../auth/auth_models.dart';
+import '../workout_sets/workout_set_api_client.dart';
 import 'relationship_api_client.dart';
 import 'relationship_controller.dart';
 import 'relationship_models.dart';
@@ -14,6 +15,7 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
     required this.user,
     required this.authController,
     required this.relationshipApiClient,
+    required this.workoutSetApiClient,
     required this.onLogout,
     super.key,
   });
@@ -21,6 +23,7 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
   final AuthUser user;
   final AuthController authController;
   final RelationshipApiClient relationshipApiClient;
+  final WorkoutSetApiClient workoutSetApiClient;
   final Future<void> Function() onLogout;
 
   @override

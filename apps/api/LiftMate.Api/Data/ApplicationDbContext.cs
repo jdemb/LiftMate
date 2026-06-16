@@ -1,5 +1,6 @@
 using LiftMate.Api.Auth;
 using LiftMate.Api.SharedSessions;
+using LiftMate.Api.WorkoutSets;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +16,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<SharedSession> SharedSessions => Set<SharedSession>();
 
     public DbSet<SharedSessionValue> SharedSessionValues => Set<SharedSessionValue>();
+
+    public DbSet<WorkoutSet> WorkoutSets => Set<WorkoutSet>();
+
+    public DbSet<WorkoutSetRow> WorkoutSetRows => Set<WorkoutSetRow>();
+
+    public DbSet<WorkoutSetAssignment> WorkoutSetAssignments => Set<WorkoutSetAssignment>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -165,6 +172,83 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             entity.ToTable(table => table.HasCheckConstraint(
                 "CK_SharedSessionValues_ExerciseType",
                 "[ExerciseType] IN ('repsWeight', 'repsOnly', 'time')"));
+        });
+
+        builder.Entity<WorkoutSet>(entity =>
+        {
+            entity.HasKey(workoutSet => workoutSet.Id);
+
+            entity.Property(workoutSet => workoutSet.TrainerUserId)
+                .HasMaxLength(450)
+                .IsRequired();
+
+            entity.Property(workoutSet => workoutSet.Name)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.HasIndex(workoutSet => workoutSet.TrainerUserId);
+
+            entity.HasOne(workoutSet => workoutSet.TrainerUser)
+                .WithMany()
+                .HasForeignKey(workoutSet => workoutSet.TrainerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(workoutSet => workoutSet.Rows)
+                .WithOne(row => row.WorkoutSet)
+                .HasForeignKey(row => row.WorkoutSetId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(workoutSet => workoutSet.Assignments)
+                .WithOne(assignment => assignment.WorkoutSet)
+                .HasForeignKey(assignment => assignment.WorkoutSetId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<WorkoutSetRow>(entity =>
+        {
+            entity.HasKey(row => row.Id);
+
+            entity.Property(row => row.ExerciseName)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(row => row.ExerciseType)
+                .HasMaxLength(32)
+                .IsRequired();
+
+            entity.Property(row => row.Weight)
+                .HasPrecision(8, 2);
+
+            entity.HasIndex(row => row.WorkoutSetId);
+            entity.HasIndex(row => new { row.WorkoutSetId, row.ExerciseOrder, row.SetIndex });
+            entity.HasIndex(row => row.ExerciseType);
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_WorkoutSetRows_ExerciseType",
+                "[ExerciseType] IN ('repsWeight', 'repsOnly', 'time')"));
+        });
+
+        builder.Entity<WorkoutSetAssignment>(entity =>
+        {
+            entity.HasKey(assignment => assignment.Id);
+
+            entity.Property(assignment => assignment.TraineeUserId)
+                .HasMaxLength(450)
+                .IsRequired();
+
+            entity.Property(assignment => assignment.AssignedByTrainerUserId)
+                .HasMaxLength(450)
+                .IsRequired();
+
+            entity.HasIndex(assignment => assignment.WorkoutSetId);
+            entity.HasIndex(assignment => assignment.TraineeUserId);
+            entity.HasIndex(assignment => new { assignment.WorkoutSetId, assignment.TraineeUserId })
+                .IsUnique();
+
+            entity.HasOne(assignment => assignment.TraineeUser)
+                .WithMany()
+                .HasForeignKey(assignment => assignment.TraineeUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

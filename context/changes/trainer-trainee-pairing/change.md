@@ -1,7 +1,7 @@
 ---
 change_id: trainer-trainee-pairing
 title: Trainer-trainee pairing
-status: implementing
+status: implemented
 created: 2026-06-15
 updated: 2026-06-16
 archived_at: null

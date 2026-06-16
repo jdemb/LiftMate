@@ -407,10 +407,10 @@ Backend relationship read endpoints are additive. Rolling back mobile post-auth 
 
 #### Manual
 
-- [ ] 1.4 A trainer can call `GET /trainer/relationship` and receive an invite code plus only their linked trainees.
-- [ ] 1.5 A trainee can call `GET /trainee/relationship` before and after pairing and see `null` then trainer identity.
-- [ ] 1.6 A trainee linked to trainer A can submit trainer B's valid code and `/auth/me` then shows trainer B.
-- [ ] 1.7 After re-pair, trainer A can no longer access the previous shared session for that trainee, and that session is `cancelled`.
+- [x] 1.4 A trainer can call `GET /trainer/relationship` and receive an invite code plus only their linked trainees.
+- [x] 1.5 A trainee can call `GET /trainee/relationship` before and after pairing and see `null` then trainer identity.
+- [x] 1.6 A trainee linked to trainer A can submit trainer B's valid code and `/auth/me` then shows trainer B.
+- [x] 1.7 After re-pair, trainer A can no longer access the previous shared session for that trainee, and that session is `cancelled`.
 
 ### Phase 2: Mobile Relationship Contract
 
@@ -423,9 +423,9 @@ Backend relationship read endpoints are additive. Rolling back mobile post-auth 
 
 #### Manual
 
-- [ ] 2.5 Mobile calls `GET /trainer/relationship` with a trainer token after login.
-- [ ] 2.6 Mobile calls `GET /trainee/relationship` with a trainee token after login.
-- [ ] 2.7 Mobile re-pairing uses `AuthController.claimTrainerInviteCode`; relationship state reloads after success.
+- [x] 2.5 Mobile calls `GET /trainer/relationship` with a trainer token after login.
+- [x] 2.6 Mobile calls `GET /trainee/relationship` with a trainee token after login.
+- [x] 2.7 Mobile re-pairing uses `AuthController.claimTrainerInviteCode`; relationship state reloads after success.
 
 ### Phase 3: Post-auth Role Screens
 
@@ -437,10 +437,10 @@ Backend relationship read endpoints are additive. Rolling back mobile post-auth 
 
 #### Manual
 
-- [ ] 3.4 Trainer login lands on a dark `t_dash`-style screen, not the old diagnostic/temporary panel.
-- [ ] 3.5 Trainer with no trainees sees the invite-code card and `Zaproś podopiecznego` CTA.
-- [ ] 3.6 Trainer with at least one trainee sees that trainee in the list and can open detail.
-- [ ] 3.7 Trainee login with a trainer lands on a `c_home`-style screen showing trainer identity.
-- [ ] 3.8 Trainee login without a trainer sees a clear code-entry prompt.
-- [ ] 3.9 Trainee can enter a second trainer's valid code and the displayed trainer changes.
-- [ ] 3.10 Text and controls fit on a phone-sized viewport without overlap.
+- [x] 3.4 Trainer login lands on a dark `t_dash`-style screen, not the old diagnostic/temporary panel.
+- [x] 3.5 Trainer with no trainees sees the invite-code card and `Zaproś podopiecznego` CTA.
+- [x] 3.6 Trainer with at least one trainee sees that trainee in the list and can open detail.
+- [x] 3.7 Trainee login with a trainer lands on a `c_home`-style screen showing trainer identity.
+- [x] 3.8 Trainee login without a trainer sees a clear code-entry prompt.
+- [x] 3.9 Trainee can enter a second trainer's valid code and the displayed trainer changes.
+- [x] 3.10 Text and controls fit on a phone-sized viewport without overlap.

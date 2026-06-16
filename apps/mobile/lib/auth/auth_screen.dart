@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../relationships/authenticated_relationship_shell.dart';
+import '../relationships/relationship_api_client.dart';
 import 'auth_controller.dart';
 import 'auth_models.dart';
 
@@ -21,10 +24,12 @@ enum _AuthStep {
 class AuthScreen extends StatefulWidget {
   const AuthScreen({
     required this.authController,
+    required this.relationshipApiClient,
     super.key,
   });
 
   final AuthController authController;
+  final RelationshipApiClient relationshipApiClient;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -207,58 +212,62 @@ class _AuthScreenState extends State<AuthScreen> {
     final isLoading = state.status == AuthControllerStatus.loading;
     final errorMessage =
         state.status == AuthControllerStatus.error ? state.message : null;
+    final isAuthenticated =
+        state.status == AuthControllerStatus.authenticated && user != null;
 
     return Scaffold(
       body: _GradientScaffold(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 430),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(28, 40, 28, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (user != null && _pendingPairRole != null)
-                    _PairingPanel(
-                      role: _pendingPairRole!,
-                      trainerInviteCode: _trainerInviteCode,
-                      trainerCodeController: _trainerCodeController,
-                      isLoading: _isPairing,
-                      errorMessage: _pairingError,
-                      onRetryTrainerCode: _generateTrainerCode,
-                      onClaimTrainerCode: _claimTrainerCode,
-                      onContinue: _finishPairing,
-                      onTrainerCodeChanged: () => setState(() {}),
-                    )
-                  else if (state.status == AuthControllerStatus.authenticated &&
-                      user != null)
-                    _AuthenticatedPanel(
-                      user: user,
-                      onLogout: _logout,
-                    )
-                  else
-                    _OnboardingPanel(
-                      step: _step,
-                      selectedRole: _selectedRole,
-                      isLoading: isLoading,
-                      errorMessage: errorMessage,
-                      loginFormKey: _loginFormKey,
-                      signupFormKey: _signupFormKey,
-                      emailController: _emailController,
-                      passwordController: _passwordController,
-                      displayNameController: _displayNameController,
-                      onShowLogin: () => setState(() => _step = _AuthStep.login),
-                      onShowRoleSelection: () =>
-                          setState(() => _step = _AuthStep.role),
-                      onBack: _backToWelcome,
-                      onRoleSelected: _selectRole,
-                      onContinueRole: _continueToSignup,
-                      onLogin: _login,
-                      onRegister: _register,
+            child: isAuthenticated && _pendingPairRole == null
+                ? AuthenticatedRelationshipShell(
+                    user: user,
+                    authController: widget.authController,
+                    relationshipApiClient: widget.relationshipApiClient,
+                    onLogout: _logout,
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(28, 40, 28, 32),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (user != null && _pendingPairRole != null)
+                          _PairingPanel(
+                            role: _pendingPairRole!,
+                            trainerInviteCode: _trainerInviteCode,
+                            trainerCodeController: _trainerCodeController,
+                            isLoading: _isPairing,
+                            errorMessage: _pairingError,
+                            onRetryTrainerCode: _generateTrainerCode,
+                            onClaimTrainerCode: _claimTrainerCode,
+                            onContinue: _finishPairing,
+                            onTrainerCodeChanged: () => setState(() {}),
+                          )
+                        else
+                          _OnboardingPanel(
+                            step: _step,
+                            selectedRole: _selectedRole,
+                            isLoading: isLoading,
+                            errorMessage: errorMessage,
+                            loginFormKey: _loginFormKey,
+                            signupFormKey: _signupFormKey,
+                            emailController: _emailController,
+                            passwordController: _passwordController,
+                            displayNameController: _displayNameController,
+                            onShowLogin: () =>
+                                setState(() => _step = _AuthStep.login),
+                            onShowRoleSelection: () =>
+                                setState(() => _step = _AuthStep.role),
+                            onBack: _backToWelcome,
+                            onRoleSelected: _selectRole,
+                            onContinueRole: _continueToSignup,
+                            onLogin: _login,
+                            onRegister: _register,
+                          ),
+                      ],
                     ),
-                ],
-              ),
-            ),
+                  ),
           ),
         ),
       ),
@@ -755,51 +764,6 @@ class _TraineePairPanel extends StatelessWidget {
   }
 }
 
-class _AuthenticatedPanel extends StatelessWidget {
-  const _AuthenticatedPanel({
-    required this.user,
-    required this.onLogout,
-  });
-
-  final AuthUser user;
-  final Future<void> Function() onLogout;
-
-  @override
-  Widget build(BuildContext context) {
-    final roleLabel = user.role == UserRole.trainer ? 'Trener' : 'Podopieczny';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _HeaderRow(user: user),
-        const SizedBox(height: 28),
-        _InfoPanel(
-          children: [
-            const Text(
-              'Tymczasowy panel',
-              style: TextStyle(
-                fontFamily: 'Space Grotesk',
-                fontWeight: FontWeight.w700,
-                fontSize: 22,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(user.email, style: const TextStyle(color: _lmMuted)),
-            Text('Rola: $roleLabel', style: const TextStyle(color: _lmMuted)),
-            if (user.trainerUserId != null)
-              Text(
-                'Trener: ${user.trainerUserId}',
-                style: const TextStyle(color: _lmMuted),
-              ),
-          ],
-        ),
-        const SizedBox(height: 22),
-        _SecondaryActionButton(label: 'Wyloguj', onPressed: onLogout),
-      ],
-    );
-  }
-}
-
 class _LiftMateLogo extends StatelessWidget {
   const _LiftMateLogo({
     this.size = 46,
@@ -1225,6 +1189,7 @@ class _InfoPanel extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _HeaderRow extends StatelessWidget {
   const _HeaderRow({
     required this.user,

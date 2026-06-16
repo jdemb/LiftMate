@@ -5,18 +5,21 @@ import 'auth/auth_api_client.dart';
 import 'auth/auth_controller.dart';
 import 'auth/auth_screen.dart';
 import 'auth/token_store.dart';
+import 'relationships/relationship_api_client.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final config = await AppConfig.load();
   final authApiClient = AuthApiClient(baseUrl: config.apiBaseUrl);
+  final relationshipApiClient = RelationshipApiClient(baseUrl: config.apiBaseUrl);
   runApp(
     MainApp(
       authController: AuthController(
         authApiClient: authApiClient,
         tokenStore: SecureTokenStore(),
       ),
+      relationshipApiClient: relationshipApiClient,
     ),
   );
 }
@@ -24,10 +27,12 @@ Future<void> main() async {
 class MainApp extends StatelessWidget {
   const MainApp({
     required this.authController,
+    required this.relationshipApiClient,
     super.key,
   });
 
   final AuthController authController;
+  final RelationshipApiClient relationshipApiClient;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +40,7 @@ class MainApp extends StatelessWidget {
       theme: _liftMateTheme(),
       home: AuthScreen(
         authController: authController,
+        relationshipApiClient: relationshipApiClient,
       ),
     );
   }

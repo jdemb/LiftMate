@@ -579,8 +579,8 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Automated
 
-- [x] 4.1 `flutter test test/workout_set_trainer_screens_test.dart test/post_auth_relationship_screen_test.dart` passes from `apps/mobile`
-- [x] 4.2 `flutter analyze` passes from `apps/mobile`
+- [x] 4.1 `flutter test test/workout_set_trainer_screens_test.dart test/post_auth_relationship_screen_test.dart` passes from `apps/mobile` - 6aa0b8e
+- [x] 4.2 `flutter analyze` passes from `apps/mobile` - 6aa0b8e
 
 #### Manual
 
@@ -592,9 +592,9 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Automated
 
-- [ ] 5.1 `dotnet test LiftMate.slnx --no-build` passes from `apps/api`
-- [ ] 5.2 `flutter test` passes from `apps/mobile`
-- [ ] 5.3 `flutter analyze` passes from `apps/mobile`
+- [x] 5.1 `dotnet test LiftMate.slnx --no-build` passes from `apps/api`
+- [x] 5.2 `flutter test` passes from `apps/mobile`
+- [x] 5.3 `flutter analyze` passes from `apps/mobile`
 
 #### Manual
 

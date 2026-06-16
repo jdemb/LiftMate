@@ -43,6 +43,7 @@ class _AuthenticatedRelationshipShellState
   TrainerTraineeSummary? _selectedTrainee;
   _TrainerView _trainerView = _TrainerView.dashboard;
   WorkoutSetDetail? _builderDetail;
+  String? _loadedTraineeWorkoutSetsForUserId;
 
   @override
   void initState() {
@@ -66,6 +67,7 @@ class _AuthenticatedRelationshipShellState
       _selectedTrainee = null;
       _trainerView = _TrainerView.dashboard;
       _builderDetail = null;
+      _loadedTraineeWorkoutSetsForUserId = null;
       _relationshipController.loadForUser(widget.user);
     }
   }
@@ -154,12 +156,24 @@ class _AuthenticatedRelationshipShellState
           );
         }
 
+        final traineeTrainer = state.traineeSummary?.trainer;
+        if (traineeTrainer != null &&
+            _loadedTraineeWorkoutSetsForUserId != widget.user.id) {
+          _loadedTraineeWorkoutSetsForUserId = widget.user.id;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _workoutSetController.loadForUser(widget.user);
+            }
+          });
+        }
+
         return TraineeHomeScreen(
           user: widget.user,
           state: state,
           onClaimCode: _relationshipController.claimTrainerCode,
           onReload: _relationshipController.reload,
           onLogout: widget.onLogout,
+          workoutSetController: traineeTrainer == null ? null : _workoutSetController,
         );
       },
     );

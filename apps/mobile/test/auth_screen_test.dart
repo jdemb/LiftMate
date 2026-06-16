@@ -232,6 +232,10 @@ void main() {
                 200,
               );
             }
+            if (request.url.path == '/trainee/workout-sets') {
+              expect(request.headers['Authorization'], 'Bearer access-token');
+              return http.Response('[]', 200);
+            }
 
             fail('Unexpected request: ${request.method} ${request.url}');
           }),
@@ -250,7 +254,12 @@ void main() {
       expect(find.text('Test Trainee'), findsOneWidget);
       expect(find.text('TWÓJ TRENER'), findsOneWidget);
       expect(find.text('Test Trainer'), findsOneWidget);
-      expect(seenPaths, ['/auth/register', '/trainee/trainer-link', '/trainee/relationship']);
+      expect(seenPaths, [
+        '/auth/register',
+        '/trainee/trainer-link',
+        '/trainee/relationship',
+        '/trainee/workout-sets',
+      ]);
     });
 
     testWidgets('shows API error without exposing password',

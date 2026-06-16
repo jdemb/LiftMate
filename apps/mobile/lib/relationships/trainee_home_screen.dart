@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_api_client.dart';
 import '../auth/auth_models.dart';
+import '../workout_sets/trainee_assigned_workout_set_view.dart';
+import '../workout_sets/workout_set_controller.dart';
 import 'relationship_controller.dart';
 import 'relationship_screen_styles.dart';
 
@@ -12,6 +14,7 @@ class TraineeHomeScreen extends StatefulWidget {
     required this.onClaimCode,
     required this.onReload,
     required this.onLogout,
+    this.workoutSetController,
     super.key,
   });
 
@@ -20,6 +23,7 @@ class TraineeHomeScreen extends StatefulWidget {
   final Future<AuthApiResult<AuthUser>> Function(String code) onClaimCode;
   final Future<void> Function() onReload;
   final Future<void> Function() onLogout;
+  final WorkoutSetController? workoutSetController;
 
   @override
   State<TraineeHomeScreen> createState() => _TraineeHomeScreenState();
@@ -75,6 +79,7 @@ class _TraineeHomeScreenState extends State<TraineeHomeScreen> {
                         : null,
                     isLoading: isLoading,
                     onSubmit: _submit,
+                    workoutSetController: widget.workoutSetController,
                   ),
               ],
             ),
@@ -161,6 +166,7 @@ class _LinkedTrainerCard extends StatelessWidget {
     required this.errorMessage,
     required this.isLoading,
     required this.onSubmit,
+    required this.workoutSetController,
   });
 
   final String trainerName;
@@ -169,6 +175,7 @@ class _LinkedTrainerCard extends StatelessWidget {
   final String? errorMessage;
   final bool isLoading;
   final VoidCallback onSubmit;
+  final WorkoutSetController? workoutSetController;
 
   @override
   Widget build(BuildContext context) {
@@ -217,28 +224,7 @@ class _LinkedTrainerCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 18),
-        const RelationshipCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              RelationshipSectionLabel('Dzisiejszy trening'),
-              SizedBox(height: 10),
-              Text(
-                'Plan treningowy nie jest jeszcze przypisany',
-                style: TextStyle(
-                  fontFamily: 'Space Grotesk',
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              SizedBox(height: 6),
-              Text(
-                'Gdy trener przypisze zestaw, zobaczysz tutaj ćwiczenia i parametry.',
-                style: TextStyle(color: lmMuted, height: 1.45),
-              ),
-            ],
-          ),
-        ),
+        _AssignedSetsSection(controller: workoutSetController),
         const SizedBox(height: 22),
         _TrainerCodeForm(
           controller: controller,
@@ -249,6 +235,79 @@ class _LinkedTrainerCard extends StatelessWidget {
           onSubmit: onSubmit,
         ),
       ],
+    );
+  }
+}
+
+class _AssignedSetsSection extends StatelessWidget {
+  const _AssignedSetsSection({required this.controller});
+
+  final WorkoutSetController? controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = this.controller;
+    if (controller == null) {
+      return const _NoAssignedSetCard();
+    }
+
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final state = controller.state;
+        if (state.status == WorkoutSetControllerStatus.loading &&
+            state.traineeAssignedSets.isEmpty) {
+          return const RelationshipCard(
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (state.status == WorkoutSetControllerStatus.error &&
+            state.traineeAssignedSets.isEmpty) {
+          return RelationshipCard(
+            child: Text(
+              state.message ?? 'Nie udało się pobrać przypisanych zestawów.',
+              style: const TextStyle(color: Colors.redAccent),
+            ),
+          );
+        }
+
+        if (state.traineeAssignedSets.isEmpty) {
+          return const _NoAssignedSetCard();
+        }
+
+        return TraineeAssignedWorkoutSetView(sets: state.traineeAssignedSets);
+      },
+    );
+  }
+}
+
+class _NoAssignedSetCard extends StatelessWidget {
+  const _NoAssignedSetCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const RelationshipCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RelationshipSectionLabel('Dzisiejszy trening'),
+          SizedBox(height: 10),
+          Text(
+            'Plan treningowy nie jest jeszcze przypisany',
+            style: TextStyle(
+              fontFamily: 'Space Grotesk',
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 6),
+          Text(
+            'Gdy trener przypisze zestaw, zobaczysz tutaj ćwiczenia i parametry.',
+            style: TextStyle(color: lmMuted, height: 1.45),
+          ),
+        ],
+      ),
     );
   }
 }

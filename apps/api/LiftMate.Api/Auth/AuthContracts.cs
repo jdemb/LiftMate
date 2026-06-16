@@ -30,3 +30,19 @@ public sealed record ProbeResponse(string Role);
 public sealed record TrainerInviteCodeResponse(string Code);
 
 public sealed record ClaimTrainerInviteCodeRequest(string Code);
+
+public sealed record TrainerTraineeResponse(
+    string Id,
+    string Email,
+    string DisplayName);
+
+public sealed record TrainerRelationshipSummaryResponse(
+    string InviteCode,
+    IReadOnlyList<TrainerTraineeResponse> Trainees);
+
+public sealed record TraineeTrainerResponse(
+    string Id,
+    string Email,
+    string DisplayName);
+
+public sealed record TraineeRelationshipSummaryResponse(TraineeTrainerResponse? Trainer);

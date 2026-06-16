@@ -13,7 +13,7 @@ The implementation uses `apps/mobile/design/LiftMate.dc.html` as the visual sour
 
 ## Current State Analysis
 
-The active `dostosowanie` plan adds the core relationship foundation: `DisplayName`, `TrainerUserId`, `TrainerInviteCode`, `POST /trainer/invite-code`, `POST /trainee/trainer-link`, mobile auth contract updates, and onboarding pair screens. Its backend phase is already reflected in the worktree (`PairingEndpoints`, `TrainerInviteCodes`, `DisplayName`, and `TrainerUserId` exist), while mobile contract/UI phases are still in progress.
+The active `dostosowanie` plan adds the core relationship foundation: `DisplayName`, `TrainerUserId`, `TrainerInviteCode`, `POST /trainer/invite-code`, `POST /trainee/trainer-link`, mobile auth contract updates, and onboarding pair screens. Its Phase 5 removes the old global registration gate: `/auth/register` accepts only `email`, `password`, `role`, and `displayName`, and the only user-facing code in onboarding is the trainer invite code. Automated Phase 5 checks are complete; remaining `dostosowanie` work, if any, is manual design verification rather than a blocking auth-contract gap.
 
 The current mobile app still routes through `AuthScreen` from `apps/mobile/lib/main.dart`. Existing post-auth behavior is diagnostic or temporary, while the design file already defines product-facing role destinations: trainer dashboard, trainee detail, and trainee home. Shared-session endpoints already enforce `trainee.TrainerUserId == trainerUserId` when creating a session, so relationship data is now security-relevant and should have an explicit read surface instead of being inferred only from `/auth/me`.
 
@@ -51,10 +51,12 @@ In scope:
 - Implement the trainee home/status screen from the design at the relationship-management level: linked trainer status, unlinked prompt, and CTA to enter/claim a trainer code.
 - Preserve logout from the authenticated area.
 - Add widget tests for trainer dashboard, trainer empty state, trainee linked state, trainee unlinked state, re-pair flow, and logout.
+- Preserve Phase 5's open trainer signup posture: relationship endpoints rely on the existing `TrainerOnly` role claim, where trainer role is self-selected during signup.
 
 Out of scope:
 
 - Rebuilding auth onboarding from `dostosowanie`.
+- Reintroducing a global registration code, hidden trainer approval code, or trainer verification gate.
 - Trainer exercise sets, set assignment, workout history, progress charts, and live workout UI.
 - Invite-code expiration, revocation, multi-code management, audit trail, or admin recovery.
 - Preventing re-pair when training data already exists; the chosen MVP behavior is overwrite.
@@ -64,7 +66,7 @@ Out of scope:
 
 ## Architecture / Approach
 
-This is a vertical relationship-management slice layered on top of the auth/pairing contract. The backend keeps `ApplicationUser.TrainerUserId` as the source of truth, adds relationship-specific response DTOs, and exposes small authorized endpoints. Re-pairing updates that source of truth and marks any active shared session that still names the old trainer as `cancelled`. Mobile adds a relationship client/controller next to auth and renders post-auth role destinations with local screen state. The design file is the visual contract, but workout/progress data shown in the prototype is reduced to empty or placeholder states until later roadmap slices provide real data.
+This is a vertical relationship-management slice layered on top of the auth/pairing contract. The backend keeps `ApplicationUser.TrainerUserId` as the source of truth, adds relationship-specific response DTOs, and exposes small authorized endpoints. Re-pairing updates that source of truth and marks any active shared session that still names the old trainer as `cancelled`. Trainer relationship endpoints use the existing role boundary; they must not add a new approval or registration gate in this change. Mobile adds a relationship client/controller next to auth and renders post-auth role destinations with local screen state. The design file is the visual contract, but workout/progress data shown in the prototype is reduced to empty or placeholder states until later roadmap slices provide real data.
 
 ```mermaid
 flowchart LR
@@ -356,7 +358,7 @@ Dashboard counters from the design should either be omitted or rendered as relat
 
 ### Manual Testing Steps
 
-1. Complete or rebase on `context/changes/dostosowanie` so auth onboarding, display names, and basic pairing are stable.
+1. Rebase on `context/changes/dostosowanie` after Phase 5 so registration has no global `invitationCode`, auth onboarding uses only the trainer invite code, and `AuthController.claimTrainerInviteCode` is available.
 2. Register or log in as a trainer and confirm the post-auth destination is the trainer dashboard.
 3. Confirm the trainer dashboard shows a persistent invite code after leaving onboarding.
 4. Register or log in as a trainee with no trainer and confirm the unlinked prompt appears.
@@ -371,11 +373,11 @@ Relationship summaries are small and can be loaded on post-auth screen entry. Tr
 
 ## Migration Notes
 
-This plan assumes the `dostosowanie` migration has already added `DisplayName`, `TrainerUserId`, and `TrainerInviteCodes`. No new database table is expected. Re-pair overwrite and active-session cancellation change endpoint behavior only; they do not require schema changes. If `dostosowanie` has not landed yet, implement this plan after rebasing on that migration and contract.
+This plan assumes the `dostosowanie` migration has already added `DisplayName`, `TrainerUserId`, and `TrainerInviteCodes`, and that Phase 5 has removed the global registration invite-code gate. No new database table is expected. Re-pair overwrite and active-session cancellation change endpoint behavior only; they do not require schema changes. If `dostosowanie` has not landed yet, implement this plan after rebasing on that migration and contract.
 
 ## Rollback Notes
 
-Backend relationship read endpoints are additive. Rolling back mobile post-auth screens can return users to the temporary authenticated panel as long as auth and pairing contracts from `dostosowanie` remain. Reverting re-pair overwrite to conflict behavior may strand users who already changed trainer links, so rollback should be accompanied by a product decision on which trainer link remains authoritative. If active-session cancellation is rolled back, old-trainer access must be re-audited before deployment.
+Backend relationship read endpoints are additive. Rolling back mobile post-auth screens can return users to the temporary authenticated panel as long as auth and pairing contracts from `dostosowanie` remain. Reverting re-pair overwrite to conflict behavior may strand users who already changed trainer links, so rollback should be accompanied by a product decision on which trainer link remains authoritative. If active-session cancellation is rolled back, old-trainer access must be re-audited before deployment. Do not roll back Phase 5's registration-gate removal from this change; any trainer verification or approval flow belongs in a separate plan.
 
 ## References
 
@@ -399,9 +401,9 @@ Backend relationship read endpoints are additive. Rolling back mobile post-auth 
 
 #### Automated
 
-- [ ] 1.1 `dotnet restore LiftMate.slnx` succeeds from `apps/api`.
-- [ ] 1.2 `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api`.
-- [ ] 1.3 `dotnet test LiftMate.slnx --no-build` succeeds from `apps/api`.
+- [x] 1.1 `dotnet restore LiftMate.slnx` succeeds from `apps/api` — 866d625
+- [x] 1.2 `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api` — 866d625
+- [x] 1.3 `dotnet test LiftMate.slnx --no-build` succeeds from `apps/api` — 866d625
 
 #### Manual
 
@@ -414,10 +416,10 @@ Backend relationship read endpoints are additive. Rolling back mobile post-auth 
 
 #### Automated
 
-- [ ] 2.1 `flutter test test/relationship_api_client_test.dart` succeeds from `apps/mobile`.
-- [ ] 2.2 `flutter test test/relationship_controller_test.dart` succeeds from `apps/mobile`.
-- [ ] 2.3 `flutter test` succeeds from `apps/mobile`.
-- [ ] 2.4 `flutter analyze` succeeds from `apps/mobile`.
+- [x] 2.1 `flutter test test/relationship_api_client_test.dart` succeeds from `apps/mobile` — 22283aa
+- [x] 2.2 `flutter test test/relationship_controller_test.dart` succeeds from `apps/mobile` — 22283aa
+- [x] 2.3 `flutter test` succeeds from `apps/mobile` — 22283aa
+- [x] 2.4 `flutter analyze` succeeds from `apps/mobile` — 22283aa
 
 #### Manual
 
@@ -429,9 +431,9 @@ Backend relationship read endpoints are additive. Rolling back mobile post-auth 
 
 #### Automated
 
-- [ ] 3.1 `flutter test test/post_auth_relationship_screen_test.dart` succeeds from `apps/mobile`.
-- [ ] 3.2 `flutter test` succeeds from `apps/mobile`.
-- [ ] 3.3 `flutter analyze` succeeds from `apps/mobile`.
+- [x] 3.1 `flutter test test/post_auth_relationship_screen_test.dart` succeeds from `apps/mobile` — 6cd47ed
+- [x] 3.2 `flutter test` succeeds from `apps/mobile` — 6cd47ed
+- [x] 3.3 `flutter analyze` succeeds from `apps/mobile` — 6cd47ed
 
 #### Manual
 

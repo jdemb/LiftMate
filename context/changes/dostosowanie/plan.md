@@ -612,28 +612,28 @@ Removing the registration gate also changes access control posture: trainer acco
 
 #### Manual
 
-- [ ] 4.4 On a phone-sized viewport, auth onboarding is visibly close to the design: radial gradient background, logo mark, Space Grotesk/Manrope typography, blue CTA glow, card-style role selection, dark filled inputs, and matching button shapes.
-- [ ] 4.5 The welcome, role, signup, trainee pair, and trainer invite screens use the same primary user-facing copy as the design.
-- [ ] 4.6 Trainer signup does not show the global registration code next to personal fields.
-- [ ] 4.7 Trainee signup does not ask for a trainer invite code until the separate `Połącz się z trenerem` screen.
-- [ ] 4.8 Trainer invite code display matches the design's separate `Zaproś podopiecznego` screen.
-- [ ] 4.9 The implementation remains scrollable and readable on small phones even where the HTML prototype has imperfect screen height.
+- [x] 4.4 On a phone-sized viewport, auth onboarding is visibly close to the design: radial gradient background, logo mark, Space Grotesk/Manrope typography, blue CTA glow, card-style role selection, dark filled inputs, and matching button shapes - 7b97602.
+- [x] 4.5 The welcome, role, signup, trainee pair, and trainer invite screens use the same primary user-facing copy as the design - 7b97602.
+- [x] 4.6 Trainer signup does not show the global registration code next to personal fields - 7b97602.
+- [x] 4.7 Trainee signup does not ask for a trainer invite code until the separate `Połącz się z trenerem` screen - 7b97602.
+- [x] 4.8 Trainer invite code display matches the design's separate `Zaproś podopiecznego` screen - 7b97602.
+- [x] 4.9 The implementation remains scrollable and readable on small phones even where the HTML prototype has imperfect screen height - 7b97602.
 
 ### Phase 5: Auth Flow Correction to Match Design
 
 #### Automated
 
-- [x] 5.1 `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api`.
-- [x] 5.2 `dotnet test LiftMate.slnx --no-build` succeeds from `apps/api`.
-- [x] 5.3 `flutter test test/auth_api_client_test.dart` succeeds from `apps/mobile`.
-- [x] 5.4 `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile`.
-- [x] 5.5 `flutter test` succeeds from `apps/mobile`.
-- [x] 5.6 `flutter analyze` succeeds from `apps/mobile`.
+- [x] 5.1 `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api` - 743ffc1.
+- [x] 5.2 `dotnet test LiftMate.slnx --no-build` succeeds from `apps/api` - 743ffc1.
+- [x] 5.3 `flutter test test/auth_api_client_test.dart` succeeds from `apps/mobile` - 743ffc1.
+- [x] 5.4 `flutter test test/auth_screen_test.dart` succeeds from `apps/mobile` - 743ffc1.
+- [x] 5.5 `flutter test` succeeds from `apps/mobile` - 743ffc1.
+- [x] 5.6 `flutter analyze` succeeds from `apps/mobile` - 743ffc1.
 
 #### Manual
 
-- [ ] 5.7 Welcome screen icon, wordmark placement, headline, button color, and absence of extra body copy match `LiftMate.dc.html`.
-- [ ] 5.8 There is no `Kod dostępu` or `Kod rejestracji` screen anywhere in auth onboarding.
-- [ ] 5.9 Trainer signup with name, e-mail, and password opens `Zaproś podopiecznego` and displays the generated trainer invite code.
-- [ ] 5.10 Trainee signup with name, e-mail, and password opens `Połącz się z trenerem` and accepts the trainer invite code.
-- [ ] 5.11 The only code a user sees during onboarding is the trainer invite code used to connect trainee to trainer.
+- [x] 5.7 Welcome screen icon, wordmark placement, headline, button color, and absence of extra body copy match `LiftMate.dc.html` - 743ffc1.
+- [x] 5.8 There is no `Kod dostępu` or `Kod rejestracji` screen anywhere in auth onboarding - 743ffc1.
+- [x] 5.9 Trainer signup with name, e-mail, and password opens `Zaproś podopiecznego` and displays the generated trainer invite code - 743ffc1.
+- [x] 5.10 Trainee signup with name, e-mail, and password opens `Połącz się z trenerem` and accepts the trainer invite code - 743ffc1.
+- [x] 5.11 The only code a user sees during onboarding is the trainer invite code used to connect trainee to trainer - 743ffc1.

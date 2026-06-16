@@ -10,6 +10,7 @@ class TrainerDashboardScreen extends StatelessWidget {
     required this.user,
     required this.state,
     required this.onOpenTrainee,
+    required this.onOpenWorkoutSets,
     required this.onReload,
     required this.onLogout,
     super.key,
@@ -18,6 +19,7 @@ class TrainerDashboardScreen extends StatelessWidget {
   final AuthUser user;
   final RelationshipControllerState state;
   final ValueChanged<TrainerTraineeSummary> onOpenTrainee;
+  final VoidCallback onOpenWorkoutSets;
   final Future<void> Function() onReload;
   final Future<void> Function() onLogout;
 
@@ -88,9 +90,10 @@ class TrainerDashboardScreen extends StatelessWidget {
               label: 'Pulpit',
               active: true,
             ),
-            const RelationshipBottomNavItem(
+            RelationshipBottomNavItem(
               icon: Icons.fitness_center_rounded,
               label: 'Zestawy',
+              onTap: onOpenWorkoutSets,
             ),
             const RelationshipBottomNavItem(
               icon: Icons.play_circle_rounded,

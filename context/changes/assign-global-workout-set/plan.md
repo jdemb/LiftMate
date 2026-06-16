@@ -567,8 +567,8 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Automated
 
-- [x] 3.1 `flutter test test/workout_set_models_test.dart test/workout_set_api_client_test.dart test/workout_set_controller_test.dart` passes from `apps/mobile`
-- [x] 3.2 `flutter analyze` passes from `apps/mobile`
+- [x] 3.1 `flutter test test/workout_set_models_test.dart test/workout_set_api_client_test.dart test/workout_set_controller_test.dart` passes from `apps/mobile` - 112c365
+- [x] 3.2 `flutter analyze` passes from `apps/mobile` - 112c365
 
 #### Manual
 
@@ -579,8 +579,8 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Automated
 
-- [ ] 4.1 `flutter test test/workout_set_trainer_screens_test.dart test/post_auth_relationship_screen_test.dart` passes from `apps/mobile`
-- [ ] 4.2 `flutter analyze` passes from `apps/mobile`
+- [x] 4.1 `flutter test test/workout_set_trainer_screens_test.dart test/post_auth_relationship_screen_test.dart` passes from `apps/mobile`
+- [x] 4.2 `flutter analyze` passes from `apps/mobile`
 
 #### Manual
 

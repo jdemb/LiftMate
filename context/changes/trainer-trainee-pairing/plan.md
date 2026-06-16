@@ -431,9 +431,9 @@ Backend relationship read endpoints are additive. Rolling back mobile post-auth 
 
 #### Automated
 
-- [x] 3.1 `flutter test test/post_auth_relationship_screen_test.dart` succeeds from `apps/mobile`.
-- [x] 3.2 `flutter test` succeeds from `apps/mobile`.
-- [x] 3.3 `flutter analyze` succeeds from `apps/mobile`.
+- [x] 3.1 `flutter test test/post_auth_relationship_screen_test.dart` succeeds from `apps/mobile` — 6cd47ed
+- [x] 3.2 `flutter test` succeeds from `apps/mobile` — 6cd47ed
+- [x] 3.3 `flutter analyze` succeeds from `apps/mobile` — 6cd47ed
 
 #### Manual
 

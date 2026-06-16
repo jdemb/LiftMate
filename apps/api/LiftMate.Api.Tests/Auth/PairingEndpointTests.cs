@@ -70,11 +70,122 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
         var reassignResponse = await client.PostAsJsonAsync(
             "/trainee/trainer-link",
             new ClaimTrainerInviteCodeRequest(anotherInviteCode.Code));
+        var reassigned = await reassignResponse.Content.ReadFromJsonAsync<AuthEndpointTests.UserResponse>();
 
         Assert.Equal(HttpStatusCode.BadRequest, invalidFormatResponse.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, notFoundResponse.StatusCode);
         Assert.Equal(HttpStatusCode.OK, claimResponse.StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, reassignResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, reassignResponse.StatusCode);
+        Assert.Equal(anotherTrainer.User.Id, reassigned?.TrainerUserId);
+    }
+
+    [Fact]
+    public async Task TrainerRelationshipSummaryReturnsInviteCodeAndLinkedTrainees()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var anotherTrainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        var otherTrainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairTrainerAndTrainee(client, trainer, trainee);
+        await PairTrainerAndTrainee(client, anotherTrainer, otherTrainee);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.GetAsync("/trainer/relationship");
+        var summary = await response.Content.ReadFromJsonAsync<TrainerRelationshipSummaryResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(summary);
+        Assert.Matches(InviteCodePattern(), summary.InviteCode);
+        var linkedTrainee = Assert.Single(summary.Trainees);
+        Assert.Equal(trainee.User.Id, linkedTrainee.Id);
+        Assert.Equal(trainee.User.Email, linkedTrainee.Email);
+        Assert.Equal(trainee.User.DisplayName, linkedTrainee.DisplayName);
+    }
+
+    [Fact]
+    public async Task TrainerRelationshipSummaryReturnsEmptyListForNewTrainer()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.GetAsync("/trainer/relationship");
+        var summary = await response.Content.ReadFromJsonAsync<TrainerRelationshipSummaryResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(summary);
+        Assert.Matches(InviteCodePattern(), summary.InviteCode);
+        Assert.Empty(summary.Trainees);
+    }
+
+    [Fact]
+    public async Task TraineeRelationshipSummaryReturnsNullThenTrainerIdentity()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var unlinkedResponse = await client.GetAsync("/trainee/relationship");
+        var unlinked = await unlinkedResponse.Content.ReadFromJsonAsync<TraineeRelationshipSummaryResponse>();
+
+        await PairTrainerAndTrainee(client, trainer, trainee);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var linkedResponse = await client.GetAsync("/trainee/relationship");
+        var linked = await linkedResponse.Content.ReadFromJsonAsync<TraineeRelationshipSummaryResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, unlinkedResponse.StatusCode);
+        Assert.NotNull(unlinked);
+        Assert.Null(unlinked.Trainer);
+        Assert.Equal(HttpStatusCode.OK, linkedResponse.StatusCode);
+        Assert.NotNull(linked?.Trainer);
+        Assert.Equal(trainer.User.Id, linked.Trainer.Id);
+        Assert.Equal(trainer.User.Email, linked.Trainer.Email);
+        Assert.Equal(trainer.User.DisplayName, linked.Trainer.DisplayName);
+    }
+
+    [Fact]
+    public async Task InvalidCodeDoesNotChangeExistingTrainerLink()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairTrainerAndTrainee(client, trainer, trainee);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var response = await client.PostAsJsonAsync(
+            "/trainee/trainer-link",
+            new ClaimTrainerInviteCodeRequest("AAAAAA"));
+        var meResponse = await client.GetAsync("/auth/me");
+        var me = await meResponse.Content.ReadFromJsonAsync<AuthEndpointTests.UserResponse>();
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, meResponse.StatusCode);
+        Assert.Equal(trainer.User.Id, me?.TrainerUserId);
+    }
+
+    [Fact]
+    public async Task RelationshipEndpointsRequireMatchingRole()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+
+        var anonymousTrainerSummary = await client.GetAsync("/trainer/relationship");
+        var anonymousTraineeSummary = await client.GetAsync("/trainee/relationship");
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var trainerAsTrainee = await client.GetAsync("/trainee/relationship");
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var traineeAsTrainer = await client.GetAsync("/trainer/relationship");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymousTrainerSummary.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymousTraineeSummary.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, trainerAsTrainee.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, traineeAsTrainer.StatusCode);
     }
 
     internal static async Task PairTrainerAndTrainee(
@@ -116,4 +227,20 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
     private sealed record TrainerInviteCodeResponse(string Code);
 
     private sealed record ClaimTrainerInviteCodeRequest(string Code);
+
+    private sealed record TrainerRelationshipSummaryResponse(
+        string InviteCode,
+        IReadOnlyList<TrainerTraineeResponse> Trainees);
+
+    private sealed record TrainerTraineeResponse(
+        string Id,
+        string Email,
+        string DisplayName);
+
+    private sealed record TraineeRelationshipSummaryResponse(TraineeTrainerResponse? Trainer);
+
+    private sealed record TraineeTrainerResponse(
+        string Id,
+        string Email,
+        string DisplayName);
 }

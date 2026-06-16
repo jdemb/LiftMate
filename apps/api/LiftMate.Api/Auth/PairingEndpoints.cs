@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using LiftMate.Api.Data;
+using LiftMate.Api.SharedSessions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,13 +15,49 @@ public static class PairingEndpoints
 
     public static IEndpointRouteBuilder MapPairingEndpoints(this IEndpointRouteBuilder routes)
     {
+        routes.MapGet("/trainer/relationship", GetTrainerRelationship)
+            .RequireAuthorization("TrainerOnly");
+
         routes.MapPost("/trainer/invite-code", GenerateTrainerInviteCode)
             .RequireAuthorization("TrainerOnly");
+
+        routes.MapGet("/trainee/relationship", GetTraineeRelationship)
+            .RequireAuthorization("TraineeOnly");
 
         routes.MapPost("/trainee/trainer-link", ClaimTrainerInviteCode)
             .RequireAuthorization("TraineeOnly");
 
         return routes;
+    }
+
+    private static async Task<IResult> GetTrainerRelationship(
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var trainerUserId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (trainerUserId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var inviteCode = await GetOrCreateInviteCode(trainerUserId, dbContext, cancellationToken);
+        if (inviteCode is null)
+        {
+            return Results.Problem("Could not generate a unique invite code.");
+        }
+
+        var trainees = await dbContext.Users
+            .Where(user => user.TrainerUserId == trainerUserId && user.LiftMateRole == UserRole.Trainee)
+            .OrderBy(user => user.DisplayName)
+            .ThenBy(user => user.Email)
+            .Select(user => new TrainerTraineeResponse(
+                user.Id,
+                user.Email ?? string.Empty,
+                user.DisplayName))
+            .ToListAsync(cancellationToken);
+
+        return Results.Ok(new TrainerRelationshipSummaryResponse(inviteCode.Code, trainees));
     }
 
     private static async Task<IResult> GenerateTrainerInviteCode(
@@ -34,12 +71,52 @@ public static class PairingEndpoints
             return Results.Unauthorized();
         }
 
+        var inviteCode = await GetOrCreateInviteCode(trainerUserId, dbContext, cancellationToken);
+        return inviteCode is null
+            ? Results.Problem("Could not generate a unique invite code.")
+            : Results.Ok(new TrainerInviteCodeResponse(inviteCode.Code));
+    }
+
+    private static async Task<IResult> GetTraineeRelationship(
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var traineeUserId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (traineeUserId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var trainee = await dbContext.Users
+            .Include(user => user.TrainerUser)
+            .SingleOrDefaultAsync(user => user.Id == traineeUserId, cancellationToken);
+        if (trainee is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var trainer = trainee.TrainerUser is null
+            ? null
+            : new TraineeTrainerResponse(
+                trainee.TrainerUser.Id,
+                trainee.TrainerUser.Email ?? string.Empty,
+                trainee.TrainerUser.DisplayName);
+
+        return Results.Ok(new TraineeRelationshipSummaryResponse(trainer));
+    }
+
+    private static async Task<TrainerInviteCode?> GetOrCreateInviteCode(
+        string trainerUserId,
+        ApplicationDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
         var existing = await dbContext.TrainerInviteCodes.SingleOrDefaultAsync(
             inviteCode => inviteCode.TrainerUserId == trainerUserId,
             cancellationToken);
         if (existing is not null)
         {
-            return Results.Ok(new TrainerInviteCodeResponse(existing.Code));
+            return existing;
         }
 
         for (var attempt = 0; attempt < MaxCodeGenerationAttempts; attempt += 1)
@@ -64,10 +141,10 @@ public static class PairingEndpoints
             dbContext.TrainerInviteCodes.Add(inviteCode);
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            return Results.Ok(new TrainerInviteCodeResponse(inviteCode.Code));
+            return inviteCode;
         }
 
-        return Results.Problem("Could not generate a unique invite code.");
+        return null;
     }
 
     private static async Task<IResult> ClaimTrainerInviteCode(
@@ -75,6 +152,7 @@ public static class PairingEndpoints
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
         UserManager<ApplicationUser> userManager,
+        SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
         var traineeUserId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -102,11 +180,6 @@ public static class PairingEndpoints
             return Results.Forbid();
         }
 
-        if (trainee.TrainerUserId is not null)
-        {
-            return Results.Conflict(new { error = "Trainee is already linked to a trainer." });
-        }
-
         var inviteCode = await dbContext.TrainerInviteCodes
             .Include(value => value.TrainerUser)
             .SingleOrDefaultAsync(value => value.Code == code, cancellationToken);
@@ -125,9 +198,36 @@ public static class PairingEndpoints
             return Results.BadRequest(new { error = "A trainee cannot link to themselves." });
         }
 
+        var previousTrainerUserId = trainee.TrainerUserId;
         trainee.TrainerUserId = inviteCode.TrainerUserId;
         inviteCode.LastUsedAt = DateTimeOffset.UtcNow;
+        List<SharedSession> cancelledSessions = [];
+        if (previousTrainerUserId is not null &&
+            !string.Equals(previousTrainerUserId, inviteCode.TrainerUserId, StringComparison.Ordinal))
+        {
+            var now = DateTimeOffset.UtcNow;
+            cancelledSessions = await dbContext.SharedSessions
+                .Include(session => session.TrainerUser)
+                .Include(session => session.TraineeUser)
+                .Include(session => session.Values.OrderBy(value => value.SetIndex).ThenBy(value => value.Id))
+                .Where(session => session.TraineeUserId == trainee.Id && session.Status == SharedSessionStatus.Active)
+                .ToListAsync(cancellationToken);
+
+            foreach (var session in cancelledSessions)
+            {
+                session.Status = SharedSessionStatus.Cancelled;
+                session.Version += 1;
+                session.UpdatedAt = now;
+                session.ClosedAt = now;
+            }
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        foreach (var session in cancelledSessions)
+        {
+            await broadcaster.BroadcastUpdatedAsync(session, cancellationToken);
+        }
 
         return Results.Ok(TokenService.ToUserResponse(trainee));
     }

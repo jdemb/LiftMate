@@ -592,9 +592,9 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Automated
 
-- [x] 5.1 `dotnet test LiftMate.slnx --no-build` passes from `apps/api`
-- [x] 5.2 `flutter test` passes from `apps/mobile`
-- [x] 5.3 `flutter analyze` passes from `apps/mobile`
+- [x] 5.1 `dotnet test LiftMate.slnx --no-build` passes from `apps/api` - 7cb5eed
+- [x] 5.2 `flutter test` passes from `apps/mobile` - 7cb5eed
+- [x] 5.3 `flutter analyze` passes from `apps/mobile` - 7cb5eed
 
 #### Manual
 

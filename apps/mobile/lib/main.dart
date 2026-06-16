@@ -6,6 +6,7 @@ import 'auth/auth_controller.dart';
 import 'auth/auth_screen.dart';
 import 'auth/token_store.dart';
 import 'relationships/relationship_api_client.dart';
+import 'workout_sets/workout_set_api_client.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +14,7 @@ Future<void> main() async {
   final config = await AppConfig.load();
   final authApiClient = AuthApiClient(baseUrl: config.apiBaseUrl);
   final relationshipApiClient = RelationshipApiClient(baseUrl: config.apiBaseUrl);
+  final workoutSetApiClient = WorkoutSetApiClient(baseUrl: config.apiBaseUrl);
   runApp(
     MainApp(
       authController: AuthController(
@@ -20,6 +22,7 @@ Future<void> main() async {
         tokenStore: SecureTokenStore(),
       ),
       relationshipApiClient: relationshipApiClient,
+      workoutSetApiClient: workoutSetApiClient,
     ),
   );
 }
@@ -28,11 +31,13 @@ class MainApp extends StatelessWidget {
   const MainApp({
     required this.authController,
     required this.relationshipApiClient,
+    required this.workoutSetApiClient,
     super.key,
   });
 
   final AuthController authController;
   final RelationshipApiClient relationshipApiClient;
+  final WorkoutSetApiClient workoutSetApiClient;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +46,7 @@ class MainApp extends StatelessWidget {
       home: AuthScreen(
         authController: authController,
         relationshipApiClient: relationshipApiClient,
+        workoutSetApiClient: workoutSetApiClient,
       ),
     );
   }

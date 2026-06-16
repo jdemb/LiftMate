@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../relationships/authenticated_relationship_shell.dart';
 import '../relationships/relationship_api_client.dart';
+import '../workout_sets/workout_set_api_client.dart';
 import 'auth_controller.dart';
 import 'auth_models.dart';
 
@@ -25,11 +26,13 @@ class AuthScreen extends StatefulWidget {
   const AuthScreen({
     required this.authController,
     required this.relationshipApiClient,
+    required this.workoutSetApiClient,
     super.key,
   });
 
   final AuthController authController;
   final RelationshipApiClient relationshipApiClient;
+  final WorkoutSetApiClient workoutSetApiClient;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -225,6 +228,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     user: user,
                     authController: widget.authController,
                     relationshipApiClient: widget.relationshipApiClient,
+                    workoutSetApiClient: widget.workoutSetApiClient,
                     onLogout: _logout,
                   )
                 : SingleChildScrollView(

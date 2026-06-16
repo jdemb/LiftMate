@@ -552,11 +552,11 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Automated
 
-- [x] 2.1 `dotnet build LiftMate.slnx --no-restore` passes from `apps/api`
-- [x] 2.2 `dotnet test LiftMate.slnx --no-build` passes from `apps/api`
-- [x] 2.3 API tests prove unrelated trainers and unrelated trainees cannot read or mutate workout sets
-- [x] 2.4 API tests prove assigned trainees see latest global set rows after trainer update
-- [x] 2.5 API tests prove old-trainer assignments are not visible after trainee re-pairing
+- [x] 2.1 `dotnet build LiftMate.slnx --no-restore` passes from `apps/api` - 2d9acb8
+- [x] 2.2 `dotnet test LiftMate.slnx --no-build` passes from `apps/api` - 2d9acb8
+- [x] 2.3 API tests prove unrelated trainers and unrelated trainees cannot read or mutate workout sets - 2d9acb8
+- [x] 2.4 API tests prove assigned trainees see latest global set rows after trainer update - 2d9acb8
+- [x] 2.5 API tests prove old-trainer assignments are not visible after trainee re-pairing - 2d9acb8
 
 #### Manual
 
@@ -567,8 +567,8 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Automated
 
-- [ ] 3.1 `flutter test test/workout_set_models_test.dart test/workout_set_api_client_test.dart test/workout_set_controller_test.dart` passes from `apps/mobile`
-- [ ] 3.2 `flutter analyze` passes from `apps/mobile`
+- [x] 3.1 `flutter test test/workout_set_models_test.dart test/workout_set_api_client_test.dart test/workout_set_controller_test.dart` passes from `apps/mobile`
+- [x] 3.2 `flutter analyze` passes from `apps/mobile`
 
 #### Manual
 

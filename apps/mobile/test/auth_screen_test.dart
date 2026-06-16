@@ -9,6 +9,7 @@ import 'package:liftmate/auth/auth_controller.dart';
 import 'package:liftmate/auth/auth_screen.dart';
 import 'package:liftmate/auth/token_store.dart';
 import 'package:liftmate/relationships/relationship_api_client.dart';
+import 'package:liftmate/workout_sets/workout_set_api_client.dart';
 
 void main() {
   group('AuthScreen', () {
@@ -329,6 +330,10 @@ Widget _testApp({
         tokenStore: _InMemoryTokenStore(),
       ),
       relationshipApiClient: RelationshipApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: httpClient,
+      ),
+      workoutSetApiClient: WorkoutSetApiClient(
         baseUrl: 'https://api.example.test',
         httpClient: httpClient,
       ),

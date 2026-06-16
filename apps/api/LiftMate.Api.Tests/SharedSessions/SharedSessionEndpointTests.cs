@@ -261,6 +261,65 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         Assert.Equal(HttpStatusCode.Created, pairedTrainerResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task OldTrainerCannotAccessSessionAfterTraineeRePairs()
+    {
+        using var client = factory.CreateClient();
+        var oldTrainer = await AuthEndpointTests.Register(client, "trainer");
+        var newTrainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, oldTrainer, trainee);
+        var session = await CreateSession(client, oldTrainer, trainee);
+        var value = Assert.Single(session.Values);
+        await PairingEndpointTests.PairTrainerAndTrainee(client, newTrainer, trainee);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(oldTrainer.AccessToken);
+        var readResponse = await client.GetAsync($"/shared-sessions/{session.Id}");
+        var updateResponse = await client.PatchAsJsonAsync(
+            $"/shared-sessions/{session.Id}/values/{value.Id}",
+            new UpdateSharedSessionValueRequest(8, 45m, null));
+        var completeResponse = await client.PostAsync($"/shared-sessions/{session.Id}/complete", null);
+        var cancelResponse = await client.PostAsync($"/shared-sessions/{session.Id}/cancel", null);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var traineeRead = await client.GetAsync($"/shared-sessions/{session.Id}");
+        var cancelled = await traineeRead.Content.ReadFromJsonAsync<SharedSessionResponse>();
+
+        Assert.Equal(HttpStatusCode.Forbidden, readResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, updateResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, completeResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, cancelResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, traineeRead.StatusCode);
+        Assert.NotNull(cancelled);
+        Assert.Equal("cancelled", cancelled.Status);
+        Assert.Equal(2, cancelled.Version);
+    }
+
+    [Fact]
+    public async Task InvalidRePairAttemptDoesNotCancelSessionOrRemoveOldTrainerAccess()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var session = await CreateSession(client, trainer, trainee);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var invalidClaim = await client.PostAsJsonAsync(
+            "/trainee/trainer-link",
+            new ClaimTrainerInviteCodeRequest("AAAAAA"));
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var readResponse = await client.GetAsync($"/shared-sessions/{session.Id}");
+        var active = await readResponse.Content.ReadFromJsonAsync<SharedSessionResponse>();
+
+        Assert.Equal(HttpStatusCode.NotFound, invalidClaim.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, readResponse.StatusCode);
+        Assert.NotNull(active);
+        Assert.Equal("active", active.Status);
+        Assert.Equal(1, active.Version);
+    }
+
     private static async Task<SharedSessionResponse> CreateSession(
         HttpClient client,
         AuthEndpointTests.AuthResponse trainer,
@@ -308,6 +367,8 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         int? Reps,
         decimal? Weight,
         int? Seconds);
+
+    private sealed record ClaimTrainerInviteCodeRequest(string Code);
 
     private sealed record SharedSessionResponse(
         Guid Id,

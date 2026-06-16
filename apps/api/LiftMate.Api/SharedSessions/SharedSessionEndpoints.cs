@@ -152,6 +152,7 @@ public static class SharedSessionEndpoints
             .ToListAsync(cancellationToken);
 
         var session = sessions
+            .Where(session => SharedSessionAccess.CanAccess(session, principal, userId))
             .OrderByDescending(session => session.UpdatedAt)
             .FirstOrDefault();
 
@@ -170,7 +171,7 @@ public static class SharedSessionEndpoints
             return Results.NotFound();
         }
 
-        if (!SharedSessionAccess.IsParticipant(session, principal))
+        if (!SharedSessionAccess.CanAccess(session, principal))
         {
             return Results.Forbid();
         }
@@ -199,7 +200,7 @@ public static class SharedSessionEndpoints
             return Results.Unauthorized();
         }
 
-        if (!SharedSessionAccess.IsParticipant(session, userId))
+        if (!SharedSessionAccess.CanAccess(session, principal, userId))
         {
             return Results.Forbid();
         }
@@ -271,7 +272,7 @@ public static class SharedSessionEndpoints
             return Results.NotFound();
         }
 
-        if (!SharedSessionAccess.IsParticipant(session, principal))
+        if (!SharedSessionAccess.CanAccess(session, principal))
         {
             return Results.Forbid();
         }

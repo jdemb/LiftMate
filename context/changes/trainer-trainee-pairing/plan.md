@@ -401,9 +401,9 @@ Backend relationship read endpoints are additive. Rolling back mobile post-auth 
 
 #### Automated
 
-- [x] 1.1 `dotnet restore LiftMate.slnx` succeeds from `apps/api`.
-- [x] 1.2 `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api`.
-- [x] 1.3 `dotnet test LiftMate.slnx --no-build` succeeds from `apps/api`.
+- [x] 1.1 `dotnet restore LiftMate.slnx` succeeds from `apps/api` — 866d625
+- [x] 1.2 `dotnet build LiftMate.slnx --no-restore` succeeds from `apps/api` — 866d625
+- [x] 1.3 `dotnet test LiftMate.slnx --no-build` succeeds from `apps/api` — 866d625
 
 #### Manual
 
@@ -416,10 +416,10 @@ Backend relationship read endpoints are additive. Rolling back mobile post-auth 
 
 #### Automated
 
-- [ ] 2.1 `flutter test test/relationship_api_client_test.dart` succeeds from `apps/mobile`.
-- [ ] 2.2 `flutter test test/relationship_controller_test.dart` succeeds from `apps/mobile`.
-- [ ] 2.3 `flutter test` succeeds from `apps/mobile`.
-- [ ] 2.4 `flutter analyze` succeeds from `apps/mobile`.
+- [x] 2.1 `flutter test test/relationship_api_client_test.dart` succeeds from `apps/mobile`.
+- [x] 2.2 `flutter test test/relationship_controller_test.dart` succeeds from `apps/mobile`.
+- [x] 2.3 `flutter test` succeeds from `apps/mobile`.
+- [x] 2.4 `flutter analyze` succeeds from `apps/mobile`.
 
 #### Manual
 

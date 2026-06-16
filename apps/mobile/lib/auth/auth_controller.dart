@@ -132,8 +132,6 @@ class AuthController extends ChangeNotifier {
     final user = result.data;
     if (result.isSuccess && user != null) {
       _setState(AuthControllerState.authenticated(user));
-    } else if (!result.isSuccess) {
-      _setState(AuthControllerState.error(result.message));
     }
 
     return result;

@@ -8,6 +8,7 @@ import 'package:liftmate/auth/auth_api_client.dart';
 import 'package:liftmate/auth/auth_controller.dart';
 import 'package:liftmate/auth/auth_screen.dart';
 import 'package:liftmate/auth/token_store.dart';
+import 'package:liftmate/relationships/relationship_api_client.dart';
 
 void main() {
   group('AuthScreen', () {
@@ -81,6 +82,10 @@ void main() {
               });
               return http.Response(jsonEncode(_authResponse(role: 'trainer')), 200);
             }
+            if (request.url.path == '/trainer/relationship') {
+              expect(request.headers['Authorization'], 'Bearer access-token');
+              return http.Response('{"inviteCode":"7F2K9D","trainees":[]}', 200);
+            }
             if (request.url.path == '/auth/logout') {
               expect(request.headers['Authorization'], 'Bearer access-token');
               expect(jsonDecode(request.body), {'refreshToken': 'refresh-token'});
@@ -100,13 +105,14 @@ void main() {
 
       expect(find.text('Cześć,'), findsOneWidget);
       expect(find.text('Test Trainer'), findsOneWidget);
-      expect(find.text('trainer@example.test'), findsOneWidget);
-      expect(find.text('Rola: Trener'), findsOneWidget);
+      expect(find.text('Twój kod zaproszenia'), findsOneWidget);
+      expect(find.text('Zaproś podopiecznego'), findsOneWidget);
+      expect(find.text('Tymczasowy panel'), findsNothing);
 
       await _tapButton(tester, 'Wyloguj');
 
       expect(find.text('Załóż konto'), findsOneWidget);
-      expect(seenPaths, ['/auth/login', '/auth/logout']);
+      expect(seenPaths, ['/auth/login', '/trainer/relationship', '/auth/logout']);
     });
 
     testWidgets('trainee signup opens trainer-code pairing without access-code gate',
@@ -212,6 +218,19 @@ void main() {
                 200,
               );
             }
+            if (request.url.path == '/trainee/relationship') {
+              expect(request.headers['Authorization'], 'Bearer access-token');
+              return http.Response(
+                jsonEncode({
+                  'trainer': {
+                    'id': 'trainer-1',
+                    'email': 'trainer@example.test',
+                    'displayName': 'Test Trainer',
+                  },
+                }),
+                200,
+              );
+            }
 
             fail('Unexpected request: ${request.method} ${request.url}');
           }),
@@ -228,8 +247,9 @@ void main() {
 
       expect(find.text('Cześć,'), findsOneWidget);
       expect(find.text('Test Trainee'), findsOneWidget);
-      expect(find.text('Trener: trainer-1'), findsOneWidget);
-      expect(seenPaths, ['/auth/register', '/trainee/trainer-link']);
+      expect(find.text('TWÓJ TRENER'), findsOneWidget);
+      expect(find.text('Test Trainer'), findsOneWidget);
+      expect(seenPaths, ['/auth/register', '/trainee/trainer-link', '/trainee/relationship']);
     });
 
     testWidgets('shows API error without exposing password',
@@ -307,6 +327,10 @@ Widget _testApp({
       authController: AuthController(
         authApiClient: authApiClient,
         tokenStore: _InMemoryTokenStore(),
+      ),
+      relationshipApiClient: RelationshipApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: httpClient,
       ),
     ),
   );

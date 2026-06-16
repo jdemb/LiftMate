@@ -215,10 +215,14 @@ class WorkoutSetController extends ChangeNotifier {
       workoutSetId: workoutSetId,
       traineeUserId: traineeUserId,
     );
+    if (result.isSuccess) {
+      await loadTrainerDetail(workoutSetId);
+      return result;
+    }
+
     _setState(_state.copyWith(
-      status: result.isSuccess ? WorkoutSetControllerStatus.loaded : WorkoutSetControllerStatus.error,
-      message: result.isSuccess ? null : result.message,
-      clearMessage: result.isSuccess,
+      status: WorkoutSetControllerStatus.error,
+      message: result.message,
     ));
     return result;
   }

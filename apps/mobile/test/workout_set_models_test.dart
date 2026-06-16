@@ -1,0 +1,137 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:liftmate/shared_sessions/shared_session_models.dart';
+import 'package:liftmate/workout_sets/workout_set_models.dart';
+
+void main() {
+  group('Workout set models', () {
+    test('parse detail orders and exercise type wire names strictly', () {
+      final detail = WorkoutSetDetail.fromJson(_detailJson());
+
+      expect(detail.id, 'set-1');
+      expect(detail.rows.map((row) => row.exerciseType), [
+        ExerciseValueType.repsWeight,
+        ExerciseValueType.repsOnly,
+        ExerciseValueType.time,
+      ]);
+      expect(detail.assignments.single.traineeDisplayName, 'Anna Nowak');
+      expect(detail.updatedAt, DateTime.parse('2026-06-16T12:05:00Z').toUtc());
+    });
+
+    test('rejects invalid exercise type', () {
+      final json = _detailJson();
+      final rows = json['rows']! as List<Map<String, Object?>>;
+      rows[0] = {...rows[0], 'exerciseType': 'distance'};
+
+      expect(
+        () => WorkoutSetDetail.fromJson(json),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('request JSON uses shared exercise type wire names', () {
+      const row = WorkoutSetRowRequest(
+        exerciseOrder: 1,
+        setIndex: 1,
+        exerciseName: 'Bench press',
+        exerciseType: ExerciseValueType.repsWeight,
+        reps: 6,
+        weight: 40,
+      );
+      const request = CreateWorkoutSetRequest(name: 'Push A', rows: [row]);
+
+      expect(ExerciseValueType.repsWeight.wireName, 'repsWeight');
+      expect(ExerciseValueType.repsOnly.wireName, 'repsOnly');
+      expect(ExerciseValueType.time.wireName, 'time');
+      expect(request.toJson(), {
+        'name': 'Push A',
+        'rows': [
+          {
+            'exerciseOrder': 1,
+            'setIndex': 1,
+            'exerciseName': 'Bench press',
+            'exerciseType': 'repsWeight',
+            'reps': 6,
+            'weight': 40.0,
+            'seconds': null,
+          },
+        ],
+      });
+    });
+
+    test('parses trainee assigned workout set response', () {
+      final assigned = TraineeAssignedWorkoutSet.fromJson(_traineeAssignedJson());
+
+      expect(assigned.id, 'set-1');
+      expect(assigned.trainerDisplayName, 'Test Trainer');
+      expect(assigned.rows.map((row) => row.exerciseName), [
+        'Bench press',
+        'Pull up',
+        'Plank',
+      ]);
+    });
+  });
+}
+
+Map<String, Object?> _detailJson() {
+  return {
+    'id': 'set-1',
+    'name': 'Full body A',
+    'createdAt': '2026-06-16T12:00:00Z',
+    'updatedAt': '2026-06-16T12:05:00Z',
+    'rows': _rowsJson(),
+    'assignments': [
+      {
+        'traineeUserId': 'trainee-1',
+        'traineeEmail': 'anna@example.test',
+        'traineeDisplayName': 'Anna Nowak',
+        'assignedAt': '2026-06-16T12:10:00Z',
+      },
+    ],
+  };
+}
+
+Map<String, Object?> _traineeAssignedJson() {
+  return {
+    'id': 'set-1',
+    'name': 'Full body A',
+    'trainerDisplayName': 'Test Trainer',
+    'rows': _rowsJson(),
+    'assignedAt': '2026-06-16T12:10:00Z',
+    'updatedAt': '2026-06-16T12:05:00Z',
+  };
+}
+
+List<Map<String, Object?>> _rowsJson() {
+  return [
+    {
+      'id': 'row-1',
+      'exerciseOrder': 1,
+      'setIndex': 1,
+      'exerciseName': 'Bench press',
+      'exerciseType': 'repsWeight',
+      'reps': 6,
+      'weight': 40.0,
+      'seconds': null,
+    },
+    {
+      'id': 'row-2',
+      'exerciseOrder': 2,
+      'setIndex': 1,
+      'exerciseName': 'Pull up',
+      'exerciseType': 'repsOnly',
+      'reps': 8,
+      'weight': null,
+      'seconds': null,
+    },
+    {
+      'id': 'row-3',
+      'exerciseOrder': 3,
+      'setIndex': 1,
+      'exerciseName': 'Plank',
+      'exerciseType': 'time',
+      'reps': null,
+      'weight': null,
+      'seconds': 60,
+    },
+  ];
+}

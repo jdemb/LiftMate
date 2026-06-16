@@ -9,6 +9,7 @@ import 'package:liftmate/auth/auth_controller.dart';
 import 'package:liftmate/auth/auth_screen.dart';
 import 'package:liftmate/auth/token_store.dart';
 import 'package:liftmate/relationships/relationship_api_client.dart';
+import 'package:liftmate/workout_sets/workout_set_api_client.dart';
 
 void main() {
   group('AuthScreen', () {
@@ -231,6 +232,10 @@ void main() {
                 200,
               );
             }
+            if (request.url.path == '/trainee/workout-sets') {
+              expect(request.headers['Authorization'], 'Bearer access-token');
+              return http.Response('[]', 200);
+            }
 
             fail('Unexpected request: ${request.method} ${request.url}');
           }),
@@ -249,7 +254,12 @@ void main() {
       expect(find.text('Test Trainee'), findsOneWidget);
       expect(find.text('TWÓJ TRENER'), findsOneWidget);
       expect(find.text('Test Trainer'), findsOneWidget);
-      expect(seenPaths, ['/auth/register', '/trainee/trainer-link', '/trainee/relationship']);
+      expect(seenPaths, [
+        '/auth/register',
+        '/trainee/trainer-link',
+        '/trainee/relationship',
+        '/trainee/workout-sets',
+      ]);
     });
 
     testWidgets('shows API error without exposing password',
@@ -329,6 +339,10 @@ Widget _testApp({
         tokenStore: _InMemoryTokenStore(),
       ),
       relationshipApiClient: RelationshipApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: httpClient,
+      ),
+      workoutSetApiClient: WorkoutSetApiClient(
         baseUrl: 'https://api.example.test',
         httpClient: httpClient,
       ),

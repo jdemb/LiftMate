@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../workout_sets/workout_set_models.dart';
 import 'relationship_models.dart';
 import 'relationship_screen_styles.dart';
 
@@ -8,12 +9,16 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
     required this.trainee,
     required this.onBack,
     required this.onLogout,
+    this.assignedSets = const [],
+    this.onUnassign,
     super.key,
   });
 
   final TrainerTraineeSummary trainee;
   final VoidCallback onBack;
   final Future<void> Function() onLogout;
+  final List<WorkoutSetDetail> assignedSets;
+  final void Function(WorkoutSetDetail set)? onUnassign;
 
   @override
   Widget build(BuildContext context) {
@@ -86,28 +91,35 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              const RelationshipSectionLabel('Przypisany zestaw'),
+              const RelationshipSectionLabel('Przypisane zestawy'),
               const SizedBox(height: 12),
-              const RelationshipCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Brak przypisanego zestawu',
-                      style: TextStyle(
-                        fontFamily: 'Space Grotesk',
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+              if (assignedSets.isEmpty)
+                const RelationshipCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Brak przypisanego zestawu',
+                        style: TextStyle(
+                          fontFamily: 'Space Grotesk',
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Zestawy treningowe pojawią się tutaj w kolejnych etapach produktu.',
-                      style: TextStyle(color: lmMuted, height: 1.45),
-                    ),
-                  ],
-                ),
-              ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Zestawy treningowe pojawią się tutaj po przypisaniu przez trenera.',
+                        style: TextStyle(color: lmMuted, height: 1.45),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                for (final set in assignedSets)
+                  _AssignedSetCard(
+                    set: set,
+                    onUnassign: onUnassign == null ? null : () => onUnassign!(set),
+                  ),
             ],
           ),
         ),
@@ -133,6 +145,51 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _AssignedSetCard extends StatelessWidget {
+  const _AssignedSetCard({
+    required this.set,
+    required this.onUnassign,
+  });
+
+  final WorkoutSetDetail set;
+  final VoidCallback? onUnassign;
+
+  @override
+  Widget build(BuildContext context) {
+    return RelationshipCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            set.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontFamily: 'Space Grotesk',
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${set.rows.map((row) => row.exerciseOrder).toSet().length} ćwiczeń · ${set.rows.length} serii',
+            style: const TextStyle(color: lmMuted, fontSize: 13),
+          ),
+          if (onUnassign != null) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: onUnassign,
+              icon: const Icon(Icons.link_off_rounded),
+              label: const Text('Odepnij zestaw'),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

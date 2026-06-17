@@ -53,6 +53,8 @@ class _AuthenticatedRelationshipShellState
   _TrainerView _trainerView = _TrainerView.dashboard;
   WorkoutSetDetail? _builderDetail;
   String? _loadedTraineeWorkoutSetsForUserId;
+  String? _loadedTraineeActiveSessionForUserId;
+  bool _showTraineeLive = false;
 
   @override
   void initState() {
@@ -83,6 +85,8 @@ class _AuthenticatedRelationshipShellState
       _trainerView = _TrainerView.dashboard;
       _builderDetail = null;
       _loadedTraineeWorkoutSetsForUserId = null;
+      _loadedTraineeActiveSessionForUserId = null;
+      _showTraineeLive = false;
       _relationshipController.loadForUser(widget.user);
     }
   }
@@ -189,12 +193,34 @@ class _AuthenticatedRelationshipShellState
         }
 
         final traineeTrainer = state.traineeSummary?.trainer;
+        if (_showTraineeLive) {
+          final session = _sharedSessionController.state.session;
+          return LiveSessionScreen(
+            user: widget.user,
+            controller: _sharedSessionController,
+            editable: session?.isTraineeSelfStarted ?? false,
+            onBack: () {
+              setState(() => _showTraineeLive = false);
+              _relationshipController.reload();
+            },
+          );
+        }
+
         if (traineeTrainer != null &&
             _loadedTraineeWorkoutSetsForUserId != widget.user.id) {
           _loadedTraineeWorkoutSetsForUserId = widget.user.id;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
               _workoutSetController.loadForUser(widget.user);
+            }
+          });
+        }
+        if (traineeTrainer != null &&
+            _loadedTraineeActiveSessionForUserId != widget.user.id) {
+          _loadedTraineeActiveSessionForUserId = widget.user.id;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _sharedSessionController.loadActive(widget.user);
             }
           });
         }
@@ -206,6 +232,10 @@ class _AuthenticatedRelationshipShellState
           onReload: _relationshipController.reload,
           onLogout: widget.onLogout,
           workoutSetController: traineeTrainer == null ? null : _workoutSetController,
+          sharedSessionController:
+              traineeTrainer == null ? null : _sharedSessionController,
+          onStartWorkout: _startTraineeSession,
+          onJoinActiveWorkout: _joinTraineeActiveSession,
         );
       },
     );
@@ -275,6 +305,33 @@ class _AuthenticatedRelationshipShellState
       return;
     }
     setState(() => _trainerView = _TrainerView.live);
+  }
+
+  Future<void> _startTraineeSession(TraineeAssignedWorkoutSet set) async {
+    await _sharedSessionController.startTraineeSession(
+      user: widget.user,
+      workoutSetId: set.id,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() => _showTraineeLive = true);
+  }
+
+  Future<void> _joinTraineeActiveSession() async {
+    final activeSession = _sharedSessionController.state.session;
+    if (activeSession == null) {
+      await _sharedSessionController.loadActive(widget.user);
+    } else {
+      await _sharedSessionController.loadById(
+        user: widget.user,
+        sessionId: activeSession.id,
+      );
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() => _showTraineeLive = true);
   }
 }
 

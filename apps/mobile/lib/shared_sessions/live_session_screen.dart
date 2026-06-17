@@ -66,35 +66,39 @@ class LiveSessionScreen extends StatelessWidget {
                       ),
                     )
                   else ...[
-                    _SessionHeader(session: session, editable: editable),
-                    const SizedBox(height: 18),
-                    for (final group in _groupValues(session.values))
-                      _ExerciseGroup(
-                        user: user,
-                        controller: controller,
-                        group: group,
-                        editable: editable,
+                    if (!editable)
+                      _ReadOnlyLivePanel(session: session)
+                    else ...[
+                      _SessionHeader(session: session, editable: editable),
+                      const SizedBox(height: 18),
+                      for (final group in _groupValues(session.values))
+                        _ExerciseGroup(
+                          user: user,
+                          controller: controller,
+                          group: group,
+                          editable: editable,
+                        ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => controller.cancel(user),
+                              icon: const Icon(Icons.close_rounded),
+                              label: const Text('Anuluj'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: () => controller.complete(user),
+                              icon: const Icon(Icons.check_rounded),
+                              label: const Text('ZakoÅ„cz'),
+                            ),
+                          ),
+                        ],
                       ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => controller.cancel(user),
-                            icon: const Icon(Icons.close_rounded),
-                            label: const Text('Anuluj'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () => controller.complete(user),
-                            icon: const Icon(Icons.check_rounded),
-                            label: const Text('ZakoÅ„cz'),
-                          ),
-                        ),
-                      ],
-                    ),
+                    ],
                   ],
                 ],
               ),
@@ -102,6 +106,62 @@ class LiveSessionScreen extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _ReadOnlyLivePanel extends StatelessWidget {
+  const _ReadOnlyLivePanel({required this.session});
+
+  final SharedSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = session.values.first;
+    final completed = session.values.where((value) => value.isDone).length;
+    return RelationshipCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Text(
+            'Aktualne Ä‡wiczenie',
+            style: TextStyle(color: lmMuted, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            current.exerciseName,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Space Grotesk',
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 22),
+          Text(
+            _SetRow._valueLabel(current),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'Space Grotesk',
+              fontSize: 44,
+              fontWeight: FontWeight.w800,
+              color: lmBlueSoft,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            '$completed/${session.values.length} serii wykonanych',
+            style: const TextStyle(color: lmMuted),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'WartoÅ›ci aktualizujÄ… siÄ™ na Å¼ywo - nic nie musisz wpisywaÄ‡.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: lmMuted, height: 1.45),
+          ),
+        ],
+      ),
     );
   }
 }

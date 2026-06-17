@@ -6,6 +6,8 @@ import 'auth/auth_controller.dart';
 import 'auth/auth_screen.dart';
 import 'auth/token_store.dart';
 import 'relationships/relationship_api_client.dart';
+import 'shared_sessions/shared_session_api_client.dart';
+import 'shared_sessions/shared_session_realtime_client.dart';
 import 'workout_sets/workout_set_api_client.dart';
 
 Future<void> main() async {
@@ -15,6 +17,7 @@ Future<void> main() async {
   final authApiClient = AuthApiClient(baseUrl: config.apiBaseUrl);
   final relationshipApiClient = RelationshipApiClient(baseUrl: config.apiBaseUrl);
   final workoutSetApiClient = WorkoutSetApiClient(baseUrl: config.apiBaseUrl);
+  final sharedSessionApiClient = SharedSessionApiClient(baseUrl: config.apiBaseUrl);
   runApp(
     MainApp(
       authController: AuthController(
@@ -23,6 +26,10 @@ Future<void> main() async {
       ),
       relationshipApiClient: relationshipApiClient,
       workoutSetApiClient: workoutSetApiClient,
+      sharedSessionApiClient: sharedSessionApiClient,
+      sharedSessionRealtimeClientFactory: () {
+        return SignalRSharedSessionRealtimeClient(baseUrl: config.apiBaseUrl);
+      },
     ),
   );
 }
@@ -32,12 +39,16 @@ class MainApp extends StatelessWidget {
     required this.authController,
     required this.relationshipApiClient,
     required this.workoutSetApiClient,
+    required this.sharedSessionApiClient,
+    required this.sharedSessionRealtimeClientFactory,
     super.key,
   });
 
   final AuthController authController;
   final RelationshipApiClient relationshipApiClient;
   final WorkoutSetApiClient workoutSetApiClient;
+  final SharedSessionApiClient sharedSessionApiClient;
+  final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +58,8 @@ class MainApp extends StatelessWidget {
         authController: authController,
         relationshipApiClient: relationshipApiClient,
         workoutSetApiClient: workoutSetApiClient,
+        sharedSessionApiClient: sharedSessionApiClient,
+        sharedSessionRealtimeClientFactory: sharedSessionRealtimeClientFactory,
       ),
     );
   }

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_controller.dart';
 import '../auth/auth_models.dart';
+import '../shared_sessions/shared_session_api_client.dart';
+import '../shared_sessions/shared_session_controller.dart';
+import '../shared_sessions/shared_session_realtime_client.dart';
 import '../workout_sets/assign_workout_set_screen.dart';
 import '../workout_sets/workout_set_api_client.dart';
 import '../workout_sets/workout_set_builder_screen.dart';
@@ -21,6 +24,8 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
     required this.authController,
     required this.relationshipApiClient,
     required this.workoutSetApiClient,
+    required this.sharedSessionApiClient,
+    required this.sharedSessionRealtimeClientFactory,
     required this.onLogout,
     super.key,
   });
@@ -29,6 +34,8 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
   final AuthController authController;
   final RelationshipApiClient relationshipApiClient;
   final WorkoutSetApiClient workoutSetApiClient;
+  final SharedSessionApiClient sharedSessionApiClient;
+  final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
   final Future<void> Function() onLogout;
 
   @override
@@ -40,6 +47,7 @@ class _AuthenticatedRelationshipShellState
     extends State<AuthenticatedRelationshipShell> {
   late final RelationshipController _relationshipController;
   late final WorkoutSetController _workoutSetController;
+  late final SharedSessionController _sharedSessionController;
   TrainerTraineeSummary? _selectedTrainee;
   _TrainerView _trainerView = _TrainerView.dashboard;
   WorkoutSetDetail? _builderDetail;
@@ -55,6 +63,12 @@ class _AuthenticatedRelationshipShellState
     _workoutSetController = WorkoutSetController(
       workoutSetApiClient: widget.workoutSetApiClient,
       authController: widget.authController,
+    );
+    _sharedSessionController = SharedSessionController(
+      apiClient: widget.sharedSessionApiClient,
+      authController: widget.authController,
+      realtimeClientFactory: widget.sharedSessionRealtimeClientFactory,
+      onTrainerSessionInvalidated: _relationshipController.reload,
     );
     _relationshipController.loadForUser(widget.user);
   }
@@ -76,6 +90,7 @@ class _AuthenticatedRelationshipShellState
   void dispose() {
     _relationshipController.dispose();
     _workoutSetController.dispose();
+    _sharedSessionController.dispose();
     super.dispose();
   }
 

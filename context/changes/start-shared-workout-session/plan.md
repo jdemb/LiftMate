@@ -599,11 +599,11 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [x] 2.1 API tests prove trainer relationship summary includes active-session state for linked trainees
-- [x] 2.2 API tests prove self-start sessions are joinable by the linked trainer
-- [x] 2.3 API tests prove unrelated trainers cannot see or join active sessions
-- [x] 2.4 API/SignalR tests prove trainee self-start emits `sessionStarted` to the linked trainer
-- [x] 2.5 `dotnet test LiftMate.slnx --no-build` passes after build
+- [x] 2.1 API tests prove trainer relationship summary includes active-session state for linked trainees — 58da0e3
+- [x] 2.2 API tests prove self-start sessions are joinable by the linked trainer — 58da0e3
+- [x] 2.3 API tests prove unrelated trainers cannot see or join active sessions — 58da0e3
+- [x] 2.4 API/SignalR tests prove trainee self-start emits `sessionStarted` to the linked trainer — 58da0e3
+- [x] 2.5 `dotnet test LiftMate.slnx --no-build` passes after build — 58da0e3
 
 #### Manual
 
@@ -613,12 +613,12 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [ ] 3.1 Shared-session model tests cover new origin and grouping fields
-- [ ] 3.2 Shared-session API client tests cover trainer and trainee start-from-set requests
-- [ ] 3.3 Controller tests cover self-start, trainer-led join, active-session fetch, and reconnect recovery
-- [ ] 3.4 Controller tests cover done-state toggles and trainer relationship refresh after trainee self-start events
-- [ ] 3.5 `flutter test` passes
-- [ ] 3.6 `flutter analyze` passes
+- [x] 3.1 Shared-session model tests cover new origin and grouping fields
+- [x] 3.2 Shared-session API client tests cover trainer and trainee start-from-set requests
+- [x] 3.3 Controller tests cover self-start, trainer-led join, active-session fetch, and reconnect recovery
+- [x] 3.4 Controller tests cover done-state toggles and trainer relationship refresh after trainee self-start events
+- [x] 3.5 `flutter test` passes
+- [x] 3.6 `flutter analyze` passes
 
 #### Manual
 

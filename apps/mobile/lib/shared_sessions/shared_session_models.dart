@@ -46,6 +46,29 @@ enum ExerciseValueType {
   }
 }
 
+enum SharedSessionStartRole {
+  trainer('trainer'),
+  trainee('trainee');
+
+  const SharedSessionStartRole(this.wireName);
+
+  final String wireName;
+
+  static SharedSessionStartRole? tryParse(Object? value) {
+    if (value is! String) {
+      return null;
+    }
+
+    for (final role in SharedSessionStartRole.values) {
+      if (role.wireName == value) {
+        return role;
+      }
+    }
+
+    return null;
+  }
+}
+
 class SharedSession {
   const SharedSession({
     required this.id,
@@ -59,6 +82,9 @@ class SharedSession {
     required this.updatedAt,
     required this.values,
     this.closedAt,
+    this.workoutSetId,
+    this.startedByUserId = '',
+    this.startedByRole = SharedSessionStartRole.trainer,
   });
 
   final String id;
@@ -66,6 +92,9 @@ class SharedSession {
   final String traineeUserId;
   final String trainerEmail;
   final String traineeEmail;
+  final String? workoutSetId;
+  final String startedByUserId;
+  final SharedSessionStartRole startedByRole;
   final SharedSessionStatus status;
   final int version;
   final DateTime createdAt;
@@ -73,12 +102,19 @@ class SharedSession {
   final DateTime? closedAt;
   final List<SharedSessionValue> values;
 
+  bool get isTrainerLed => startedByRole == SharedSessionStartRole.trainer;
+
+  bool get isTraineeSelfStarted => startedByRole == SharedSessionStartRole.trainee;
+
   factory SharedSession.fromJson(Map<String, dynamic> json) {
     final id = json['id'];
     final trainerUserId = json['trainerUserId'];
     final traineeUserId = json['traineeUserId'];
     final trainerEmail = json['trainerEmail'];
     final traineeEmail = json['traineeEmail'];
+    final workoutSetId = json['workoutSetId'];
+    final startedByUserId = json['startedByUserId'];
+    final startedByRole = SharedSessionStartRole.tryParse(json['startedByRole']);
     final status = SharedSessionStatus.tryParse(json['status']);
     final version = json['version'];
     final createdAt = json['createdAt'];
@@ -91,6 +127,9 @@ class SharedSession {
         traineeUserId is! String ||
         trainerEmail is! String ||
         traineeEmail is! String ||
+        (workoutSetId != null && workoutSetId is! String) ||
+        startedByUserId is! String ||
+        startedByRole == null ||
         status == null ||
         version is! int ||
         createdAt is! String ||
@@ -106,6 +145,9 @@ class SharedSession {
       traineeUserId: traineeUserId,
       trainerEmail: trainerEmail,
       traineeEmail: traineeEmail,
+      workoutSetId: workoutSetId,
+      startedByUserId: startedByUserId,
+      startedByRole: startedByRole,
       status: status,
       version: version,
       createdAt: DateTime.parse(createdAt).toUtc(),
@@ -129,9 +171,12 @@ class SharedSessionValue {
     required this.exerciseName,
     required this.exerciseType,
     required this.setIndex,
+    this.exerciseOrder = 1,
     this.reps,
     this.weight,
     this.seconds,
+    this.isDone = false,
+    this.completedAt,
     this.updatedByUserId,
     this.updatedAt,
   });
@@ -139,10 +184,13 @@ class SharedSessionValue {
   final String id;
   final String exerciseName;
   final ExerciseValueType exerciseType;
+  final int exerciseOrder;
   final int setIndex;
   final int? reps;
   final double? weight;
   final int? seconds;
+  final bool isDone;
+  final DateTime? completedAt;
   final String? updatedByUserId;
   final DateTime? updatedAt;
 
@@ -150,20 +198,26 @@ class SharedSessionValue {
     final id = json['id'];
     final exerciseName = json['exerciseName'];
     final exerciseType = ExerciseValueType.tryParse(json['exerciseType']);
+    final exerciseOrder = json['exerciseOrder'];
     final setIndex = json['setIndex'];
     final reps = json['reps'];
     final weight = json['weight'];
     final seconds = json['seconds'];
+    final isDone = json['isDone'];
+    final completedAt = json['completedAt'];
     final updatedByUserId = json['updatedByUserId'];
     final updatedAt = json['updatedAt'];
 
     if (id is! String ||
         exerciseName is! String ||
         exerciseType == null ||
+        exerciseOrder is! int ||
         setIndex is! int ||
         (reps != null && reps is! int) ||
         (weight != null && weight is! num) ||
         (seconds != null && seconds is! int) ||
+        isDone is! bool ||
+        (completedAt != null && completedAt is! String) ||
         (updatedByUserId != null && updatedByUserId is! String) ||
         (updatedAt != null && updatedAt is! String)) {
       throw const FormatException('Invalid shared session value response body.');
@@ -173,10 +227,13 @@ class SharedSessionValue {
       id: id,
       exerciseName: exerciseName,
       exerciseType: exerciseType,
+      exerciseOrder: exerciseOrder,
       setIndex: setIndex,
       reps: reps,
       weight: weight?.toDouble(),
       seconds: seconds,
+      isDone: isDone,
+      completedAt: completedAt == null ? null : DateTime.parse(completedAt).toUtc(),
       updatedByUserId: updatedByUserId,
       updatedAt: updatedAt == null ? null : DateTime.parse(updatedAt).toUtc(),
     );
@@ -217,17 +274,20 @@ class UpdateSharedSessionValue {
     this.reps,
     this.weight,
     this.seconds,
+    this.isDone,
   });
 
   final int? reps;
   final double? weight;
   final int? seconds;
+  final bool? isDone;
 
   Map<String, Object?> toJson() {
     return {
       'reps': reps,
       'weight': weight,
       'seconds': seconds,
+      'isDone': isDone,
     };
   }
 }

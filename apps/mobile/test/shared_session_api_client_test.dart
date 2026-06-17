@@ -64,6 +64,7 @@ void main() {
               'reps': 8,
               'weight': 42.5,
               'seconds': null,
+              'isDone': true,
             });
           }
 
@@ -77,7 +78,7 @@ void main() {
         accessToken: 'access-token',
         sessionId: 'session-1',
         valueId: 'value-1',
-        value: const UpdateSharedSessionValue(reps: 8, weight: 42.5),
+        value: const UpdateSharedSessionValue(reps: 8, weight: 42.5, isDone: true),
       );
       await client.complete(accessToken: 'access-token', sessionId: 'session-1');
       await client.cancel(accessToken: 'access-token', sessionId: 'session-1');
@@ -111,6 +112,32 @@ void main() {
       expect(result.message, isNot(contains('secret-access-token')));
     });
 
+    test('startFromWorkoutSet sends production start payload', () async {
+      final client = SharedSessionApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(request.url.path, '/shared-sessions/from-workout-set');
+          expect(request.headers['Authorization'], 'Bearer access-token');
+          expect(jsonDecode(request.body), {
+            'workoutSetId': 'set-1',
+            'traineeUserId': 'trainee-1',
+          });
+
+          return http.Response(jsonEncode(_sessionJson()), 201);
+        }),
+      );
+
+      final result = await client.startTrainerSession(
+        accessToken: 'access-token',
+        workoutSetId: 'set-1',
+        traineeUserId: 'trainee-1',
+      );
+
+      expect(result.status, SharedSessionApiStatus.success);
+      expect(result.data?.workoutSetId, 'set-1');
+    });
+
     test('returns error when API base URL is missing', () async {
       final client = SharedSessionApiClient(
         baseUrl: '',
@@ -137,6 +164,9 @@ Map<String, Object?> _sessionJson() {
     'traineeUserId': 'trainee-1',
     'trainerEmail': 'trainer@example.test',
     'traineeEmail': 'trainee@example.test',
+    'workoutSetId': 'set-1',
+    'startedByUserId': 'trainer-1',
+    'startedByRole': 'trainer',
     'status': 'active',
     'version': 1,
     'createdAt': '2026-06-03T12:00:00Z',
@@ -147,10 +177,13 @@ Map<String, Object?> _sessionJson() {
         'id': 'value-1',
         'exerciseName': 'Bench press',
         'exerciseType': 'repsWeight',
+        'exerciseOrder': 1,
         'setIndex': 1,
         'reps': 6,
         'weight': 40.0,
         'seconds': null,
+        'isDone': false,
+        'completedAt': null,
         'updatedByUserId': null,
         'updatedAt': null,
       },

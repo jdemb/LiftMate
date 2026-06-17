@@ -96,12 +96,12 @@ class _AssignWorkoutSetScreenState extends State<AssignWorkoutSetScreen> {
             ),
             _BottomAction(
               label: state.status == WorkoutSetControllerStatus.saving
-                  ? 'Przypisywanie...'
-                  : 'Przypisz (${_selected.length})',
+                  ? 'Zapisywanie...'
+                  : 'Zapisz (${_selected.length})',
               onPressed: state.status == WorkoutSetControllerStatus.saving
                   ? null
                   : () async {
-                      final result = await widget.controller.assign(
+                      final result = await widget.controller.syncAssignments(
                         widget.workoutSet.id,
                         _selected.toList(growable: false),
                       );

@@ -218,60 +218,72 @@ class _AuthScreenState extends State<AuthScreen> {
     final isAuthenticated =
         state.status == AuthControllerStatus.authenticated && user != null;
 
+    if (isAuthenticated && _pendingPairRole == null) {
+      return Scaffold(
+        body: ColoredBox(
+          color: _lmBg,
+          child: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 430),
+                child: AuthenticatedRelationshipShell(
+                  user: user,
+                  authController: widget.authController,
+                  relationshipApiClient: widget.relationshipApiClient,
+                  workoutSetApiClient: widget.workoutSetApiClient,
+                  onLogout: _logout,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: _GradientScaffold(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 430),
-            child: isAuthenticated && _pendingPairRole == null
-                ? AuthenticatedRelationshipShell(
-                    user: user,
-                    authController: widget.authController,
-                    relationshipApiClient: widget.relationshipApiClient,
-                    workoutSetApiClient: widget.workoutSetApiClient,
-                    onLogout: _logout,
-                  )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(28, 40, 28, 32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (user != null && _pendingPairRole != null)
-                          _PairingPanel(
-                            role: _pendingPairRole!,
-                            trainerInviteCode: _trainerInviteCode,
-                            trainerCodeController: _trainerCodeController,
-                            isLoading: _isPairing,
-                            errorMessage: _pairingError,
-                            onRetryTrainerCode: _generateTrainerCode,
-                            onClaimTrainerCode: _claimTrainerCode,
-                            onContinue: _finishPairing,
-                            onTrainerCodeChanged: () => setState(() {}),
-                          )
-                        else
-                          _OnboardingPanel(
-                            step: _step,
-                            selectedRole: _selectedRole,
-                            isLoading: isLoading,
-                            errorMessage: errorMessage,
-                            loginFormKey: _loginFormKey,
-                            signupFormKey: _signupFormKey,
-                            emailController: _emailController,
-                            passwordController: _passwordController,
-                            displayNameController: _displayNameController,
-                            onShowLogin: () =>
-                                setState(() => _step = _AuthStep.login),
-                            onShowRoleSelection: () =>
-                                setState(() => _step = _AuthStep.role),
-                            onBack: _backToWelcome,
-                            onRoleSelected: _selectRole,
-                            onContinueRole: _continueToSignup,
-                            onLogin: _login,
-                            onRegister: _register,
-                          ),
-                      ],
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(28, 40, 28, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (user != null && _pendingPairRole != null)
+                    _PairingPanel(
+                      role: _pendingPairRole!,
+                      trainerInviteCode: _trainerInviteCode,
+                      trainerCodeController: _trainerCodeController,
+                      isLoading: _isPairing,
+                      errorMessage: _pairingError,
+                      onRetryTrainerCode: _generateTrainerCode,
+                      onClaimTrainerCode: _claimTrainerCode,
+                      onContinue: _finishPairing,
+                      onTrainerCodeChanged: () => setState(() {}),
+                    )
+                  else
+                    _OnboardingPanel(
+                      step: _step,
+                      selectedRole: _selectedRole,
+                      isLoading: isLoading,
+                      errorMessage: errorMessage,
+                      loginFormKey: _loginFormKey,
+                      signupFormKey: _signupFormKey,
+                      emailController: _emailController,
+                      passwordController: _passwordController,
+                      displayNameController: _displayNameController,
+                      onShowLogin: () => setState(() => _step = _AuthStep.login),
+                      onShowRoleSelection: () => setState(() => _step = _AuthStep.role),
+                      onBack: _backToWelcome,
+                      onRoleSelected: _selectRole,
+                      onContinueRole: _continueToSignup,
+                      onLogin: _login,
+                      onRegister: _register,
                     ),
-                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

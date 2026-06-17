@@ -54,6 +54,10 @@ void main() {
 
       await _tapButton(tester, 'Dodaj ćwiczenie');
       expect(find.text('Dodaj ćwiczenie'), findsOneWidget);
+      expect(find.text('Powtórzenia + waga'), findsOneWidget);
+      expect(find.text('Same powtórzenia'), findsOneWidget);
+      expect(_textContaining('\n+ waga'), findsNothing);
+      expect(_textContaining('Same\n'), findsNothing);
 
       await _tapButton(tester, 'Dodaj do zestawu');
       expect(find.text('Wyciskanie sztangi'), findsOneWidget);
@@ -201,11 +205,69 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Jan Kowalski'));
       await tester.pumpAndSettle();
-      await _tapButton(tester, 'Przypisz (2)');
+      await _tapButton(tester, 'Zapisz (2)');
 
       expect(seenBodies.single, {
         'traineeUserIds': ['trainee-1', 'trainee-2'],
       });
+    });
+
+    testWidgets('trainer can unassign the last trainee without assigning another', (tester) async {
+      final seen = <String>[];
+      var detailGets = 0;
+
+      await tester.pumpWidget(_testApp(
+        httpClient: MockClient((request) async {
+          seen.add('${request.method} ${request.url.path}');
+          if (request.url.path == '/auth/me') {
+            return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+          }
+          if (request.url.path == '/trainer/relationship') {
+            return http.Response(jsonEncode(_relationshipJson()), 200);
+          }
+          if (request.url.path == '/workout-sets' && request.method == 'GET') {
+            return http.Response(jsonEncode([_summaryJson()]), 200);
+          }
+          if (request.url.path == '/workout-sets/set-1' && request.method == 'GET') {
+            detailGets += 1;
+            return http.Response(
+              jsonEncode(_detailJson(
+                assignments: detailGets == 1
+                    ? [
+                        {
+                          'traineeUserId': 'trainee-1',
+                          'traineeEmail': 'anna@example.test',
+                          'traineeDisplayName': 'Anna Nowak',
+                          'assignedAt': '2026-06-16T12:10:00Z',
+                        },
+                      ]
+                    : [],
+              )),
+              200,
+            );
+          }
+          if (request.url.path == '/workout-sets/set-1/assignments/trainee-1') {
+            return http.Response('', 204);
+          }
+          if (request.url.path == '/workout-sets/set-1/assignments') {
+            fail('Assign should not be called with an empty trainee list');
+          }
+
+          fail('Unexpected request: ${request.method} ${request.url}');
+        }),
+      ));
+
+      await tester.pumpAndSettle();
+      await _tapButton(tester, 'Zestawy');
+      await _tapButton(tester, 'Przypisz');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Anna Nowak'));
+      await tester.pumpAndSettle();
+      await _tapButton(tester, 'Zapisz (0)');
+
+      expect(seen.where((path) => path == 'DELETE /workout-sets/set-1/assignments/trainee-1'), hasLength(1));
+      expect(seen.where((path) => path == 'POST /workout-sets/set-1/assignments'), isEmpty);
     });
 
     testWidgets('trainee detail shows assigned sets and unassign action', (tester) async {
@@ -245,6 +307,12 @@ Future<void> _tapButton(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
   await tester.tap(finder);
   await tester.pumpAndSettle();
+}
+
+Finder _textContaining(String value) {
+  return find.byWidgetPredicate(
+    (widget) => widget is Text && (widget.data?.contains(value) ?? false),
+  );
 }
 
 Widget _testApp({required http.Client httpClient}) {

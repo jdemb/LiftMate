@@ -192,6 +192,100 @@ class WorkoutSetController extends ChangeNotifier {
     );
   }
 
+  Future<WorkoutSetApiResult<WorkoutSetDetail>> syncAssignments(
+    String workoutSetId,
+    List<String> selectedTraineeIds,
+  ) async {
+    final accessToken = authController.tokens?.accessToken;
+    if (accessToken == null) {
+      const result = WorkoutSetApiResult<WorkoutSetDetail>(
+        status: WorkoutSetApiStatus.unauthorized,
+        message: 'User is not authenticated.',
+      );
+      _setState(_state.copyWith(
+        status: WorkoutSetControllerStatus.error,
+        message: result.message,
+      ));
+      return result;
+    }
+
+    final currentAssignments = _state.selectedSet?.id == workoutSetId
+        ? _state.selectedSet!.assignments
+        : const <WorkoutSetAssignment>[];
+    final currentIds = currentAssignments
+        .map((assignment) => assignment.traineeUserId)
+        .toSet();
+    final selectedIds = selectedTraineeIds.toSet();
+    final removedIds = currentIds.difference(selectedIds);
+    final addedIds = selectedTraineeIds
+        .where((traineeUserId) => !currentIds.contains(traineeUserId))
+        .toList(growable: false);
+
+    _setState(_state.copyWith(status: WorkoutSetControllerStatus.saving));
+
+    for (final traineeUserId in removedIds) {
+      final result = await workoutSetApiClient.unassign(
+        accessToken: accessToken,
+        workoutSetId: workoutSetId,
+        traineeUserId: traineeUserId,
+      );
+      if (!result.isSuccess) {
+        _setState(_state.copyWith(
+          status: WorkoutSetControllerStatus.error,
+          message: result.message,
+        ));
+        return WorkoutSetApiResult<WorkoutSetDetail>(
+          status: result.status,
+          statusCode: result.statusCode,
+          message: result.message,
+        );
+      }
+    }
+
+    if (addedIds.isNotEmpty) {
+      final result = await workoutSetApiClient.assign(
+        accessToken: accessToken,
+        workoutSetId: workoutSetId,
+        request: AssignWorkoutSetRequest(traineeUserIds: addedIds),
+      );
+      final detail = result.data;
+      if (result.isSuccess && detail != null) {
+        _setState(_state.copyWith(
+          status: WorkoutSetControllerStatus.loaded,
+          selectedSet: detail,
+          clearMessage: true,
+        ));
+        return result;
+      }
+
+      _setState(_state.copyWith(
+        status: WorkoutSetControllerStatus.error,
+        message: result.message,
+      ));
+      return result;
+    }
+
+    final result = await workoutSetApiClient.getTrainerSet(
+      accessToken: accessToken,
+      workoutSetId: workoutSetId,
+    );
+    final detail = result.data;
+    if (result.isSuccess && detail != null) {
+      _setState(_state.copyWith(
+        status: WorkoutSetControllerStatus.loaded,
+        selectedSet: detail,
+        clearMessage: true,
+      ));
+      return result;
+    }
+
+    _setState(_state.copyWith(
+      status: WorkoutSetControllerStatus.error,
+      message: result.message,
+    ));
+    return result;
+  }
+
   Future<WorkoutSetApiResult<void>> unassign(
     String workoutSetId,
     String traineeUserId,

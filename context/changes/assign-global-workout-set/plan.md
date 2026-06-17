@@ -829,11 +829,11 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Automated
 
-- [ ] 7.1 `flutter test test/workout_set_trainer_screens_test.dart test/workout_set_api_client_test.dart test/workout_set_controller_test.dart test/auth_screen_test.dart` passes from `apps/mobile`
-- [ ] 7.2 `flutter analyze` passes from `apps/mobile`
-- [ ] 7.3 Tests prove unassigning all trainees does not call assign with an empty trainee list
-- [ ] 7.4 Tests prove authenticated screens do not render the welcome gradient
-- [ ] 7.5 Tests prove type selector labels avoid hard word-breaking labels
+- [x] 7.1 `flutter test test/workout_set_trainer_screens_test.dart test/workout_set_api_client_test.dart test/workout_set_controller_test.dart test/auth_screen_test.dart` passes from `apps/mobile`
+- [x] 7.2 `flutter analyze` passes from `apps/mobile`
+- [x] 7.3 Tests prove unassigning all trainees does not call assign with an empty trainee list
+- [x] 7.4 Tests prove authenticated screens do not render the welcome gradient
+- [x] 7.5 Tests prove type selector labels avoid hard word-breaking labels
 
 #### Manual
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../workout_sets/workout_set_text.dart';
 import 'relationship_models.dart';
 import 'relationship_screen_styles.dart';
 
@@ -196,7 +197,7 @@ class _AssignedSetCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${_exerciseCountLabel(set.exerciseCount)} · ${set.rowCount} serii',
+            '${exerciseCountLabel(set.exerciseCount)} · ${set.rowCount} serii',
             style: const TextStyle(color: lmMuted, fontSize: 13),
           ),
           if (onStartSession != null) ...[
@@ -264,16 +265,4 @@ class _DetailRow extends StatelessWidget {
       ],
     );
   }
-}
-
-String _exerciseCountLabel(int count) {
-  final mod10 = count % 10;
-  final mod100 = count % 100;
-  if (count == 1) {
-    return '1 ćwiczenie';
-  }
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return '$count ćwiczenia';
-  }
-  return '$count ćwiczeń';
 }

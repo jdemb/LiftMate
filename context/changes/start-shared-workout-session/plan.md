@@ -946,14 +946,14 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [x] 7.1 API tests prove trainer relationship summaries include assigned-set summaries for linked trainees
-- [x] 7.2 API tests prove assigned-set summaries do not include unrelated trainer data
-- [x] 7.3 Mobile widget tests prove trainer detail shows assigned sets after fresh login/reload without relying on `selectedSet`
-- [x] 7.4 Mobile widget tests prove trainer logout/re-login does not clear the visible assigned-set list
-- [x] 7.5 Mobile widget tests prove "Odepnij zestaw" remains absent from trainee detail
-- [x] 7.6 `dotnet test LiftMate.slnx --no-build` passes after build
-- [x] 7.7 `flutter test` passes
-- [x] 7.8 `flutter analyze` passes
+- [x] 7.1 API tests prove trainer relationship summaries include assigned-set summaries for linked trainees — 0b2faa5
+- [x] 7.2 API tests prove assigned-set summaries do not include unrelated trainer data — 0b2faa5
+- [x] 7.3 Mobile widget tests prove trainer detail shows assigned sets after fresh login/reload without relying on `selectedSet` — 0b2faa5
+- [x] 7.4 Mobile widget tests prove trainer logout/re-login does not clear the visible assigned-set list — 0b2faa5
+- [x] 7.5 Mobile widget tests prove "Odepnij zestaw" remains absent from trainee detail — 0b2faa5
+- [x] 7.6 `dotnet test LiftMate.slnx --no-build` passes after build — 0b2faa5
+- [x] 7.7 `flutter test` passes — 0b2faa5
+- [x] 7.8 `flutter analyze` passes — 0b2faa5
 
 #### Manual
 
@@ -964,11 +964,11 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [ ] 8.1 Unit tests cover Polish pluralization for `1`, `2`, `4`, `5`, `12`, `22`, and `25`
-- [ ] 8.2 Widget tests prove visible labels render `2 ćwiczenia` where applicable
-- [ ] 8.3 Search shows no remaining hard-coded `ćwiczeń` count pattern in S-02/S-03 widgets except inside the shared helper or tests
-- [ ] 8.4 `flutter test` passes
-- [ ] 8.5 `flutter analyze` passes
+- [x] 8.1 Unit tests cover Polish pluralization for `1`, `2`, `4`, `5`, `12`, `22`, and `25`
+- [x] 8.2 Widget tests prove visible labels render `2 ćwiczenia` where applicable
+- [x] 8.3 Search shows no remaining hard-coded `ćwiczeń` count pattern in S-02/S-03 widgets except inside the shared helper or tests
+- [x] 8.4 `flutter test` passes
+- [x] 8.5 `flutter analyze` passes
 
 #### Manual
 

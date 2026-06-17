@@ -628,11 +628,11 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [x] 4.1 Widget tests prove active-session badge renders on trainer trainee list
-- [x] 4.2 Widget tests prove trainer detail switches between start and join actions
-- [x] 4.3 Widget tests prove trainer live screen renders editable rows and sends updates
-- [x] 4.4 `flutter test` passes
-- [x] 4.5 `flutter analyze` passes
+- [x] 4.1 Widget tests prove active-session badge renders on trainer trainee list — 6d2a7f6
+- [x] 4.2 Widget tests prove trainer detail switches between start and join actions — 6d2a7f6
+- [x] 4.3 Widget tests prove trainer live screen renders editable rows and sends updates — 6d2a7f6
+- [x] 4.4 `flutter test` passes — 6d2a7f6
+- [x] 4.5 `flutter analyze` passes — 6d2a7f6
 
 #### Manual
 
@@ -644,12 +644,12 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [ ] 5.1 Widget tests prove trainee can start a self-session from a concrete assigned set card
-- [ ] 5.2 Widget tests prove trainer-led active sessions show "Dołącz do aktywnego treningu"
-- [ ] 5.3 Widget tests prove trainee self-start opens editable live UI
-- [ ] 5.4 Widget tests prove trainer-led join opens read-only `c_live` UI
-- [ ] 5.5 `flutter test` passes
-- [ ] 5.6 `flutter analyze` passes
+- [x] 5.1 Widget tests prove trainee can start a self-session from a concrete assigned set card
+- [x] 5.2 Widget tests prove trainer-led active sessions show "Dołącz do aktywnego treningu"
+- [x] 5.3 Widget tests prove trainee self-start opens editable live UI
+- [x] 5.4 Widget tests prove trainer-led join opens read-only `c_live` UI
+- [x] 5.5 `flutter test` passes
+- [x] 5.6 `flutter analyze` passes
 
 #### Manual
 

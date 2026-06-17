@@ -751,8 +751,8 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Manual
 
-- [ ] 1.4 Inspect migration to confirm only workout-set tables, constraints, and indexes are added
-- [ ] 1.5 Confirm no existing shared-session endpoint behavior is changed by persistence-only work
+- [x] 1.4 Inspect migration to confirm only workout-set tables, constraints, and indexes are added
+- [x] 1.5 Confirm no existing shared-session endpoint behavior is changed by persistence-only work
 
 ### Phase 2: API Workout Set Contracts
 
@@ -766,8 +766,8 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Manual
 
-- [ ] 2.6 Review Swagger/OpenAPI locally and confirm route names and response shapes are understandable
-- [ ] 2.7 Confirm S-03 can rely on assigned-set detail to get ordered rows by assigned workoutSetId
+- [x] 2.6 Review Swagger/OpenAPI locally and confirm route names and response shapes are understandable
+- [x] 2.7 Confirm S-03 can rely on assigned-set detail to get ordered rows by assigned workoutSetId
 
 ### Phase 3: Mobile Workout Set Contract
 
@@ -778,8 +778,8 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Manual
 
-- [ ] 3.3 Review generated request payloads against API DTOs
-- [ ] 3.4 Confirm mobile uses the same exercise type wire names as the API and shared-session models
+- [x] 3.3 Review generated request payloads against API DTOs
+- [x] 3.4 Confirm mobile uses the same exercise type wire names as the API and shared-session models
 
 ### Phase 4: Trainer Set Management UI
 
@@ -790,9 +790,9 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Manual
 
-- [ ] 4.3 Compare trainer screens against `apps/mobile/design/LiftMate.dc.html` for `t_sets`, `t_builder`, `t_addex`, and `t_assign`
-- [ ] 4.4 Verify text does not overflow on the current phone-sized layout
-- [ ] 4.5 Verify set creation and assignment states are understandable without fake workout-progress data
+- [x] 4.3 Compare trainer screens against `apps/mobile/design/LiftMate.dc.html` for `t_sets`, `t_builder`, `t_addex`, and `t_assign`
+- [x] 4.4 Verify text does not overflow on the current phone-sized layout
+- [x] 4.5 Verify set creation and assignment states are understandable without fake workout-progress data
 
 ### Phase 5: Trainee Assigned Sets UI and Final Gates
 
@@ -804,12 +804,12 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Manual
 
-- [ ] 5.4 Trainer can create a global set with each exercise type
-- [ ] 5.5 Trainer can assign the set to multiple linked trainees
-- [ ] 5.6 Trainer can unassign one trainee without deleting the set or removing other assignments
-- [ ] 5.7 Trainee can see all assigned sets and their rows
-- [ ] 5.8 Editing a global set updates the assigned-set view before any S-03 session is started
-- [ ] 5.9 No live workout start is presented as complete in S-02
+- [x] 5.4 Trainer can create a global set with each exercise type
+- [x] 5.5 Trainer can assign the set to multiple linked trainees
+- [x] 5.6 Trainer can unassign one trainee without deleting the set or removing other assignments
+- [x] 5.7 Trainee can see all assigned sets and their rows
+- [x] 5.8 Editing a global set updates the assigned-set view before any S-03 session is started
+- [x] 5.9 No live workout start is presented as complete in S-02
 
 ### Phase 6: Workout Set Builder Editing and Deletion Fixes
 
@@ -821,9 +821,9 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Manual
 
-- [ ] 6.4 Compare the builder and exercise editor against `apps/mobile/design/LiftMate.dc.html` for `t_builder` and `t_addex`
-- [ ] 6.5 Confirm tapping an exercise opens the edit panel with the same controls as exercise creation
-- [ ] 6.6 Confirm the trash affordance removes only the selected exercise and does not overflow on the phone layout
+- [x] 6.4 Compare the builder and exercise editor against `apps/mobile/design/LiftMate.dc.html` for `t_builder` and `t_addex`
+- [x] 6.5 Confirm tapping an exercise opens the edit panel with the same controls as exercise creation
+- [x] 6.6 Confirm the trash affordance removes only the selected exercise and does not overflow on the phone layout
 
 ### Phase 7: Assignment Sync, Gradient Scope, and Type Label Wrapping
 
@@ -837,9 +837,9 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Manual
 
-- [ ] 7.6 Trainer can unassign the last trainee from a set without selecting another trainee
-- [ ] 7.7 Gradient is visible only on welcome/onboarding/auth screens allowed by `apps/mobile/design/LiftMate.dc.html`
-- [ ] 7.8 Type selector labels wrap by phrase, not inside words, at the current phone width
+- [x] 7.6 Trainer can unassign the last trainee from a set without selecting another trainee
+- [x] 7.7 Gradient is visible only on welcome/onboarding/auth screens allowed by `apps/mobile/design/LiftMate.dc.html`
+- [x] 7.8 Type selector labels wrap by phrase, not inside words, at the current phone width
 
 ### Phase 8: Final Regression and Post-Merge Reconfirmation
 
@@ -851,8 +851,8 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 
 #### Manual
 
-- [ ] 8.4 Trainer can create a set, edit an exercise, delete an exercise, and save the set
-- [ ] 8.5 Trainer can edit an existing set without seeing per-set rows as separate exercises
-- [ ] 8.6 Trainer can assign multiple trainees and then unassign all trainees from the same set
-- [ ] 8.7 Trainee assigned-set view still shows updated rows and does not present S-03 live start as complete
-- [ ] 8.8 Gradient and type selector text match the design contract on the current phone layout
+- [x] 8.4 Trainer can create a set, edit an exercise, delete an exercise, and save the set
+- [x] 8.5 Trainer can edit an existing set without seeing per-set rows as separate exercises
+- [x] 8.6 Trainer can assign multiple trainees and then unassign all trainees from the same set
+- [x] 8.7 Trainee assigned-set view still shows updated rows and does not present S-03 live start as complete
+- [x] 8.8 Gradient and type selector text match the design contract on the current phone layout

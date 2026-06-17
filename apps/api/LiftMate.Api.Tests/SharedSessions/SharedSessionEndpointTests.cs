@@ -244,6 +244,24 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task UnrelatedTrainerCannotReadSelfStartedSession()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var otherTrainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(client, trainer, "Solo day", DefaultWorkoutSetRows());
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+        var session = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(otherTrainer.AccessToken);
+        var otherTrainerRead = await client.GetAsync($"/shared-sessions/{session.Id}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, otherTrainerRead.StatusCode);
+    }
+
+    [Fact]
     public async Task StartFromWorkoutSetRejectsUnassignedAndWrongTrainerStarts()
     {
         using var client = factory.CreateClient();

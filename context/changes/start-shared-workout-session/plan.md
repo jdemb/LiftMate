@@ -583,13 +583,13 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [x] 1.1 API tests cover trainer start from an assigned workout set
-- [x] 1.2 API tests cover trainee self-start from an assigned workout set
-- [x] 1.3 API tests prove unassigned or wrong-trainer starts are rejected
-- [x] 1.4 API tests prove one active session per trainee across trainer-led and self-start paths
-- [x] 1.5 API tests prove value completion state persists and is returned to both participants
-- [x] 1.6 API tests prove trainer-led sessions reject trainee value updates while trainee-self-start sessions allow trainee updates
-- [x] 1.7 `dotnet test LiftMate.slnx --no-build` passes after build
+- [x] 1.1 API tests cover trainer start from an assigned workout set — e9bd73b
+- [x] 1.2 API tests cover trainee self-start from an assigned workout set — e9bd73b
+- [x] 1.3 API tests prove unassigned or wrong-trainer starts are rejected — e9bd73b
+- [x] 1.4 API tests prove one active session per trainee across trainer-led and self-start paths — e9bd73b
+- [x] 1.5 API tests prove value completion state persists and is returned to both participants — e9bd73b
+- [x] 1.6 API tests prove trainer-led sessions reject trainee value updates while trainee-self-start sessions allow trainee updates — e9bd73b
+- [x] 1.7 `dotnet test LiftMate.slnx --no-build` passes after build — e9bd73b
 
 #### Manual
 
@@ -599,11 +599,11 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [ ] 2.1 API tests prove trainer relationship summary includes active-session state for linked trainees
-- [ ] 2.2 API tests prove self-start sessions are joinable by the linked trainer
-- [ ] 2.3 API tests prove unrelated trainers cannot see or join active sessions
-- [ ] 2.4 API/SignalR tests prove trainee self-start emits `sessionStarted` to the linked trainer
-- [ ] 2.5 `dotnet test LiftMate.slnx --no-build` passes after build
+- [x] 2.1 API tests prove trainer relationship summary includes active-session state for linked trainees
+- [x] 2.2 API tests prove self-start sessions are joinable by the linked trainer
+- [x] 2.3 API tests prove unrelated trainers cannot see or join active sessions
+- [x] 2.4 API/SignalR tests prove trainee self-start emits `sessionStarted` to the linked trainer
+- [x] 2.5 `dotnet test LiftMate.slnx --no-build` passes after build
 
 #### Manual
 

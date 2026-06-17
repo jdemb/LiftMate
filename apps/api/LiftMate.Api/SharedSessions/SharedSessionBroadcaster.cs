@@ -6,10 +6,17 @@ public sealed class SharedSessionBroadcaster(IHubContext<SharedSessionHub> hubCo
 {
     public Task BroadcastStartedAsync(SharedSession session, CancellationToken cancellationToken)
     {
-        return hubContext
+        var response = SharedSessionMapping.ToResponse(session);
+        var traineeTask = hubContext
             .Clients
             .User(session.TraineeUserId)
-            .SendAsync("sessionStarted", SharedSessionMapping.ToResponse(session), cancellationToken);
+            .SendAsync("sessionStarted", response, cancellationToken);
+        var trainerTask = hubContext
+            .Clients
+            .User(session.TrainerUserId)
+            .SendAsync("sessionStarted", response, cancellationToken);
+
+        return Task.WhenAll(traineeTask, trainerTask);
     }
 
     public Task BroadcastUpdatedAsync(SharedSession session, CancellationToken cancellationToken)

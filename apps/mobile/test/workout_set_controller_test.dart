@@ -81,6 +81,57 @@ void main() {
       expect(controller.state.traineeAssignedSets.single.rows.single.exerciseName, 'Bench press');
     });
 
+    test('syncAssignments can unassign all trainees without empty assign request', () async {
+      final seen = <String>[];
+      var detailGets = 0;
+      final httpClient = MockClient((request) async {
+        seen.add('${request.method} ${request.url.path}');
+        if (request.url.path == '/auth/me') {
+          return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+        }
+        if (request.url.path == '/workout-sets/set-1' && request.method == 'GET') {
+          detailGets += 1;
+          return http.Response(
+            jsonEncode(_detailJson(
+              assignments: detailGets == 1
+                  ? [
+                      {
+                        'traineeUserId': 'trainee-1',
+                        'traineeEmail': 'trainee@example.test',
+                        'traineeDisplayName': 'Test Trainee',
+                        'assignedAt': '2026-06-16T12:10:00Z',
+                      },
+                    ]
+                  : [],
+            )),
+            200,
+          );
+        }
+        if (request.url.path == '/workout-sets/set-1/assignments/trainee-1') {
+          return http.Response('', 204);
+        }
+        if (request.url.path == '/workout-sets/set-1/assignments') {
+          fail('Assign should not be called with an empty trainee list');
+        }
+
+        fail('Unexpected request: ${request.method} ${request.url}');
+      });
+      final authController = await _authController(httpClient);
+      final controller = _controller(authController, httpClient);
+
+      await controller.loadTrainerDetail('set-1');
+      final result = await controller.syncAssignments('set-1', const []);
+
+      expect(result.status, WorkoutSetApiStatus.success);
+      expect(controller.state.selectedSet?.assignments, isEmpty);
+      expect(seen, [
+        'GET /auth/me',
+        'GET /workout-sets/set-1',
+        'DELETE /workout-sets/set-1/assignments/trainee-1',
+        'GET /workout-sets/set-1',
+      ]);
+    });
+
     test('missing token returns authentication error without HTTP request', () async {
       final authController = AuthController(
         authApiClient: AuthApiClient(
@@ -185,12 +236,15 @@ Map<String, Object?> _summaryJson() {
   };
 }
 
-Map<String, Object?> _detailJson({String name = 'Push A'}) {
+Map<String, Object?> _detailJson({
+  String name = 'Push A',
+  List<Map<String, Object?>>? assignments,
+}) {
   return {
     'id': 'set-1',
     'name': name,
     'rows': [_rowJson()],
-    'assignments': [],
+    'assignments': assignments ?? [],
     'createdAt': '2026-06-16T12:00:00Z',
     'updatedAt': '2026-06-16T12:05:00Z',
   };

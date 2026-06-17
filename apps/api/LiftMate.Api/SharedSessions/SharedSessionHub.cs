@@ -17,6 +17,7 @@ public sealed class SharedSessionHub(ApplicationDbContext dbContext) : Hub
     {
         var session = await dbContext.SharedSessions
             .AsNoTracking()
+            .Include(session => session.TraineeUser)
             .SingleOrDefaultAsync(session => session.Id == sessionId, Context.ConnectionAborted);
 
         if (session is null)
@@ -24,7 +25,7 @@ public sealed class SharedSessionHub(ApplicationDbContext dbContext) : Hub
             throw new HubException("Shared session not found.");
         }
 
-        if (!SharedSessionAccess.IsParticipant(session, Context.User ?? throw new HubException("Unauthorized.")))
+        if (!SharedSessionAccess.CanAccess(session, Context.User ?? throw new HubException("Unauthorized.")))
         {
             throw new HubException("Forbidden.");
         }

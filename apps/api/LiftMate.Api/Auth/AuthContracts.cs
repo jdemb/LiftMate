@@ -34,7 +34,16 @@ public sealed record ClaimTrainerInviteCodeRequest(string Code);
 public sealed record TrainerTraineeResponse(
     string Id,
     string Email,
-    string DisplayName);
+    string DisplayName,
+    ActiveSharedSessionSummaryResponse? ActiveSession);
+
+public sealed record ActiveSharedSessionSummaryResponse(
+    Guid SessionId,
+    Guid? WorkoutSetId,
+    string? WorkoutSetName,
+    string StartedByUserId,
+    string StartedByRole,
+    DateTimeOffset UpdatedAt);
 
 public sealed record TrainerRelationshipSummaryResponse(
     string InviteCode,

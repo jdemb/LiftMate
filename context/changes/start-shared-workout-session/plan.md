@@ -978,13 +978,13 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [x] 9.1 Widget tests prove trainer start navigates to editable live UI with a loaded session
-- [x] 9.2 Widget tests prove trainer join of trainee self-start navigates to editable live UI with a loaded session
-- [x] 9.3 Widget tests prove trainee self-start navigates to editable live UI with a loaded session
-- [x] 9.4 Widget tests prove trainer-led trainee join navigates to read-only live UI
-- [x] 9.5 Widget tests prove failed start/join keeps the user out of an empty live screen
-- [x] 9.6 `flutter test` passes
-- [x] 9.7 `flutter analyze` passes
+- [x] 9.1 Widget tests prove trainer start navigates to editable live UI with a loaded session — 11c1060
+- [x] 9.2 Widget tests prove trainer join of trainee self-start navigates to editable live UI with a loaded session — 11c1060
+- [x] 9.3 Widget tests prove trainee self-start navigates to editable live UI with a loaded session — 11c1060
+- [x] 9.4 Widget tests prove trainer-led trainee join navigates to read-only live UI — 11c1060
+- [x] 9.5 Widget tests prove failed start/join keeps the user out of an empty live screen — 11c1060
+- [x] 9.6 `flutter test` passes — 11c1060
+- [x] 9.7 `flutter analyze` passes — 11c1060
 
 #### Manual
 
@@ -998,11 +998,11 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [ ] 10.1 `dotnet restore LiftMate.slnx` passes
-- [ ] 10.2 `dotnet build LiftMate.slnx --no-restore` passes
-- [ ] 10.3 `dotnet test LiftMate.slnx --no-build` passes
-- [ ] 10.4 `flutter test` passes
-- [ ] 10.5 `flutter analyze` passes
+- [x] 10.1 `dotnet restore LiftMate.slnx` passes
+- [x] 10.2 `dotnet build LiftMate.slnx --no-restore` passes
+- [x] 10.3 `dotnet test LiftMate.slnx --no-build` passes
+- [x] 10.4 `flutter test` passes
+- [x] 10.5 `flutter analyze` passes
 
 #### Manual
 

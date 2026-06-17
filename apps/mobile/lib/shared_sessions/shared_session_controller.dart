@@ -40,12 +40,13 @@ class SharedSessionControllerState {
     SharedSession? session,
     String? message,
     bool clearMessage = false,
+    bool clearSession = false,
     SharedSessionConnectionStatus? connectionStatus,
   }) {
     return SharedSessionControllerState(
       status: status ?? this.status,
       user: user ?? this.user,
-      session: session ?? this.session,
+      session: clearSession ? null : session ?? this.session,
       message: clearMessage ? null : message ?? this.message,
       connectionStatus: connectionStatus ?? this.connectionStatus,
     );
@@ -115,6 +116,7 @@ class SharedSessionController extends ChangeNotifier {
       status: SharedSessionControllerStatus.loading,
       user: user,
       clearMessage: true,
+      clearSession: true,
     ));
 
     if (accessToken == null) {
@@ -240,6 +242,7 @@ class SharedSessionController extends ChangeNotifier {
       status: SharedSessionControllerStatus.loading,
       user: user,
       clearMessage: true,
+      clearSession: true,
     ));
 
     if (accessToken == null) {
@@ -288,6 +291,16 @@ class SharedSessionController extends ChangeNotifier {
     final session = result.data;
     if (!result.isSuccess || session == null) {
       _setError(user, result.message);
+      return;
+    }
+
+    if (joinLoadedSession && session.status != SharedSessionStatus.active) {
+      _setState(SharedSessionControllerState(
+        status: SharedSessionControllerStatus.error,
+        user: user,
+        message: 'Shared session is not active.',
+        connectionStatus: _state.connectionStatus,
+      ));
       return;
     }
 

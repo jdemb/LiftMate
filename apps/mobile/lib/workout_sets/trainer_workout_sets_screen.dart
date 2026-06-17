@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../relationships/relationship_screen_styles.dart';
 import 'workout_set_controller.dart';
 import 'workout_set_models.dart';
+import 'workout_set_text.dart';
 
 class TrainerWorkoutSetsScreen extends StatelessWidget {
   const TrainerWorkoutSetsScreen({
@@ -163,7 +164,7 @@ class _WorkoutSetCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${set.exerciseCount} ćwiczeń · ${set.rowCount} serii',
+            '${exerciseCountLabel(set.exerciseCount)} · ${set.rowCount} serii',
             style: const TextStyle(color: lmMuted, fontSize: 13),
           ),
           const SizedBox(height: 10),

@@ -54,10 +54,11 @@ void main() {
 
       await _tapButton(tester, 'Dodaj ćwiczenie');
       expect(find.text('Dodaj ćwiczenie'), findsOneWidget);
-      expect(find.text('Powtórzenia + waga'), findsOneWidget);
-      expect(find.text('Same powtórzenia'), findsOneWidget);
-      expect(_textContaining('\n+ waga'), findsNothing);
-      expect(_textContaining('Same\n'), findsNothing);
+      expect(find.text('Powt. + waga'), findsOneWidget);
+      expect(find.text('Powtórzenia'), findsWidgets);
+      expect(find.text('Powtórzenia + waga'), findsNothing);
+      expect(find.text('Same powtórzenia'), findsNothing);
+      expect(_textContaining('\n'), findsNothing);
 
       await _tapButton(tester, 'Dodaj do zestawu');
       expect(find.text('Wyciskanie sztangi'), findsOneWidget);

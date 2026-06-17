@@ -67,18 +67,24 @@ Backend owns the canonical active session and validates that the selected workou
 | 4. Mobile Trainer Flow | Trainer badge, start, join, and editable live screen | Regressing existing relationship/workout-set screens |
 | 5. Mobile Trainee Flow And Live Screens | Trainee self-start and read-only trainer-led join modes | Mixing self-start editability into trainer-led sessions |
 | 6. Verification And Plan Bookkeeping | Full automated checks and manual checklist | Manual Android/design regressions missed before PR |
+| 7. Canonical Assigned Sets In Trainer Detail | Trainer detail shows assigned sets after fresh login/reload | Depending on stale local selected-set state |
+| 8. Central Polish Count Labels And Text Audit | One shared helper renders correct `ćwiczenie` / `ćwiczenia` / `ćwiczeń` labels | Leaving duplicated grammar helpers in visible widgets |
+| 9. Live-Session Entry Reliability And Design Contract Pass | Start/join routes only open live UI after a loaded active session | Navigating into blank or stale live-session views |
+| 10. QA Remediation Verification And Bookkeeping | Full backend/mobile verification plus explicit manual QA tracking | Marking remediation complete before Android/design confirmation |
 
 **Prerequisites:** S-01 trainer-trainee pairing, S-02 assigned workout sets, F-03 shared-session sync contract.  
-**Estimated effort:** ~2-3 implementation sessions across 6 phases.
+**Estimated effort:** ~3-4 implementation sessions across 10 phases, including the QA remediation pass.
 
 ## Open Risks & Assumptions
 
 - Existing `POST /shared-sessions` create-by-values remains for diagnostics unless implementation finds it conflicts with production flow.
 - Active-session badge refresh uses `sessionStarted` as an invalidation signal, but the canonical source remains a trainer relationship refresh from the API.
 - Mobile live screen may reuse components between trainer and self-start trainee modes, but trainer-led trainee mode must stay read-only.
+- Follow-up QA requires canonical assigned-set summaries in trainer relationship data; trainer detail must not depend on `WorkoutSetController.state.selectedSet` after re-login.
 
 ## Success Criteria Summary
 
 - Trainer-led flow: trainer starts, trainee joins read-only, trainer edits values, both observe the same active session.
 - Trainee self-start flow: trainee starts and edits, trainer sees "Aktywna sesja", trainer joins the same active session.
 - Backend and mobile tests prove access boundaries, snapshot behavior, one-active-session invariant, and origin-specific UI.
+- QA remediation proves assigned sets survive trainer re-login in the UI, Polish count labels use correct grammar, and live-session entry never opens a blank/stale active-session screen.

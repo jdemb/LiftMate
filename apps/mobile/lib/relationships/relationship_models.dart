@@ -35,12 +35,14 @@ class TrainerTraineeSummary {
     required this.id,
     required this.email,
     required this.displayName,
+    this.assignedWorkoutSets = const <AssignedWorkoutSetSummary>[],
     this.activeSession,
   });
 
   final String id;
   final String email;
   final String displayName;
+  final List<AssignedWorkoutSetSummary> assignedWorkoutSets;
   final ActiveSharedSessionSummary? activeSession;
 
   factory TrainerTraineeSummary.fromJson(Map<String, dynamic> json) {
@@ -48,11 +50,13 @@ class TrainerTraineeSummary {
     final email = json['email'];
     final displayName = json['displayName'];
     final activeSession = json['activeSession'];
+    final assignedWorkoutSets = json['assignedWorkoutSets'];
 
     if (id is! String ||
         email is! String ||
         displayName is! String ||
-        (activeSession != null && activeSession is! Map<String, dynamic>)) {
+        (activeSession != null && activeSession is! Map<String, dynamic>) ||
+        (assignedWorkoutSets != null && assignedWorkoutSets is! List)) {
       throw const FormatException('Invalid trainee summary response body.');
     }
 
@@ -60,8 +64,63 @@ class TrainerTraineeSummary {
       id: id,
       email: email,
       displayName: displayName,
+      assignedWorkoutSets: assignedWorkoutSets == null
+          ? const <AssignedWorkoutSetSummary>[]
+          : assignedWorkoutSets
+              .map<AssignedWorkoutSetSummary>((value) {
+                if (value is! Map<String, dynamic>) {
+                  throw const FormatException(
+                    'Invalid assigned workout set summary response body.',
+                  );
+                }
+
+                return AssignedWorkoutSetSummary.fromJson(value);
+              })
+              .toList(growable: false),
       activeSession:
           activeSession == null ? null : ActiveSharedSessionSummary.fromJson(activeSession),
+    );
+  }
+}
+
+class AssignedWorkoutSetSummary {
+  const AssignedWorkoutSetSummary({
+    required this.id,
+    required this.name,
+    required this.exerciseCount,
+    required this.rowCount,
+    required this.updatedAt,
+  });
+
+  final String id;
+  final String name;
+  final int exerciseCount;
+  final int rowCount;
+  final DateTime updatedAt;
+
+  factory AssignedWorkoutSetSummary.fromJson(Map<String, dynamic> json) {
+    final id = json['id'];
+    final name = json['name'];
+    final exerciseCount = json['exerciseCount'];
+    final rowCount = json['rowCount'];
+    final updatedAt = json['updatedAt'];
+
+    if (id is! String ||
+        name is! String ||
+        exerciseCount is! int ||
+        rowCount is! int ||
+        updatedAt is! String) {
+      throw const FormatException(
+        'Invalid assigned workout set summary response body.',
+      );
+    }
+
+    return AssignedWorkoutSetSummary(
+      id: id,
+      name: name,
+      exerciseCount: exerciseCount,
+      rowCount: rowCount,
+      updatedAt: DateTime.parse(updatedAt).toUtc(),
     );
   }
 }

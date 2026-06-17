@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../workout_sets/workout_set_models.dart';
 import 'relationship_models.dart';
 import 'relationship_screen_styles.dart';
 
@@ -20,8 +19,8 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
   final VoidCallback onBack;
   final Future<void> Function() onLogout;
   final VoidCallback onOpenWorkoutSets;
-  final List<WorkoutSetDetail> assignedSets;
-  final void Function(WorkoutSetDetail set)? onStartSession;
+  final List<AssignedWorkoutSetSummary> assignedSets;
+  final void Function(AssignedWorkoutSetSummary set)? onStartSession;
   final VoidCallback? onJoinActiveSession;
 
   @override
@@ -175,14 +174,11 @@ class _AssignedSetCard extends StatelessWidget {
     required this.onStartSession,
   });
 
-  final WorkoutSetDetail set;
+  final AssignedWorkoutSetSummary set;
   final VoidCallback? onStartSession;
 
   @override
   Widget build(BuildContext context) {
-    final exerciseCount =
-        set.rows.map((row) => row.exerciseOrder).toSet().length;
-
     return RelationshipCard(
       margin: const EdgeInsets.only(bottom: 10),
       child: Column(
@@ -200,7 +196,7 @@ class _AssignedSetCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${_exerciseCountLabel(exerciseCount)} · ${set.rows.length} serii',
+            '${_exerciseCountLabel(set.exerciseCount)} · ${set.rowCount} serii',
             style: const TextStyle(color: lmMuted, fontSize: 13),
           ),
           if (onStartSession != null) ...[

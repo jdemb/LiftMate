@@ -121,13 +121,12 @@ class _AuthenticatedRelationshipShellState
           }
 
           if (selected != null) {
-            final assignedSets = _assignedSetsFor(selected.id);
             return TrainerTraineeDetailScreen(
               trainee: selected,
               onBack: () => setState(() => _selectedTrainee = null),
               onLogout: widget.onLogout,
               onOpenWorkoutSets: _openWorkoutSetsFromDetail,
-              assignedSets: assignedSets,
+              assignedSets: selected.assignedWorkoutSets,
               onStartSession: (set) => _startTrainerSession(selected, set),
               onJoinActiveSession: selected.activeSession == null
                   ? null
@@ -279,21 +278,9 @@ class _AuthenticatedRelationshipShellState
     setState(() => _trainerView = _TrainerView.assign);
   }
 
-  List<WorkoutSetDetail> _assignedSetsFor(String traineeUserId) {
-    final selectedSet = _workoutSetController.state.selectedSet;
-    if (selectedSet == null) {
-      return const [];
-    }
-
-    final isAssigned = selectedSet.assignments.any(
-      (assignment) => assignment.traineeUserId == traineeUserId,
-    );
-    return isAssigned ? [selectedSet] : const [];
-  }
-
   Future<void> _startTrainerSession(
     TrainerTraineeSummary trainee,
-    WorkoutSetDetail set,
+    AssignedWorkoutSetSummary set,
   ) async {
     await _sharedSessionController.startTrainerSession(
       user: widget.user,

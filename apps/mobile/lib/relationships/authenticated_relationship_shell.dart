@@ -5,6 +5,7 @@ import '../auth/auth_models.dart';
 import '../shared_sessions/shared_session_api_client.dart';
 import '../shared_sessions/shared_session_controller.dart';
 import '../shared_sessions/live_session_screen.dart';
+import '../shared_sessions/shared_session_models.dart';
 import '../shared_sessions/shared_session_realtime_client.dart';
 import '../workout_sets/assign_workout_set_screen.dart';
 import '../workout_sets/workout_set_api_client.dart';
@@ -131,6 +132,10 @@ class _AuthenticatedRelationshipShellState
               onJoinActiveSession: selected.activeSession == null
                   ? null
                   : () => _joinTrainerSession(selected.activeSession!.sessionId),
+              sessionErrorMessage: _sharedSessionController.state.status ==
+                      SharedSessionControllerStatus.error
+                  ? _sharedSessionController.state.message
+                  : null,
             );
           }
 
@@ -290,7 +295,11 @@ class _AuthenticatedRelationshipShellState
     if (!mounted) {
       return;
     }
-    setState(() => _trainerView = _TrainerView.live);
+    if (_hasActiveLoadedSession) {
+      setState(() => _trainerView = _TrainerView.live);
+    } else {
+      setState(() {});
+    }
   }
 
   Future<void> _joinTrainerSession(String sessionId) async {
@@ -301,7 +310,11 @@ class _AuthenticatedRelationshipShellState
     if (!mounted) {
       return;
     }
-    setState(() => _trainerView = _TrainerView.live);
+    if (_hasActiveLoadedSession) {
+      setState(() => _trainerView = _TrainerView.live);
+    } else {
+      setState(() {});
+    }
   }
 
   Future<void> _startTraineeSession(TraineeAssignedWorkoutSet set) async {
@@ -312,7 +325,11 @@ class _AuthenticatedRelationshipShellState
     if (!mounted) {
       return;
     }
-    setState(() => _showTraineeLive = true);
+    if (_hasActiveLoadedSession) {
+      setState(() => _showTraineeLive = true);
+    } else {
+      setState(() {});
+    }
   }
 
   Future<void> _joinTraineeActiveSession() async {
@@ -328,7 +345,16 @@ class _AuthenticatedRelationshipShellState
     if (!mounted) {
       return;
     }
-    setState(() => _showTraineeLive = true);
+    if (_hasActiveLoadedSession) {
+      setState(() => _showTraineeLive = true);
+    } else {
+      setState(() {});
+    }
+  }
+
+  bool get _hasActiveLoadedSession {
+    return _sharedSessionController.state.session?.status ==
+        SharedSessionStatus.active;
   }
 
   Future<void> _handleTrainerSessionClosed() async {

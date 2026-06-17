@@ -9,6 +9,8 @@ import 'package:liftmate/auth/auth_controller.dart';
 import 'package:liftmate/auth/auth_screen.dart';
 import 'package:liftmate/auth/token_store.dart';
 import 'package:liftmate/relationships/relationship_api_client.dart';
+import 'package:liftmate/shared_sessions/shared_session_api_client.dart';
+import 'package:liftmate/shared_sessions/shared_session_realtime_client.dart';
 import 'package:liftmate/workout_sets/workout_set_api_client.dart';
 
 void main() {
@@ -124,6 +126,114 @@ void main() {
       expect(find.text('2 ćwiczenia · 5 serii'), findsOneWidget);
       expect(find.text('Odepnij zestaw'), findsNothing);
       expect(seen.where((path) => path == 'GET /workout-sets/set-1'), isEmpty);
+    });
+
+    testWidgets('trainer starts assigned set and opens loaded editable live screen',
+        (tester) async {
+      await tester.pumpWidget(
+        _testApp(
+          includeSharedSessionClient: true,
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+            }
+            if (request.url.path == '/trainer/relationship') {
+              return http.Response(
+                jsonEncode(_trainerRelationshipWithAssignedSet()),
+                200,
+              );
+            }
+            if (request.url.path == '/shared-sessions/from-workout-set') {
+              expect(jsonDecode(request.body), {
+                'workoutSetId': 'set-1',
+                'traineeUserId': 'trainee-1',
+              });
+              return http.Response(jsonEncode(_sessionResponse()), 201);
+            }
+
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.tap(find.textContaining('Anna').first);
+      await tester.pumpAndSettle();
+      await _tapButton(tester, 'Rozpocznij wspÃ³lny trening');
+
+      expect(find.text('Bench press'), findsOneWidget);
+      expect(find.byIcon(Icons.add_rounded), findsWidgets);
+    });
+
+    testWidgets('trainer joins trainee self-start and opens loaded editable live screen',
+        (tester) async {
+      await tester.pumpWidget(
+        _testApp(
+          includeSharedSessionClient: true,
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+            }
+            if (request.url.path == '/trainer/relationship') {
+              return http.Response(
+                jsonEncode(_trainerRelationshipWithAssignedSet(activeSession: true)),
+                200,
+              );
+            }
+            if (request.url.path == '/shared-sessions/session-1') {
+              return http.Response(
+                jsonEncode(_sessionResponse(startedByRole: 'trainee')),
+                200,
+              );
+            }
+
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.tap(find.textContaining('Anna').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('sesji').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bench press'), findsOneWidget);
+      expect(find.byIcon(Icons.add_rounded), findsWidgets);
+    });
+
+    testWidgets('failed trainer start stays on detail instead of blank live',
+        (tester) async {
+      await tester.pumpWidget(
+        _testApp(
+          includeSharedSessionClient: true,
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+            }
+            if (request.url.path == '/trainer/relationship') {
+              return http.Response(
+                jsonEncode(_trainerRelationshipWithAssignedSet()),
+                200,
+              );
+            }
+            if (request.url.path == '/shared-sessions/from-workout-set') {
+              return http.Response('{"error":"Session already closed."}', 409);
+            }
+
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.tap(find.textContaining('Anna').first);
+      await tester.pumpAndSettle();
+      await _tapButton(tester, 'Rozpocznij wspÃ³lny trening');
+
+      expect(find.text('Podopieczny'), findsOneWidget);
+      expect(find.text('Push A'), findsOneWidget);
+      expect(find.text('Bench press'), findsNothing);
     });
 
     testWidgets('trainer dashboard shows active session badge', (tester) async {
@@ -356,6 +466,7 @@ Future<void> _tapButton(WidgetTester tester, String label) async {
 
 Widget _testApp({
   required http.Client httpClient,
+  bool includeSharedSessionClient = false,
 }) {
   final authApiClient = AuthApiClient(
     baseUrl: 'https://api.example.test',
@@ -382,6 +493,14 @@ Widget _testApp({
         baseUrl: 'https://api.example.test',
         httpClient: httpClient,
       ),
+      sharedSessionApiClient: includeSharedSessionClient
+          ? SharedSessionApiClient(
+              baseUrl: 'https://api.example.test',
+              httpClient: httpClient,
+            )
+          : null,
+      sharedSessionRealtimeClientFactory:
+          includeSharedSessionClient ? _FakeRealtimeClient.new : null,
     ),
   );
 }
@@ -405,6 +524,93 @@ Map<String, Object?> _trainer(String displayName) {
     'email': 'trainer@example.test',
     'displayName': displayName,
   };
+}
+
+Map<String, Object?> _trainerRelationshipWithAssignedSet({
+  bool activeSession = false,
+}) {
+  return {
+    'inviteCode': '7F2K9D',
+    'trainees': [
+      {
+        'id': 'trainee-1',
+        'email': 'trainee@example.test',
+        'displayName': 'Anna Nowak',
+        if (activeSession)
+          'activeSession': {
+            'sessionId': 'session-1',
+            'workoutSetId': 'set-1',
+            'workoutSetName': 'Push A',
+            'startedByUserId': 'trainee-1',
+            'startedByRole': 'trainee',
+            'updatedAt': '2026-06-17T12:00:00Z',
+          },
+        'assignedWorkoutSets': [
+          {
+            'id': 'set-1',
+            'name': 'Push A',
+            'exerciseCount': 2,
+            'rowCount': 5,
+            'updatedAt': '2026-06-16T12:05:00Z',
+          },
+        ],
+      },
+    ],
+  };
+}
+
+Map<String, Object?> _sessionResponse({String startedByRole = 'trainer'}) {
+  return {
+    'id': 'session-1',
+    'trainerUserId': 'trainer-1',
+    'traineeUserId': 'trainee-1',
+    'trainerEmail': 'trainer@example.test',
+    'traineeEmail': 'trainee@example.test',
+    'workoutSetId': 'set-1',
+    'startedByUserId': startedByRole == 'trainer' ? 'trainer-1' : 'trainee-1',
+    'startedByRole': startedByRole,
+    'status': 'active',
+    'version': 1,
+    'createdAt': '2026-06-17T12:00:00Z',
+    'updatedAt': '2026-06-17T12:00:00Z',
+    'closedAt': null,
+    'values': [
+      {
+        'id': 'value-1',
+        'exerciseName': 'Bench press',
+        'exerciseType': 'repsWeight',
+        'exerciseOrder': 1,
+        'setIndex': 1,
+        'reps': 6,
+        'weight': 40.0,
+        'seconds': null,
+        'isDone': false,
+        'completedAt': null,
+        'updatedByUserId': null,
+        'updatedAt': null,
+      },
+    ],
+  };
+}
+
+class _FakeRealtimeClient implements SharedSessionRealtimeClient {
+  @override
+  Stream<Never> get errors => const Stream.empty();
+
+  @override
+  Stream<SharedSessionConnectionStatus> get connectionStatus => const Stream.empty();
+
+  @override
+  Stream<Never> get updates => const Stream.empty();
+
+  @override
+  Future<void> connect({required String accessToken}) async {}
+
+  @override
+  Future<void> disconnect() async {}
+
+  @override
+  Future<void> joinSession({required String sessionId}) async {}
 }
 
 class _InMemoryTokenStore implements TokenStore {

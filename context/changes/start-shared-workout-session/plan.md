@@ -964,11 +964,11 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [x] 8.1 Unit tests cover Polish pluralization for `1`, `2`, `4`, `5`, `12`, `22`, and `25`
-- [x] 8.2 Widget tests prove visible labels render `2 ćwiczenia` where applicable
-- [x] 8.3 Search shows no remaining hard-coded `ćwiczeń` count pattern in S-02/S-03 widgets except inside the shared helper or tests
-- [x] 8.4 `flutter test` passes
-- [x] 8.5 `flutter analyze` passes
+- [x] 8.1 Unit tests cover Polish pluralization for `1`, `2`, `4`, `5`, `12`, `22`, and `25` — bc7d4b2
+- [x] 8.2 Widget tests prove visible labels render `2 ćwiczenia` where applicable — bc7d4b2
+- [x] 8.3 Search shows no remaining hard-coded `ćwiczeń` count pattern in S-02/S-03 widgets except inside the shared helper or tests — bc7d4b2
+- [x] 8.4 `flutter test` passes — bc7d4b2
+- [x] 8.5 `flutter analyze` passes — bc7d4b2
 
 #### Manual
 
@@ -978,13 +978,13 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [ ] 9.1 Widget tests prove trainer start navigates to editable live UI with a loaded session
-- [ ] 9.2 Widget tests prove trainer join of trainee self-start navigates to editable live UI with a loaded session
-- [ ] 9.3 Widget tests prove trainee self-start navigates to editable live UI with a loaded session
-- [ ] 9.4 Widget tests prove trainer-led trainee join navigates to read-only live UI
-- [ ] 9.5 Widget tests prove failed start/join keeps the user out of an empty live screen
-- [ ] 9.6 `flutter test` passes
-- [ ] 9.7 `flutter analyze` passes
+- [x] 9.1 Widget tests prove trainer start navigates to editable live UI with a loaded session
+- [x] 9.2 Widget tests prove trainer join of trainee self-start navigates to editable live UI with a loaded session
+- [x] 9.3 Widget tests prove trainee self-start navigates to editable live UI with a loaded session
+- [x] 9.4 Widget tests prove trainer-led trainee join navigates to read-only live UI
+- [x] 9.5 Widget tests prove failed start/join keeps the user out of an empty live screen
+- [x] 9.6 `flutter test` passes
+- [x] 9.7 `flutter analyze` passes
 
 #### Manual
 

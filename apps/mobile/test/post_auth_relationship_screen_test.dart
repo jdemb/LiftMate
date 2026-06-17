@@ -77,6 +77,52 @@ void main() {
       expect(find.text('Aktywna relacja'), findsOneWidget);
     });
 
+    testWidgets('trainer dashboard shows active session badge', (tester) async {
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+            }
+            if (request.url.path == '/trainer/relationship') {
+              return http.Response(
+                jsonEncode({
+                  'inviteCode': '7F2K9D',
+                  'trainees': [
+                    {
+                      'id': 'trainee-1',
+                      'email': 'trainee@example.test',
+                      'displayName': 'Anna Nowak',
+                      'activeSession': {
+                        'sessionId': 'session-1',
+                        'workoutSetId': 'set-1',
+                        'workoutSetName': 'Push A',
+                        'startedByUserId': 'trainee-1',
+                        'startedByRole': 'trainee',
+                        'updatedAt': '2026-06-17T12:00:00Z',
+                      },
+                    },
+                  ],
+                }),
+                200,
+              );
+            }
+
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+
+      expect(find.text('1'), findsWidgets);
+      expect(find.text('Aktywna sesja'), findsOneWidget);
+      await tester.tap(find.text('Anna Nowak'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('sesji'), findsOneWidget);
+    });
+
     testWidgets('trainee linked to trainer sees trainer identity',
         (tester) async {
       await tester.pumpWidget(

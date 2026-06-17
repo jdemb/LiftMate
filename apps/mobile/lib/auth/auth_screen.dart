@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../relationships/authenticated_relationship_shell.dart';
 import '../relationships/relationship_api_client.dart';
+import '../shared_sessions/shared_session_api_client.dart';
+import '../shared_sessions/shared_session_realtime_client.dart';
 import '../workout_sets/workout_set_api_client.dart';
 import 'auth_controller.dart';
 import 'auth_models.dart';
@@ -23,16 +25,22 @@ enum _AuthStep {
 }
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({
+  AuthScreen({
     required this.authController,
     required this.relationshipApiClient,
     required this.workoutSetApiClient,
+    SharedSessionApiClient? sharedSessionApiClient,
+    SharedSessionRealtimeClientFactory? sharedSessionRealtimeClientFactory,
     super.key,
-  });
+  })  : sharedSessionApiClient = sharedSessionApiClient ?? SharedSessionApiClient(),
+        sharedSessionRealtimeClientFactory =
+            sharedSessionRealtimeClientFactory ?? _defaultSharedSessionRealtimeClientFactory;
 
   final AuthController authController;
   final RelationshipApiClient relationshipApiClient;
   final WorkoutSetApiClient workoutSetApiClient;
+  final SharedSessionApiClient sharedSessionApiClient;
+  final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -231,6 +239,9 @@ class _AuthScreenState extends State<AuthScreen> {
                   authController: widget.authController,
                   relationshipApiClient: widget.relationshipApiClient,
                   workoutSetApiClient: widget.workoutSetApiClient,
+                  sharedSessionApiClient: widget.sharedSessionApiClient,
+                  sharedSessionRealtimeClientFactory:
+                      widget.sharedSessionRealtimeClientFactory,
                   onLogout: _logout,
                 ),
               ),
@@ -289,6 +300,10 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
     );
   }
+}
+
+SharedSessionRealtimeClient _defaultSharedSessionRealtimeClientFactory() {
+  return SignalRSharedSessionRealtimeClient(baseUrl: null);
 }
 
 class _GradientScaffold extends StatelessWidget {

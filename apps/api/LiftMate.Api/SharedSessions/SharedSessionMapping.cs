@@ -10,13 +10,17 @@ public static class SharedSessionMapping
             session.TraineeUserId,
             session.TrainerUser?.Email ?? string.Empty,
             session.TraineeUser?.Email ?? string.Empty,
+            session.WorkoutSetId,
+            session.StartedByUserId,
+            session.StartedByRole,
             session.Status,
             session.Version,
             session.CreatedAt,
             session.UpdatedAt,
             session.ClosedAt,
             session.Values
-                .OrderBy(value => value.SetIndex)
+                .OrderBy(value => value.ExerciseOrder)
+                .ThenBy(value => value.SetIndex)
                 .ThenBy(value => value.Id)
                 .Select(ToResponse)
                 .ToArray());
@@ -28,10 +32,13 @@ public static class SharedSessionMapping
             value.Id,
             value.ExerciseName,
             value.ExerciseType,
+            value.ExerciseOrder,
             value.SetIndex,
             value.Reps,
             value.Weight,
             value.Seconds,
+            value.IsDone,
+            value.CompletedAt,
             value.UpdatedByUserId,
             value.UpdatedAt);
     }

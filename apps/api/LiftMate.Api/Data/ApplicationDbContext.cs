@@ -112,10 +112,20 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .HasMaxLength(450)
                 .IsRequired();
 
+            entity.Property(session => session.StartedByUserId)
+                .HasMaxLength(450)
+                .IsRequired();
+
+            entity.Property(session => session.StartedByRole)
+                .HasMaxLength(32)
+                .IsRequired();
+
             entity.Property(session => session.Status)
                 .HasMaxLength(32)
                 .IsRequired();
 
+            entity.HasIndex(session => session.WorkoutSetId);
+            entity.HasIndex(session => session.StartedByUserId);
             entity.HasIndex(session => session.TrainerUserId);
             entity.HasIndex(session => session.TraineeUserId);
             entity.HasIndex(session => session.TraineeUserId)
@@ -133,14 +143,30 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .HasForeignKey(session => session.TraineeUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(session => session.WorkoutSet)
+                .WithMany()
+                .HasForeignKey(session => session.WorkoutSetId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(session => session.StartedByUser)
+                .WithMany()
+                .HasForeignKey(session => session.StartedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasMany(session => session.Values)
                 .WithOne(value => value.SharedSession)
                 .HasForeignKey(value => value.SharedSessionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.ToTable(table => table.HasCheckConstraint(
-                "CK_SharedSessions_Status",
-                "[Status] IN ('active', 'completed', 'cancelled')"));
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_SharedSessions_Status",
+                    "[Status] IN ('active', 'completed', 'cancelled')");
+                table.HasCheckConstraint(
+                    "CK_SharedSessions_StartedByRole",
+                    "[StartedByRole] IN ('trainer', 'trainee')");
+            });
         });
 
         builder.Entity<SharedSessionValue>(entity =>
@@ -158,10 +184,14 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             entity.Property(value => value.Weight)
                 .HasPrecision(8, 2);
 
+            entity.Property(value => value.IsDone)
+                .IsRequired();
+
             entity.Property(value => value.UpdatedByUserId)
                 .HasMaxLength(450);
 
             entity.HasIndex(value => value.SharedSessionId);
+            entity.HasIndex(value => new { value.SharedSessionId, value.ExerciseOrder, value.SetIndex });
             entity.HasIndex(value => value.ExerciseType);
 
             entity.HasOne(value => value.UpdatedByUser)

@@ -11,14 +11,21 @@ void main() {
       expect(session.traineeUserId, 'trainee-1');
       expect(session.trainerEmail, 'trainer@example.test');
       expect(session.traineeEmail, 'trainee@example.test');
+      expect(session.workoutSetId, 'set-1');
+      expect(session.startedByUserId, 'trainee-1');
+      expect(session.startedByRole, SharedSessionStartRole.trainee);
+      expect(session.isTraineeSelfStarted, isTrue);
       expect(session.status, SharedSessionStatus.active);
       expect(session.version, 3);
       expect(session.closedAt, isNull);
       expect(session.values, hasLength(1));
       expect(session.values.single.exerciseType, ExerciseValueType.repsWeight);
+      expect(session.values.single.exerciseOrder, 1);
       expect(session.values.single.reps, 8);
       expect(session.values.single.weight, 42.5);
       expect(session.values.single.seconds, isNull);
+      expect(session.values.single.isDone, isTrue);
+      expect(session.values.single.completedAt, isNotNull);
     });
 
     test('rejects invalid status and exercise type', () {
@@ -54,10 +61,13 @@ void main() {
             'id': 'value-2',
             'exerciseName': 'Plank',
             'exerciseType': 'time',
+            'exerciseOrder': 2,
             'setIndex': 1,
             'reps': null,
             'weight': null,
             'seconds': 60,
+            'isDone': false,
+            'completedAt': null,
             'updatedByUserId': null,
             'updatedAt': null,
           },
@@ -81,6 +91,9 @@ Map<String, Object?> _sessionJson() {
     'traineeUserId': 'trainee-1',
     'trainerEmail': 'trainer@example.test',
     'traineeEmail': 'trainee@example.test',
+    'workoutSetId': 'set-1',
+    'startedByUserId': 'trainee-1',
+    'startedByRole': 'trainee',
     'status': 'active',
     'version': 3,
     'createdAt': '2026-06-03T12:00:00Z',
@@ -91,10 +104,13 @@ Map<String, Object?> _sessionJson() {
         'id': 'value-1',
         'exerciseName': 'Bench press',
         'exerciseType': 'repsWeight',
+        'exerciseOrder': 1,
         'setIndex': 1,
         'reps': 8,
         'weight': 42.5,
         'seconds': null,
+        'isDone': true,
+        'completedAt': '2026-06-03T12:01:00Z',
         'updatedByUserId': 'trainer-1',
         'updatedAt': '2026-06-03T12:01:00Z',
       },

@@ -27,6 +27,8 @@ class TrainerDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final summary = state.trainerSummary;
     final trainees = summary?.trainees ?? const <TrainerTraineeSummary>[];
+    final activeCount =
+        trainees.where((trainee) => trainee.activeSession != null).length;
 
     return Column(
       children: [
@@ -47,9 +49,9 @@ class TrainerDashboardScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    const Expanded(
+                    Expanded(
                       child: _CounterCard(
-                        value: '0',
+                        value: activeCount.toString(),
                         label: 'aktywnych sesji',
                         accent: true,
                       ),
@@ -323,6 +325,10 @@ class _TraineeListItem extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(color: lmMuted, fontSize: 12.5),
                       ),
+                      if (trainee.activeSession != null) ...[
+                        const SizedBox(height: 7),
+                        const _ActiveSessionBadge(),
+                      ],
                     ],
                   ),
                 ),
@@ -332,6 +338,35 @@ class _TraineeListItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ActiveSessionBadge extends StatelessWidget {
+  const _ActiveSessionBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: Color(0xFF21C97A),
+            shape: BoxShape.circle,
+          ),
+          child: SizedBox(width: 8, height: 8),
+        ),
+        SizedBox(width: 7),
+        Text(
+          'Aktywna sesja',
+          style: TextStyle(
+            color: Color(0xFF7EE0AD),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }

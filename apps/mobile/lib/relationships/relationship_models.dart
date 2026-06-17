@@ -35,18 +35,24 @@ class TrainerTraineeSummary {
     required this.id,
     required this.email,
     required this.displayName,
+    this.activeSession,
   });
 
   final String id;
   final String email;
   final String displayName;
+  final ActiveSharedSessionSummary? activeSession;
 
   factory TrainerTraineeSummary.fromJson(Map<String, dynamic> json) {
     final id = json['id'];
     final email = json['email'];
     final displayName = json['displayName'];
+    final activeSession = json['activeSession'];
 
-    if (id is! String || email is! String || displayName is! String) {
+    if (id is! String ||
+        email is! String ||
+        displayName is! String ||
+        (activeSession != null && activeSession is! Map<String, dynamic>)) {
       throw const FormatException('Invalid trainee summary response body.');
     }
 
@@ -54,6 +60,53 @@ class TrainerTraineeSummary {
       id: id,
       email: email,
       displayName: displayName,
+      activeSession:
+          activeSession == null ? null : ActiveSharedSessionSummary.fromJson(activeSession),
+    );
+  }
+}
+
+class ActiveSharedSessionSummary {
+  const ActiveSharedSessionSummary({
+    required this.sessionId,
+    required this.startedByUserId,
+    required this.startedByRole,
+    required this.updatedAt,
+    this.workoutSetId,
+    this.workoutSetName,
+  });
+
+  final String sessionId;
+  final String? workoutSetId;
+  final String? workoutSetName;
+  final String startedByUserId;
+  final String startedByRole;
+  final DateTime updatedAt;
+
+  factory ActiveSharedSessionSummary.fromJson(Map<String, dynamic> json) {
+    final sessionId = json['sessionId'];
+    final workoutSetId = json['workoutSetId'];
+    final workoutSetName = json['workoutSetName'];
+    final startedByUserId = json['startedByUserId'];
+    final startedByRole = json['startedByRole'];
+    final updatedAt = json['updatedAt'];
+
+    if (sessionId is! String ||
+        (workoutSetId != null && workoutSetId is! String) ||
+        (workoutSetName != null && workoutSetName is! String) ||
+        startedByUserId is! String ||
+        startedByRole is! String ||
+        updatedAt is! String) {
+      throw const FormatException('Invalid active session summary response body.');
+    }
+
+    return ActiveSharedSessionSummary(
+      sessionId: sessionId,
+      workoutSetId: workoutSetId,
+      workoutSetName: workoutSetName,
+      startedByUserId: startedByUserId,
+      startedByRole: startedByRole,
+      updatedAt: DateTime.parse(updatedAt).toUtc(),
     );
   }
 }

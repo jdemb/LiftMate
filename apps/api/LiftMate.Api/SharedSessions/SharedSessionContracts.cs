@@ -12,10 +12,15 @@ public sealed record CreateSharedSessionValueRequest(
     decimal? Weight,
     int? Seconds);
 
+public sealed record StartSharedSessionFromWorkoutSetRequest(
+    Guid WorkoutSetId,
+    string? TraineeUserId);
+
 public sealed record UpdateSharedSessionValueRequest(
     int? Reps,
     decimal? Weight,
-    int? Seconds);
+    int? Seconds,
+    bool? IsDone);
 
 public sealed record SharedSessionResponse(
     Guid Id,
@@ -23,6 +28,9 @@ public sealed record SharedSessionResponse(
     string TraineeUserId,
     string TrainerEmail,
     string TraineeEmail,
+    Guid? WorkoutSetId,
+    string StartedByUserId,
+    string StartedByRole,
     string Status,
     long Version,
     DateTimeOffset CreatedAt,
@@ -34,9 +42,12 @@ public sealed record SharedSessionValueResponse(
     Guid Id,
     string ExerciseName,
     string ExerciseType,
+    int ExerciseOrder,
     int SetIndex,
     int? Reps,
     decimal? Weight,
     int? Seconds,
+    bool IsDone,
+    DateTimeOffset? CompletedAt,
     string? UpdatedByUserId,
     DateTimeOffset? UpdatedAt);

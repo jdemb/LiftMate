@@ -998,11 +998,11 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [x] 10.1 `dotnet restore LiftMate.slnx` passes
-- [x] 10.2 `dotnet build LiftMate.slnx --no-restore` passes
-- [x] 10.3 `dotnet test LiftMate.slnx --no-build` passes
-- [x] 10.4 `flutter test` passes
-- [x] 10.5 `flutter analyze` passes
+- [x] 10.1 `dotnet restore LiftMate.slnx` passes — 14e7bc6
+- [x] 10.2 `dotnet build LiftMate.slnx --no-restore` passes — 14e7bc6
+- [x] 10.3 `dotnet test LiftMate.slnx --no-build` passes — 14e7bc6
+- [x] 10.4 `flutter test` passes — 14e7bc6
+- [x] 10.5 `flutter analyze` passes — 14e7bc6
 
 #### Manual
 

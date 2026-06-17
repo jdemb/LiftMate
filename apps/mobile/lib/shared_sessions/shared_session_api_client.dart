@@ -76,6 +76,47 @@ class SharedSessionApiClient {
     );
   }
 
+  Future<SharedSessionApiResult<SharedSession>> startFromWorkoutSet({
+    required String accessToken,
+    required String workoutSetId,
+    String? traineeUserId,
+  }) {
+    return _send<SharedSession>(
+      method: 'POST',
+      path: '/shared-sessions/from-workout-set',
+      accessToken: accessToken,
+      body: {
+        'workoutSetId': workoutSetId,
+        'traineeUserId': traineeUserId,
+      },
+      successStatusCodes: {201},
+      parse: SharedSession.fromJson,
+      invalidJsonMessage: 'Invalid shared session response JSON.',
+    );
+  }
+
+  Future<SharedSessionApiResult<SharedSession>> startTrainerSession({
+    required String accessToken,
+    required String workoutSetId,
+    required String traineeUserId,
+  }) {
+    return startFromWorkoutSet(
+      accessToken: accessToken,
+      workoutSetId: workoutSetId,
+      traineeUserId: traineeUserId,
+    );
+  }
+
+  Future<SharedSessionApiResult<SharedSession>> startTraineeSession({
+    required String accessToken,
+    required String workoutSetId,
+  }) {
+    return startFromWorkoutSet(
+      accessToken: accessToken,
+      workoutSetId: workoutSetId,
+    );
+  }
+
   Future<SharedSessionApiResult<SharedSession>> get({
     required String accessToken,
     required String sessionId,

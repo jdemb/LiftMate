@@ -29,6 +29,14 @@ void main() {
                     'id': 'trainee-1',
                     'email': 'trainee@example.test',
                     'displayName': 'Test Trainee',
+                    'activeSession': {
+                      'sessionId': 'session-1',
+                      'workoutSetId': 'set-1',
+                      'workoutSetName': 'Solo day',
+                      'startedByUserId': 'trainee-1',
+                      'startedByRole': 'trainee',
+                      'updatedAt': '2026-06-02T12:10:00Z',
+                    },
                   },
                 ],
               }),
@@ -50,6 +58,10 @@ void main() {
       expect(controller.state.status, RelationshipControllerStatus.loaded);
       expect(controller.state.trainerSummary?.inviteCode, '7F2K9D');
       expect(controller.state.trainerSummary?.trainees.single.id, 'trainee-1');
+      expect(
+        controller.state.trainerSummary?.trainees.single.activeSession?.sessionId,
+        'session-1',
+      );
       expect(seenPaths, ['/auth/login', '/trainer/relationship']);
     });
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../workout_sets/workout_set_models.dart';
+import '../workout_sets/workout_set_text.dart';
 import 'relationship_models.dart';
 import 'relationship_screen_styles.dart';
 
@@ -13,6 +13,7 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
     this.assignedSets = const [],
     this.onStartSession,
     this.onJoinActiveSession,
+    this.sessionErrorMessage,
     super.key,
   });
 
@@ -20,9 +21,10 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
   final VoidCallback onBack;
   final Future<void> Function() onLogout;
   final VoidCallback onOpenWorkoutSets;
-  final List<WorkoutSetDetail> assignedSets;
-  final void Function(WorkoutSetDetail set)? onStartSession;
+  final List<AssignedWorkoutSetSummary> assignedSets;
+  final void Function(AssignedWorkoutSetSummary set)? onStartSession;
   final VoidCallback? onJoinActiveSession;
+  final String? sessionErrorMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +93,15 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                   onPressed: onJoinActiveSession,
                   icon: const Icon(Icons.play_circle_rounded),
                   label: const Text('Dołącz do sesji'),
+                ),
+              ],
+              if (sessionErrorMessage != null) ...[
+                const SizedBox(height: 12),
+                RelationshipCard(
+                  child: Text(
+                    sessionErrorMessage!,
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
                 ),
               ],
               const SizedBox(height: 20),
@@ -175,14 +186,11 @@ class _AssignedSetCard extends StatelessWidget {
     required this.onStartSession,
   });
 
-  final WorkoutSetDetail set;
+  final AssignedWorkoutSetSummary set;
   final VoidCallback? onStartSession;
 
   @override
   Widget build(BuildContext context) {
-    final exerciseCount =
-        set.rows.map((row) => row.exerciseOrder).toSet().length;
-
     return RelationshipCard(
       margin: const EdgeInsets.only(bottom: 10),
       child: Column(
@@ -200,7 +208,7 @@ class _AssignedSetCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${_exerciseCountLabel(exerciseCount)} · ${set.rows.length} serii',
+            '${exerciseCountLabel(set.exerciseCount)} · ${set.rowCount} serii',
             style: const TextStyle(color: lmMuted, fontSize: 13),
           ),
           if (onStartSession != null) ...[
@@ -268,16 +276,4 @@ class _DetailRow extends StatelessWidget {
       ],
     );
   }
-}
-
-String _exerciseCountLabel(int count) {
-  final mod10 = count % 10;
-  final mod100 = count % 100;
-  if (count == 1) {
-    return '1 ćwiczenie';
-  }
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return '$count ćwiczenia';
-  }
-  return '$count ćwiczeń';
 }

@@ -62,6 +62,56 @@ void main() {
       expect(realtimeClient.joinedSessionIds, ['session-1']);
     });
 
+    test('loadById rejects closed sessions as not joinable', () async {
+      final authController = await _authController(role: UserRole.trainer);
+      final apiClient = _FakeSharedSessionApiClient(
+        activeSession: _session(status: SharedSessionStatus.completed),
+      );
+      final realtimeClient = _FakeSharedSessionRealtimeClient();
+      final controller = SharedSessionController(
+        apiClient: apiClient,
+        authController: authController,
+        realtimeClientFactory: () => realtimeClient,
+      );
+      addTearDown(controller.dispose);
+
+      await controller.loadById(
+        user: authController.state.user!,
+        sessionId: 'session-1',
+      );
+
+      expect(controller.state.status, SharedSessionControllerStatus.error);
+      expect(controller.state.session, isNull);
+      expect(realtimeClient.joinedSessionIds, isEmpty);
+    });
+
+    test('failed self-start leaves no loaded session', () async {
+      final authController = await _authController(role: UserRole.trainee);
+      final apiClient = _FakeSharedSessionApiClient(
+        startTraineeResult: const SharedSessionApiResult(
+          status: SharedSessionApiStatus.conflict,
+          message: 'Session already exists.',
+        ),
+      );
+      final realtimeClient = _FakeSharedSessionRealtimeClient();
+      final controller = SharedSessionController(
+        apiClient: apiClient,
+        authController: authController,
+        realtimeClientFactory: () => realtimeClient,
+      );
+      addTearDown(controller.dispose);
+
+      final result = await controller.startTraineeSession(
+        user: authController.state.user!,
+        workoutSetId: 'set-1',
+      );
+
+      expect(result.status, SharedSessionApiStatus.conflict);
+      expect(controller.state.status, SharedSessionControllerStatus.error);
+      expect(controller.state.session, isNull);
+      expect(realtimeClient.joinedSessionIds, isEmpty);
+    });
+
     test('toggleDone sends canonical done-state mutation', () async {
       final authController = await _authController(role: UserRole.trainee);
       final apiClient = _FakeSharedSessionApiClient();
@@ -163,6 +213,7 @@ Map<String, Object?> _authResponse(UserRole role) {
 
 SharedSession _session({
   SharedSessionStartRole startedByRole = SharedSessionStartRole.trainee,
+  SharedSessionStatus status = SharedSessionStatus.active,
   bool isDone = false,
 }) {
   return SharedSession(
@@ -175,7 +226,7 @@ SharedSession _session({
     startedByUserId:
         startedByRole == SharedSessionStartRole.trainer ? 'trainer-1' : 'trainee-1',
     startedByRole: startedByRole,
-    status: SharedSessionStatus.active,
+    status: status,
     version: isDone ? 2 : 1,
     createdAt: DateTime.parse('2026-06-03T12:00:00Z').toUtc(),
     updatedAt: DateTime.parse('2026-06-03T12:00:00Z').toUtc(),
@@ -195,11 +246,15 @@ SharedSession _session({
 }
 
 class _FakeSharedSessionApiClient extends SharedSessionApiClient {
-  _FakeSharedSessionApiClient({SharedSession? activeSession})
+  _FakeSharedSessionApiClient({
+    SharedSession? activeSession,
+    this._startTraineeResult,
+  })
       : _currentSession = activeSession ?? _session(),
         super(baseUrl: 'https://api.example.test');
 
   SharedSession _currentSession;
+  final SharedSessionApiResult<SharedSession>? _startTraineeResult;
   int activeRequestedCount = 0;
   String? startedTraineeWorkoutSetId;
   String? loadedSessionId;
@@ -236,6 +291,11 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
     required String workoutSetId,
   }) async {
     startedTraineeWorkoutSetId = workoutSetId;
+    final startTraineeResult = _startTraineeResult;
+    if (startTraineeResult != null) {
+      return startTraineeResult;
+    }
+
     _currentSession = _session(startedByRole: SharedSessionStartRole.trainee);
     return SharedSessionApiResult(
       status: SharedSessionApiStatus.success,

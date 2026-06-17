@@ -145,6 +145,48 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task TrainerRelationshipSummaryIncludesAssignedWorkoutSetSummaries()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var otherTrainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        var otherTrainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairTrainerAndTrainee(client, trainer, trainee);
+        await PairTrainerAndTrainee(client, otherTrainer, otherTrainee);
+        var assignedSet = await CreateWorkoutSet(
+            client,
+            trainer,
+            "Push A",
+            [
+                new WorkoutSetRowRequest(1, 1, "Bench press", "repsWeight", 6, 40m, null),
+                new WorkoutSetRowRequest(1, 2, "Bench press", "repsWeight", 6, 40m, null),
+                new WorkoutSetRowRequest(2, 1, "Shoulder press", "repsWeight", 8, 22.5m, null),
+            ]);
+        var unassignedSet = await CreateWorkoutSet(client, trainer, "Pull B");
+        var otherTrainerSet = await CreateWorkoutSet(client, otherTrainer, "Other trainer set");
+        await AssignWorkoutSet(client, trainer, assignedSet.Id, [trainee.User.Id]);
+        await AssignWorkoutSet(client, otherTrainer, otherTrainerSet.Id, [otherTrainee.User.Id]);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.GetAsync("/trainer/relationship");
+        var summary = await response.Content.ReadFromJsonAsync<TrainerRelationshipSummaryResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(summary);
+        var linkedTrainee = Assert.Single(summary.Trainees);
+        var assignedSummary = Assert.Single(linkedTrainee.AssignedWorkoutSets);
+        Assert.Equal(assignedSet.Id, assignedSummary.Id);
+        Assert.Equal("Push A", assignedSummary.Name);
+        Assert.Equal(2, assignedSummary.ExerciseCount);
+        Assert.Equal(3, assignedSummary.RowCount);
+        Assert.Equal(assignedSet.UpdatedAt, assignedSummary.UpdatedAt);
+        Assert.DoesNotContain(
+            linkedTrainee.AssignedWorkoutSets,
+            set => set.Id == unassignedSet.Id || set.Id == otherTrainerSet.Id);
+    }
+
+    [Fact]
     public async Task TrainerRelationshipSummaryReturnsEmptyListForNewTrainer()
     {
         using var client = factory.CreateClient();
@@ -260,14 +302,15 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
     private static async Task<WorkoutSetDetailResponse> CreateWorkoutSet(
         HttpClient client,
         AuthEndpointTests.AuthResponse trainer,
-        string name)
+        string name,
+        IReadOnlyList<WorkoutSetRowRequest>? rows = null)
     {
         client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
         var response = await client.PostAsJsonAsync(
             "/workout-sets",
             new CreateWorkoutSetRequest(
                 name,
-                [new WorkoutSetRowRequest(1, 1, "Bench press", "repsWeight", 6, 40m, null)]));
+                rows ?? [new WorkoutSetRowRequest(1, 1, "Bench press", "repsWeight", 6, 40m, null)]));
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
@@ -332,7 +375,8 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
         string Id,
         string Email,
         string DisplayName,
-        ActiveSharedSessionSummaryResponse? ActiveSession);
+        ActiveSharedSessionSummaryResponse? ActiveSession,
+        IReadOnlyList<AssignedWorkoutSetSummaryResponse> AssignedWorkoutSets);
 
     private sealed record ActiveSharedSessionSummaryResponse(
         Guid SessionId,
@@ -340,6 +384,13 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
         string? WorkoutSetName,
         string StartedByUserId,
         string StartedByRole,
+        DateTimeOffset UpdatedAt);
+
+    private sealed record AssignedWorkoutSetSummaryResponse(
+        Guid Id,
+        string Name,
+        int ExerciseCount,
+        int RowCount,
         DateTimeOffset UpdatedAt);
 
     private sealed record TraineeRelationshipSummaryResponse(TraineeTrainerResponse? Trainer);

@@ -35,7 +35,8 @@ public sealed record TrainerTraineeResponse(
     string Id,
     string Email,
     string DisplayName,
-    ActiveSharedSessionSummaryResponse? ActiveSession);
+    ActiveSharedSessionSummaryResponse? ActiveSession,
+    IReadOnlyList<AssignedWorkoutSetSummaryResponse> AssignedWorkoutSets);
 
 public sealed record ActiveSharedSessionSummaryResponse(
     Guid SessionId,
@@ -43,6 +44,13 @@ public sealed record ActiveSharedSessionSummaryResponse(
     string? WorkoutSetName,
     string StartedByUserId,
     string StartedByRole,
+    DateTimeOffset UpdatedAt);
+
+public sealed record AssignedWorkoutSetSummaryResponse(
+    Guid Id,
+    string Name,
+    int ExerciseCount,
+    int RowCount,
     DateTimeOffset UpdatedAt);
 
 public sealed record TrainerRelationshipSummaryResponse(

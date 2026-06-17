@@ -13,6 +13,7 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
     this.assignedSets = const [],
     this.onStartSession,
     this.onJoinActiveSession,
+    this.sessionErrorMessage,
     super.key,
   });
 
@@ -23,6 +24,7 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
   final List<AssignedWorkoutSetSummary> assignedSets;
   final void Function(AssignedWorkoutSetSummary set)? onStartSession;
   final VoidCallback? onJoinActiveSession;
+  final String? sessionErrorMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +93,15 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                   onPressed: onJoinActiveSession,
                   icon: const Icon(Icons.play_circle_rounded),
                   label: const Text('Dołącz do sesji'),
+                ),
+              ],
+              if (sessionErrorMessage != null) ...[
+                const SizedBox(height: 12),
+                RelationshipCard(
+                  child: Text(
+                    sessionErrorMessage!,
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
                 ),
               ],
               const SizedBox(height: 20),

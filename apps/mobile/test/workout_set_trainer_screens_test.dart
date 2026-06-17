@@ -271,9 +271,10 @@ void main() {
       expect(seen.where((path) => path == 'POST /workout-sets/set-1/assignments'), isEmpty);
     });
 
-    testWidgets('trainee detail shows assigned sets and unassign action', (tester) async {
-      WorkoutSetDetail? unassigned;
+    testWidgets('trainee detail shows assigned sets without unassign action',
+        (tester) async {
       WorkoutSetDetail? started;
+      var openedSets = false;
 
       await tester.pumpWidget(MaterialApp(
         home: TrainerTraineeDetailScreen(
@@ -285,7 +286,7 @@ void main() {
           assignedSets: [WorkoutSetDetail.fromJson(_detailJson())],
           onBack: () {},
           onLogout: () async {},
-          onUnassign: (set) => unassigned = set,
+          onOpenWorkoutSets: () => openedSets = true,
           onStartSession: (set) => started = set,
         ),
       ));
@@ -297,11 +298,14 @@ void main() {
       );
       expect(find.text('PRZYPISANE ZESTAWY'), findsOneWidget);
       expect(find.text('Push A'), findsOneWidget);
-      await _tapButton(tester, 'Rozpocznij wspÃ³lny trening');
-      expect(started?.id, 'set-1');
-      await _tapButton(tester, 'Odepnij zestaw');
+      expect(find.text('Odepnij zestaw'), findsNothing);
+      expect(find.text('1 ćwiczenie · 1 serii'), findsOneWidget);
 
-      expect(unassigned?.id, 'set-1');
+      await _tapButton(tester, 'Rozpocznij wspólny trening');
+      expect(started?.id, 'set-1');
+
+      await _tapButton(tester, 'Zestawy');
+      expect(openedSets, isTrue);
     });
 
     testWidgets('trainee detail switches to join action when session is active',
@@ -326,6 +330,7 @@ void main() {
           assignedSets: [WorkoutSetDetail.fromJson(_detailJson())],
           onBack: () {},
           onLogout: () async {},
+          onOpenWorkoutSets: () {},
           onJoinActiveSession: () => joined = true,
           onStartSession: (_) {},
         ),
@@ -333,10 +338,9 @@ void main() {
 
       expect(find.text('Aktywna sesja'), findsOneWidget);
       expect(find.textContaining('sesji'), findsOneWidget);
-      expect(find.text('Rozpocznij wspÃ³lny trening'), findsNothing);
+      expect(find.text('Rozpocznij wspólny trening'), findsNothing);
 
-      await _tapButton(tester, 'DoÅ‚Ä…cz do sesji');
-
+      await _tapButton(tester, 'Dołącz do sesji');
       expect(joined, isTrue);
     });
   });

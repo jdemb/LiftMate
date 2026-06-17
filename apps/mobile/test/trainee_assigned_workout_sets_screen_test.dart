@@ -83,7 +83,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(seen, contains('POST /shared-sessions/from-workout-set'));
-      expect(find.text('Trening live'), findsOneWidget);
+      expect(find.text('Bench press'), findsOneWidget);
       expect(find.byIcon(Icons.add_rounded), findsWidgets);
     });
 
@@ -115,10 +115,10 @@ void main() {
       ));
 
       await tester.pumpAndSettle();
-      await tester.tap(find.text('DoÅ‚Ä…cz do aktywnego treningu'));
+      await tester.tap(find.text('Dołącz do aktywnego treningu'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Aktualne Ä‡wiczenie'), findsOneWidget);
+      expect(find.textContaining('Ćwiczenie 1 / 1'), findsOneWidget);
       expect(find.textContaining('nic nie musisz'), findsOneWidget);
       expect(find.byIcon(Icons.add_rounded), findsNothing);
     });

@@ -121,7 +121,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Push A'), findsOneWidget);
-      expect(find.textContaining('2'), findsWidgets);
+      expect(find.text('2 ćwiczenia · 5 serii'), findsOneWidget);
       expect(find.text('Odepnij zestaw'), findsNothing);
       expect(seen.where((path) => path == 'GET /workout-sets/set-1'), isEmpty);
     });

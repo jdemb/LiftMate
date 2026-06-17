@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../relationships/relationship_screen_styles.dart';
 import '../shared_sessions/shared_session_models.dart';
 import 'workout_set_models.dart';
+import 'workout_set_text.dart';
 
 class TraineeAssignedWorkoutSetView extends StatelessWidget {
   const TraineeAssignedWorkoutSetView({
@@ -74,7 +75,7 @@ class _AssignedSetCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${_exerciseCountLabel(exerciseCount)} · ${set.rows.length} serii · prowadzi ${set.trainerDisplayName}',
+            '${exerciseCountLabel(exerciseCount)} · ${set.rows.length} serii · prowadzi ${set.trainerDisplayName}',
             style: const TextStyle(color: lmMuted, fontSize: 13.5),
           ),
           const SizedBox(height: 16),
@@ -176,16 +177,4 @@ Map<int, List<WorkoutSetRow>> _groupRows(List<WorkoutSetRow> rows) {
   }
 
   return grouped;
-}
-
-String _exerciseCountLabel(int count) {
-  final mod10 = count % 10;
-  final mod100 = count % 100;
-  if (count == 1) {
-    return '1 ćwiczenie';
-  }
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return '$count ćwiczenia';
-  }
-  return '$count ćwiczeń';
 }

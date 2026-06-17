@@ -644,12 +644,12 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [x] 5.1 Widget tests prove trainee can start a self-session from a concrete assigned set card
-- [x] 5.2 Widget tests prove trainer-led active sessions show "Dołącz do aktywnego treningu"
-- [x] 5.3 Widget tests prove trainee self-start opens editable live UI
-- [x] 5.4 Widget tests prove trainer-led join opens read-only `c_live` UI
-- [x] 5.5 `flutter test` passes
-- [x] 5.6 `flutter analyze` passes
+- [x] 5.1 Widget tests prove trainee can start a self-session from a concrete assigned set card — a41ff08
+- [x] 5.2 Widget tests prove trainer-led active sessions show "Dołącz do aktywnego treningu" — a41ff08
+- [x] 5.3 Widget tests prove trainee self-start opens editable live UI — a41ff08
+- [x] 5.4 Widget tests prove trainer-led join opens read-only `c_live` UI — a41ff08
+- [x] 5.5 `flutter test` passes — a41ff08
+- [x] 5.6 `flutter analyze` passes — a41ff08
 
 #### Manual
 
@@ -662,11 +662,11 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [ ] 6.1 `dotnet restore LiftMate.slnx` passes
-- [ ] 6.2 `dotnet build LiftMate.slnx --no-restore` passes
-- [ ] 6.3 `dotnet test LiftMate.slnx --no-build` passes
-- [ ] 6.4 `flutter test` passes
-- [ ] 6.5 `flutter analyze` passes
+- [x] 6.1 `dotnet restore LiftMate.slnx` passes
+- [x] 6.2 `dotnet build LiftMate.slnx --no-restore` passes
+- [x] 6.3 `dotnet test LiftMate.slnx --no-build` passes
+- [x] 6.4 `flutter test` passes
+- [x] 6.5 `flutter analyze` passes
 
 #### Manual
 

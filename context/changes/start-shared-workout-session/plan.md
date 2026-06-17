@@ -613,12 +613,12 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [x] 3.1 Shared-session model tests cover new origin and grouping fields
-- [x] 3.2 Shared-session API client tests cover trainer and trainee start-from-set requests
-- [x] 3.3 Controller tests cover self-start, trainer-led join, active-session fetch, and reconnect recovery
-- [x] 3.4 Controller tests cover done-state toggles and trainer relationship refresh after trainee self-start events
-- [x] 3.5 `flutter test` passes
-- [x] 3.6 `flutter analyze` passes
+- [x] 3.1 Shared-session model tests cover new origin and grouping fields — 3f48d90
+- [x] 3.2 Shared-session API client tests cover trainer and trainee start-from-set requests — 3f48d90
+- [x] 3.3 Controller tests cover self-start, trainer-led join, active-session fetch, and reconnect recovery — 3f48d90
+- [x] 3.4 Controller tests cover done-state toggles and trainer relationship refresh after trainee self-start events — 3f48d90
+- [x] 3.5 `flutter test` passes — 3f48d90
+- [x] 3.6 `flutter analyze` passes — 3f48d90
 
 #### Manual
 
@@ -628,11 +628,11 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [ ] 4.1 Widget tests prove active-session badge renders on trainer trainee list
-- [ ] 4.2 Widget tests prove trainer detail switches between start and join actions
-- [ ] 4.3 Widget tests prove trainer live screen renders editable rows and sends updates
-- [ ] 4.4 `flutter test` passes
-- [ ] 4.5 `flutter analyze` passes
+- [x] 4.1 Widget tests prove active-session badge renders on trainer trainee list
+- [x] 4.2 Widget tests prove trainer detail switches between start and join actions
+- [x] 4.3 Widget tests prove trainer live screen renders editable rows and sends updates
+- [x] 4.4 `flutter test` passes
+- [x] 4.5 `flutter analyze` passes
 
 #### Manual
 

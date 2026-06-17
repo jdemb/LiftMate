@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using LiftMate.Api.Auth;
 using LiftMate.Api.Data;
+using LiftMate.Api.WorkoutSets;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +14,7 @@ public static class SharedSessionEndpoints
         var group = routes.MapGroup("/shared-sessions");
 
         group.MapPost("/", Create).RequireAuthorization("TrainerOnly");
+        group.MapPost("/from-workout-set", StartFromWorkoutSet).RequireAuthorization();
         group.MapGet("/active", GetActive).RequireAuthorization();
         group.MapGet("/{sessionId:guid}", Get).RequireAuthorization();
         group.MapPatch("/{sessionId:guid}/values/{valueId:guid}", UpdateValue).RequireAuthorization();
@@ -97,6 +99,7 @@ public static class SharedSessionEndpoints
                 Id = Guid.NewGuid(),
                 ExerciseName = exerciseName,
                 ExerciseType = valueRequest.ExerciseType.Trim(),
+                ExerciseOrder = valueRequest.SetIndex,
                 SetIndex = valueRequest.SetIndex,
                 Reps = valueRequest.Reps,
                 Weight = valueRequest.Weight,
@@ -112,6 +115,9 @@ public static class SharedSessionEndpoints
             TrainerUser = trainer,
             TraineeUserId = trainee.Id,
             TraineeUser = trainee,
+            StartedByUserId = trainerUserId,
+            StartedByUser = trainer,
+            StartedByRole = UserRole.Trainer,
             Status = SharedSessionStatus.Active,
             Version = 1,
             CreatedAt = now,
@@ -121,6 +127,165 @@ public static class SharedSessionEndpoints
         foreach (var value in values)
         {
             session.Values.Add(value);
+        }
+
+        dbContext.SharedSessions.Add(session);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await broadcaster.BroadcastStartedAsync(session, cancellationToken);
+        await broadcaster.BroadcastUpdatedAsync(session, cancellationToken);
+
+        return Results.Created($"/shared-sessions/{session.Id}", SharedSessionMapping.ToResponse(session));
+    }
+
+    private static async Task<IResult> StartFromWorkoutSet(
+        StartSharedSessionFromWorkoutSetRequest request,
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext,
+        UserManager<ApplicationUser> userManager,
+        SharedSessionBroadcaster broadcaster,
+        CancellationToken cancellationToken)
+    {
+        var currentUserId = SharedSessionAccess.UserId(principal);
+        if (currentUserId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var isTrainer = principal.HasClaim(ClaimTypes.Role, UserRole.Trainer);
+        var isTrainee = principal.HasClaim(ClaimTypes.Role, UserRole.Trainee);
+        if (!isTrainer && !isTrainee)
+        {
+            return Results.Forbid();
+        }
+
+        var workoutSet = await dbContext.WorkoutSets
+            .Include(set => set.Rows)
+            .Include(set => set.Assignments)
+            .SingleOrDefaultAsync(set => set.Id == request.WorkoutSetId, cancellationToken);
+        if (workoutSet is null)
+        {
+            return Results.NotFound();
+        }
+
+        ApplicationUser? trainer;
+        ApplicationUser? trainee;
+        string startedByRole;
+
+        if (isTrainer)
+        {
+            if (!string.Equals(workoutSet.TrainerUserId, currentUserId, StringComparison.Ordinal))
+            {
+                return Results.NotFound();
+            }
+
+            if (string.IsNullOrWhiteSpace(request.TraineeUserId))
+            {
+                return Results.BadRequest(new { error = "Trainee user id is required for trainer starts." });
+            }
+
+            trainee = await userManager.Users.SingleOrDefaultAsync(
+                user => user.Id == request.TraineeUserId,
+                cancellationToken);
+            if (trainee is null || trainee.LiftMateRole != UserRole.Trainee)
+            {
+                return Results.BadRequest(new { error = "Trainee user not found." });
+            }
+
+            if (!string.Equals(trainee.TrainerUserId, currentUserId, StringComparison.Ordinal))
+            {
+                return Results.Forbid();
+            }
+
+            trainer = await userManager.Users.SingleOrDefaultAsync(
+                user => user.Id == currentUserId,
+                cancellationToken);
+            startedByRole = UserRole.Trainer;
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(request.TraineeUserId) &&
+                !string.Equals(request.TraineeUserId, currentUserId, StringComparison.Ordinal))
+            {
+                return Results.Forbid();
+            }
+
+            trainee = await userManager.Users.SingleOrDefaultAsync(
+                user => user.Id == currentUserId,
+                cancellationToken);
+            if (trainee is null || trainee.LiftMateRole != UserRole.Trainee || string.IsNullOrWhiteSpace(trainee.TrainerUserId))
+            {
+                return Results.Forbid();
+            }
+
+            if (!string.Equals(workoutSet.TrainerUserId, trainee.TrainerUserId, StringComparison.Ordinal))
+            {
+                return Results.NotFound();
+            }
+
+            trainer = await userManager.Users.SingleOrDefaultAsync(
+                user => user.Id == workoutSet.TrainerUserId,
+                cancellationToken);
+            startedByRole = UserRole.Trainee;
+        }
+
+        if (trainer is null)
+        {
+            return Results.Forbid();
+        }
+
+        var isAssigned = workoutSet.Assignments.Any(
+            assignment => string.Equals(assignment.TraineeUserId, trainee.Id, StringComparison.Ordinal));
+        if (!isAssigned)
+        {
+            return Results.Forbid();
+        }
+
+        if (workoutSet.Rows.Count == 0)
+        {
+            return Results.BadRequest(new { error = "Workout set must contain at least one row." });
+        }
+
+        var hasActiveSession = await dbContext.SharedSessions.AnyAsync(
+            session => session.TraineeUserId == trainee.Id && session.Status == SharedSessionStatus.Active,
+            cancellationToken);
+        if (hasActiveSession)
+        {
+            return Results.Conflict(new { error = "Trainee already has an active shared session." });
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var session = new SharedSession
+        {
+            Id = Guid.NewGuid(),
+            TrainerUserId = trainer.Id,
+            TrainerUser = trainer,
+            TraineeUserId = trainee.Id,
+            TraineeUser = trainee,
+            WorkoutSetId = workoutSet.Id,
+            WorkoutSet = workoutSet,
+            StartedByUserId = currentUserId,
+            StartedByRole = startedByRole,
+            Status = SharedSessionStatus.Active,
+            Version = 1,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
+        foreach (var row in workoutSet.Rows.OrderBy(row => row.ExerciseOrder).ThenBy(row => row.SetIndex).ThenBy(row => row.Id))
+        {
+            session.Values.Add(new SharedSessionValue
+            {
+                Id = Guid.NewGuid(),
+                ExerciseOrder = row.ExerciseOrder,
+                ExerciseName = row.ExerciseName,
+                ExerciseType = row.ExerciseType,
+                SetIndex = row.SetIndex,
+                Reps = row.Reps,
+                Weight = row.Weight,
+                Seconds = row.Seconds,
+                IsDone = false,
+                CompletedAt = null,
+            });
         }
 
         dbContext.SharedSessions.Add(session);
@@ -145,7 +310,7 @@ public static class SharedSessionEndpoints
         var sessions = await dbContext.SharedSessions
             .Include(session => session.TrainerUser)
             .Include(session => session.TraineeUser)
-            .Include(session => session.Values.OrderBy(value => value.SetIndex).ThenBy(value => value.Id))
+            .Include(session => session.Values.OrderBy(value => value.ExerciseOrder).ThenBy(value => value.SetIndex).ThenBy(value => value.Id))
             .Where(session =>
                 session.Status == SharedSessionStatus.Active &&
                 (session.TrainerUserId == userId || session.TraineeUserId == userId))
@@ -200,7 +365,7 @@ public static class SharedSessionEndpoints
             return Results.Unauthorized();
         }
 
-        if (!SharedSessionAccess.CanAccess(session, principal, userId))
+        if (!CanUpdateValues(session, principal, userId))
         {
             return Results.Forbid();
         }
@@ -216,16 +381,21 @@ public static class SharedSessionEndpoints
             return Results.NotFound();
         }
 
-        var validationError = ValidateValue(value.ExerciseType, request.Reps, request.Weight, request.Seconds);
+        var validationError = ValidateUpdatedValue(value, request, out var reps, out var weight, out var seconds);
         if (validationError is not null)
         {
             return Results.BadRequest(new { error = validationError });
         }
 
         var now = DateTimeOffset.UtcNow;
-        value.Reps = request.Reps;
-        value.Weight = request.Weight;
-        value.Seconds = request.Seconds;
+        value.Reps = reps;
+        value.Weight = weight;
+        value.Seconds = seconds;
+        if (request.IsDone.HasValue)
+        {
+            value.IsDone = request.IsDone.Value;
+            value.CompletedAt = value.IsDone ? value.CompletedAt ?? now : null;
+        }
         value.UpdatedByUserId = userId;
         value.UpdatedAt = now;
         session.Version += 1;
@@ -307,8 +477,39 @@ public static class SharedSessionEndpoints
         return dbContext.SharedSessions
             .Include(session => session.TrainerUser)
             .Include(session => session.TraineeUser)
-            .Include(session => session.Values.OrderBy(value => value.SetIndex).ThenBy(value => value.Id))
+            .Include(session => session.Values.OrderBy(value => value.ExerciseOrder).ThenBy(value => value.SetIndex).ThenBy(value => value.Id))
             .SingleOrDefaultAsync(session => session.Id == sessionId, cancellationToken);
+    }
+
+    private static bool CanUpdateValues(SharedSession session, ClaimsPrincipal principal, string userId)
+    {
+        if (!SharedSessionAccess.CanAccess(session, principal, userId))
+        {
+            return false;
+        }
+
+        if (string.Equals(session.TrainerUserId, userId, StringComparison.Ordinal))
+        {
+            return principal.HasClaim(ClaimTypes.Role, UserRole.Trainer);
+        }
+
+        return string.Equals(session.TraineeUserId, userId, StringComparison.Ordinal) &&
+            string.Equals(session.StartedByRole, UserRole.Trainee, StringComparison.Ordinal) &&
+            string.Equals(session.StartedByUserId, userId, StringComparison.Ordinal);
+    }
+
+    private static string? ValidateUpdatedValue(
+        SharedSessionValue value,
+        UpdateSharedSessionValueRequest request,
+        out int? reps,
+        out decimal? weight,
+        out int? seconds)
+    {
+        reps = request.Reps ?? value.Reps;
+        weight = request.Weight ?? value.Weight;
+        seconds = request.Seconds ?? value.Seconds;
+
+        return ValidateValue(value.ExerciseType, reps, weight, seconds);
     }
 
     private static string? ValidateValue(string exerciseType, int? reps, decimal? weight, int? seconds)

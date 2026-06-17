@@ -273,6 +273,7 @@ void main() {
 
     testWidgets('trainee detail shows assigned sets and unassign action', (tester) async {
       WorkoutSetDetail? unassigned;
+      WorkoutSetDetail? started;
 
       await tester.pumpWidget(MaterialApp(
         home: TrainerTraineeDetailScreen(
@@ -285,6 +286,7 @@ void main() {
           onBack: () {},
           onLogout: () async {},
           onUnassign: (set) => unassigned = set,
+          onStartSession: (set) => started = set,
         ),
       ));
 
@@ -295,9 +297,47 @@ void main() {
       );
       expect(find.text('PRZYPISANE ZESTAWY'), findsOneWidget);
       expect(find.text('Push A'), findsOneWidget);
+      await _tapButton(tester, 'Rozpocznij wspÃ³lny trening');
+      expect(started?.id, 'set-1');
       await _tapButton(tester, 'Odepnij zestaw');
 
       expect(unassigned?.id, 'set-1');
+    });
+
+    testWidgets('trainee detail switches to join action when session is active',
+        (tester) async {
+      var joined = false;
+
+      await tester.pumpWidget(MaterialApp(
+        home: TrainerTraineeDetailScreen(
+          trainee: TrainerTraineeSummary(
+            id: 'trainee-1',
+            email: 'anna@example.test',
+            displayName: 'Anna Nowak',
+            activeSession: ActiveSharedSessionSummary(
+              sessionId: 'session-1',
+              workoutSetId: 'set-1',
+              workoutSetName: 'Push A',
+              startedByUserId: 'trainee-1',
+              startedByRole: 'trainee',
+              updatedAt: DateTime.utc(2026, 6, 17),
+            ),
+          ),
+          assignedSets: [WorkoutSetDetail.fromJson(_detailJson())],
+          onBack: () {},
+          onLogout: () async {},
+          onJoinActiveSession: () => joined = true,
+          onStartSession: (_) {},
+        ),
+      ));
+
+      expect(find.text('Aktywna sesja'), findsOneWidget);
+      expect(find.textContaining('sesji'), findsOneWidget);
+      expect(find.text('Rozpocznij wspÃ³lny trening'), findsNothing);
+
+      await _tapButton(tester, 'DoÅ‚Ä…cz do sesji');
+
+      expect(joined, isTrue);
     });
   });
 }

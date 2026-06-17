@@ -4,6 +4,7 @@ import '../auth/auth_controller.dart';
 import '../auth/auth_models.dart';
 import '../shared_sessions/shared_session_api_client.dart';
 import '../shared_sessions/shared_session_controller.dart';
+import '../shared_sessions/live_session_screen.dart';
 import '../shared_sessions/shared_session_realtime_client.dart';
 import '../workout_sets/assign_workout_set_screen.dart';
 import '../workout_sets/workout_set_api_client.dart';
@@ -102,6 +103,18 @@ class _AuthenticatedRelationshipShellState
         final state = _relationshipController.state;
         if (widget.user.role == UserRole.trainer) {
           final selected = _selectedTrainee;
+          if (_trainerView == _TrainerView.live) {
+            return LiveSessionScreen(
+              user: widget.user,
+              controller: _sharedSessionController,
+              editable: true,
+              onBack: () {
+                setState(() => _trainerView = _TrainerView.dashboard);
+                _relationshipController.reload();
+              },
+            );
+          }
+
           if (selected != null) {
             final assignedSets = _assignedSetsFor(selected.id);
             return TrainerTraineeDetailScreen(
@@ -110,6 +123,10 @@ class _AuthenticatedRelationshipShellState
               onLogout: widget.onLogout,
               assignedSets: assignedSets,
               onUnassign: (set) => _workoutSetController.unassign(set.id, selected.id),
+              onStartSession: (set) => _startTrainerSession(selected, set),
+              onJoinActiveSession: selected.activeSession == null
+                  ? null
+                  : () => _joinTrainerSession(selected.activeSession!.sessionId),
             );
           }
 
@@ -233,6 +250,32 @@ class _AuthenticatedRelationshipShellState
     );
     return isAssigned ? [selectedSet] : const [];
   }
+
+  Future<void> _startTrainerSession(
+    TrainerTraineeSummary trainee,
+    WorkoutSetDetail set,
+  ) async {
+    await _sharedSessionController.startTrainerSession(
+      user: widget.user,
+      traineeUserId: trainee.id,
+      workoutSetId: set.id,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() => _trainerView = _TrainerView.live);
+  }
+
+  Future<void> _joinTrainerSession(String sessionId) async {
+    await _sharedSessionController.loadById(
+      user: widget.user,
+      sessionId: sessionId,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() => _trainerView = _TrainerView.live);
+  }
 }
 
 enum _TrainerView {
@@ -240,4 +283,5 @@ enum _TrainerView {
   sets,
   builder,
   assign,
+  live,
 }

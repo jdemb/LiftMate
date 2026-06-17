@@ -484,6 +484,212 @@ Expose assigned sets to trainees on `c_home` and complete cross-surface verifica
 
 ---
 
+## Post-Merge Follow-Up Scope
+
+Manual testing after the initial S-02 merge found several builder, assignment, and design-fidelity gaps. Phases 6-8 extend this plan as corrective follow-up work while preserving the completed API and mobile contract phases above.
+
+The design export remains the contract for this follow-up: `apps/mobile/design/LiftMate.dc.html` defines the expected welcome gradient scope, trainer set builder hierarchy, exercise editor panel, assignment flow, and phone-width text behavior.
+
+## Phase 6: Workout Set Builder Editing and Deletion Fixes
+
+### Overview
+
+Bring the create/edit set builder back to the design hierarchy: the set screen shows a list of exercises, tapping an exercise opens the same panel used for adding an exercise, and a dedicated trash affordance removes an exercise from the draft.
+
+### Changes Required:
+
+#### 1. Reusable add/edit exercise editor
+
+**File**: `apps/mobile/lib/workout_sets/add_workout_set_exercise_screen.dart`
+
+**Intent**: Reuse the exercise editor for both creating a new exercise and editing an existing exercise inside a workout-set draft.
+
+**Contract**: The screen accepts an optional initial draft exercise, pre-fills the same controls used during creation, uses edit-appropriate title/action labels when editing, and returns the full updated exercise draft. The visual layout and control hierarchy must remain aligned with the `t_addex` design screen.
+
+#### 2. Draft exercise identity and update path
+
+**Files**:
+
+- `apps/mobile/lib/workout_sets/workout_set_draft.dart`
+- `apps/mobile/lib/workout_sets/workout_set_builder_screen.dart`
+
+**Intent**: Make each grouped exercise in the draft editable as one logical exercise instead of exposing concrete set rows as top-level items.
+
+**Contract**: `WorkoutSetDraftExercise` carries a stable local `draftId`, supports `fromRows(exerciseOrder, rows)` for existing API detail rows, and serializes through `toRows(exerciseOrder)` for create and update. `fromRows` sorts grouped rows by `setIndex`, preserves the shared exercise name/type, derives series count from the grouped row count, and keeps type-specific values aligned with the current one-value-per-exercise editor model. Creating a new exercise appends it. Editing an existing exercise replaces only that grouped exercise by `draftId`. Saving the builder always serializes the whole draft into fresh row requests with deterministic `exerciseOrder` and `setIndex` values, including when editing an existing set.
+
+#### 3. Exercise delete affordance
+
+**File**: `apps/mobile/lib/workout_sets/workout_set_builder_screen.dart`
+
+**Intent**: Let trainers remove an exercise from the draft during both set creation and set editing.
+
+**Contract**: Each exercise list item has a trailing trash icon button on the right side of the exercise action area. Activating it removes the whole grouped exercise from the draft, keeps remaining exercises ordered, and never deletes a saved set until the trainer saves the builder.
+
+#### 4. Existing set edit hierarchy
+
+**File**: `apps/mobile/lib/workout_sets/workout_set_builder_screen.dart`
+
+**Intent**: Editing an existing set should look and behave like creating a set.
+
+**Contract**: Initial detail rows are grouped into exercises by `exerciseOrder`. The builder renders the grouped exercise list only, not a list of individual set rows under an exercise. Tapping an exercise opens the reusable edit panel from this phase.
+
+#### 5. Builder regression tests
+
+**File**: `apps/mobile/test/workout_set_trainer_screens_test.dart`
+
+**Intent**: Lock the corrected builder hierarchy and edit/delete behavior.
+
+**Contract**: Tests cover adding an exercise, editing an exercise through the same editor screen, deleting an exercise from a draft, opening an existing set as grouped exercises, and saving the resulting create/update payload with deterministic row ordering.
+
+### Success Criteria:
+
+#### Automated Verification:
+
+- `flutter test test/workout_set_trainer_screens_test.dart test/workout_set_controller_test.dart` passes from `apps/mobile`.
+- `flutter analyze` passes from `apps/mobile`.
+- Widget or controller tests prove exercise edit, exercise delete, and grouped edit-set hierarchy.
+
+#### Manual Verification:
+
+- Compare the builder and exercise editor against `apps/mobile/design/LiftMate.dc.html` for `t_builder` and `t_addex`.
+- Confirm tapping an exercise opens the edit panel with the same controls as exercise creation.
+- Confirm the trash affordance removes only the selected exercise and does not overflow on the phone layout.
+
+**Implementation Note**: After completing this phase and all automated verification passes, pause for manual confirmation before proceeding to the next phase.
+
+---
+
+## Phase 7: Assignment Sync, Gradient Scope, and Type Label Wrapping
+
+### Overview
+
+Fix the remaining S-02 usability and design-fidelity issues found in manual testing: unassign-only assignment changes, authenticated gradient leakage, and exercise type labels that split words on small screens.
+
+### Changes Required:
+
+#### 1. Assignment sync supports empty final selection
+
+**Files**:
+
+- `apps/mobile/lib/workout_sets/assign_workout_set_screen.dart`
+- `apps/mobile/lib/workout_sets/workout_set_controller.dart`
+- `apps/mobile/lib/workout_sets/workout_set_api_client.dart`
+
+**Intent**: Allow a trainer to remove all trainees from a set without selecting a replacement trainee.
+
+**Contract**: The assignment flow compares current assignments with selected trainee IDs, unassigns removed trainees, and only calls the multi-assign endpoint when there are trainee IDs to assign. A final selected list of zero trainees is valid when it represents unassigning existing assignments.
+
+#### 2. Assignment regression tests
+
+**Files**:
+
+- `apps/mobile/test/workout_set_trainer_screens_test.dart`
+- `apps/mobile/test/workout_set_controller_test.dart`
+- `apps/mobile/test/workout_set_api_client_test.dart`
+
+**Intent**: Prove unassign-only changes do not regress into client-side validation failures or empty assign requests.
+
+**Contract**: Tests cover removing the last assigned trainee, saving with zero selected trainees, calling unassign for removed trainees, and not calling assign with an empty trainee list.
+
+#### 3. Welcome gradient scope
+
+**Files**:
+
+- `apps/mobile/lib/auth/auth_screen.dart`
+- `apps/mobile/lib/relationships/authenticated_relationship_shell.dart`
+
+**Intent**: Keep the gradient visible only where the design contract uses it.
+
+**Contract**: The welcome/onboarding/auth surfaces may use the gradient. Authenticated app screens use the plain dark LiftMate surface from the design contract and must not inherit the welcome gradient.
+
+#### 4. Exercise type label wrapping
+
+**File**: `apps/mobile/lib/workout_sets/add_workout_set_exercise_screen.dart`
+
+**Intent**: Prevent exercise type button labels from breaking inside words on phone-width layouts.
+
+**Contract**: Type labels may wrap by phrase when needed, but individual words must stay intact. Remove hard line breaks inside words and use layout constraints, max lines, fitting, or shorter label text that still matches the design meaning.
+
+#### 5. UI regression tests
+
+**Files**:
+
+- `apps/mobile/test/auth_screen_test.dart`
+- `apps/mobile/test/workout_set_trainer_screens_test.dart`
+- Update `apps/mobile/test/post_auth_relationship_screen_test.dart` if needed.
+
+**Intent**: Lock the gradient and label behavior so future UI work cannot reintroduce the manual-test defects.
+
+**Contract**: Tests prove authenticated screens do not render the welcome gradient wrapper and type selector labels render without hard word-breaking text.
+
+### Success Criteria:
+
+#### Automated Verification:
+
+- `flutter test test/workout_set_trainer_screens_test.dart test/workout_set_api_client_test.dart test/workout_set_controller_test.dart test/auth_screen_test.dart` passes from `apps/mobile`.
+- `flutter analyze` passes from `apps/mobile`.
+- Tests prove unassigning all trainees does not call assign with an empty trainee list.
+- Tests prove authenticated screens do not render the welcome gradient.
+- Tests prove type selector labels avoid hard word-breaking labels.
+
+#### Manual Verification:
+
+- Trainer can unassign the last trainee from a set without selecting another trainee.
+- Gradient is visible only on welcome/onboarding/auth screens allowed by `apps/mobile/design/LiftMate.dc.html`.
+- Type selector labels wrap by phrase, not inside words, at the current phone width.
+
+**Implementation Note**: After completing this phase and all automated verification passes, pause for manual confirmation before proceeding to the next phase.
+
+---
+
+## Phase 8: Final Regression and Post-Merge Reconfirmation
+
+### Overview
+
+Run the focused regression pass for the corrected S-02 flow and capture manual confirmation that the new follow-up defects are closed without expanding into S-03.
+
+### Changes Required:
+
+#### 1. Full targeted regression pass
+
+**Files**:
+
+- `apps/api/LiftMate.Api.Tests/WorkoutSets/WorkoutSetEndpointTests.cs`
+- `apps/mobile/test/workout_set_*_test.dart`
+- Existing auth, relationship, and trainee assigned-set tests.
+
+**Intent**: Verify the original S-02 contract still holds after the follow-up UI and assignment fixes.
+
+**Contract**: Existing API behavior remains unchanged. Mobile create/edit/assign/unassign/trainee-read flows pass after the builder hierarchy and assignment sync corrections.
+
+#### 2. Manual reconfirmation checklist
+
+**File**: `context/changes/assign-global-workout-set/plan.md`
+
+**Intent**: Keep the reopened manual-test defects explicit until the user confirms them.
+
+**Contract**: Progress checkboxes for this phase remain pending until manual testing verifies exercise edit, exercise delete, edit-set hierarchy, unassign-all, gradient scope, label wrapping, and trainee assigned-set visibility.
+
+### Success Criteria:
+
+#### Automated Verification:
+
+- `dotnet test LiftMate.slnx --no-build` passes from `apps/api`.
+- `flutter test` passes from `apps/mobile`.
+- `flutter analyze` passes from `apps/mobile`.
+
+#### Manual Verification:
+
+- Trainer can create a set, edit an exercise, delete an exercise, and save the set.
+- Trainer can edit an existing set without seeing per-set rows as separate exercises.
+- Trainer can assign multiple trainees and then unassign all trainees from the same set.
+- Trainee assigned-set view still shows updated rows and does not present S-03 live start as complete.
+- Gradient and type selector text match the design contract on the current phone layout.
+
+**Implementation Note**: After completing this phase and all automated verification passes, pause for manual confirmation before marking the follow-up work complete.
+
+---
+
 ## Testing Strategy
 
 ### Unit Tests:
@@ -604,3 +810,49 @@ This is additive. No existing user, relationship, or shared-session rows need mi
 - [ ] 5.7 Trainee can see all assigned sets and their rows
 - [ ] 5.8 Editing a global set updates the assigned-set view before any S-03 session is started
 - [ ] 5.9 No live workout start is presented as complete in S-02
+
+### Phase 6: Workout Set Builder Editing and Deletion Fixes
+
+#### Automated
+
+- [x] 6.1 `flutter test test/workout_set_trainer_screens_test.dart test/workout_set_controller_test.dart` passes from `apps/mobile`
+- [x] 6.2 `flutter analyze` passes from `apps/mobile`
+- [x] 6.3 Widget or controller tests prove exercise edit, exercise delete, and grouped edit-set hierarchy
+
+#### Manual
+
+- [ ] 6.4 Compare the builder and exercise editor against `apps/mobile/design/LiftMate.dc.html` for `t_builder` and `t_addex`
+- [ ] 6.5 Confirm tapping an exercise opens the edit panel with the same controls as exercise creation
+- [ ] 6.6 Confirm the trash affordance removes only the selected exercise and does not overflow on the phone layout
+
+### Phase 7: Assignment Sync, Gradient Scope, and Type Label Wrapping
+
+#### Automated
+
+- [ ] 7.1 `flutter test test/workout_set_trainer_screens_test.dart test/workout_set_api_client_test.dart test/workout_set_controller_test.dart test/auth_screen_test.dart` passes from `apps/mobile`
+- [ ] 7.2 `flutter analyze` passes from `apps/mobile`
+- [ ] 7.3 Tests prove unassigning all trainees does not call assign with an empty trainee list
+- [ ] 7.4 Tests prove authenticated screens do not render the welcome gradient
+- [ ] 7.5 Tests prove type selector labels avoid hard word-breaking labels
+
+#### Manual
+
+- [ ] 7.6 Trainer can unassign the last trainee from a set without selecting another trainee
+- [ ] 7.7 Gradient is visible only on welcome/onboarding/auth screens allowed by `apps/mobile/design/LiftMate.dc.html`
+- [ ] 7.8 Type selector labels wrap by phrase, not inside words, at the current phone width
+
+### Phase 8: Final Regression and Post-Merge Reconfirmation
+
+#### Automated
+
+- [ ] 8.1 `dotnet test LiftMate.slnx --no-build` passes from `apps/api`
+- [ ] 8.2 `flutter test` passes from `apps/mobile`
+- [ ] 8.3 `flutter analyze` passes from `apps/mobile`
+
+#### Manual
+
+- [ ] 8.4 Trainer can create a set, edit an exercise, delete an exercise, and save the set
+- [ ] 8.5 Trainer can edit an existing set without seeing per-set rows as separate exercises
+- [ ] 8.6 Trainer can assign multiple trainees and then unassign all trainees from the same set
+- [ ] 8.7 Trainee assigned-set view still shows updated rows and does not present S-03 live start as complete
+- [ ] 8.8 Gradient and type selector text match the design contract on the current phone layout

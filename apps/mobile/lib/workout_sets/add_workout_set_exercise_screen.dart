@@ -8,23 +8,37 @@ class AddWorkoutSetExerciseScreen extends StatefulWidget {
   const AddWorkoutSetExerciseScreen({
     required this.onBack,
     required this.onAddExercise,
+    this.initialExercise,
     super.key,
   });
 
   final VoidCallback onBack;
   final ValueChanged<WorkoutSetDraftExercise> onAddExercise;
+  final WorkoutSetDraftExercise? initialExercise;
 
   @override
   State<AddWorkoutSetExerciseScreen> createState() => _AddWorkoutSetExerciseScreenState();
 }
 
 class _AddWorkoutSetExerciseScreenState extends State<AddWorkoutSetExerciseScreen> {
-  final _nameController = TextEditingController(text: 'Wyciskanie sztangi');
-  ExerciseValueType _type = ExerciseValueType.repsWeight;
-  int _sets = 3;
-  int _reps = 8;
-  int _seconds = 45;
-  double _weight = 40;
+  late final TextEditingController _nameController;
+  late ExerciseValueType _type;
+  late int _sets;
+  late int _reps;
+  late int _seconds;
+  late double _weight;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialExercise;
+    _nameController = TextEditingController(text: initial?.name ?? 'Wyciskanie sztangi');
+    _type = initial?.exerciseType ?? ExerciseValueType.repsWeight;
+    _sets = initial?.sets ?? 3;
+    _reps = initial?.reps ?? 8;
+    _seconds = initial?.seconds ?? 45;
+    _weight = initial?.weight ?? 40;
+  }
 
   @override
   void dispose() {
@@ -37,10 +51,14 @@ class _AddWorkoutSetExerciseScreenState extends State<AddWorkoutSetExerciseScree
     final isWeight = _type == ExerciseValueType.repsWeight;
     final isReps = _type == ExerciseValueType.repsOnly;
     final isTime = _type == ExerciseValueType.time;
+    final isEditing = widget.initialExercise != null;
 
     return Column(
       children: [
-        _Header(title: 'Dodaj ćwiczenie', onBack: widget.onBack),
+        _Header(
+          title: isEditing ? 'Edytuj ćwiczenie' : 'Dodaj ćwiczenie',
+          onBack: widget.onBack,
+        ),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(22, 10, 22, 16),
@@ -114,14 +132,26 @@ class _AddWorkoutSetExerciseScreenState extends State<AddWorkoutSetExerciseScree
           ),
         ),
         _BottomAction(
-          label: 'Dodaj do zestawu',
+          key: ValueKey(isEditing ? 'exercise-save' : 'exercise-add'),
+          label: isEditing ? 'Zapisz ćwiczenie' : 'Dodaj do zestawu',
           onPressed: () {
             final name = _nameController.text.trim();
             if (name.isEmpty) {
               return;
             }
 
+            final draftId = widget.initialExercise?.draftId ??
+                WorkoutSetDraftExercise.create(
+                  name: name,
+                  exerciseType: _type,
+                  sets: _sets,
+                  reps: isTime ? null : _reps,
+                  weight: isWeight ? _weight : null,
+                  seconds: isTime ? _seconds : null,
+                ).draftId;
+
             widget.onAddExercise(WorkoutSetDraftExercise(
+              draftId: draftId,
               name: name,
               exerciseType: _type,
               sets: _sets,
@@ -287,7 +317,11 @@ class _SmallStepButton extends StatelessWidget {
 }
 
 class _BottomAction extends StatelessWidget {
-  const _BottomAction({required this.label, required this.onPressed});
+  const _BottomAction({
+    required this.label,
+    required this.onPressed,
+    super.key,
+  });
 
   final String label;
   final VoidCallback onPressed;

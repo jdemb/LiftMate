@@ -523,6 +523,268 @@ Run the full automated verification set and record manual verification expectati
 
 ---
 
+## Manual QA Reframe: 2026-06-17 Follow-up
+
+Manual testing after the initial S-03 implementation narrowed the remaining scope. Items 1, 2, 6, and 7 from the first feedback round are confirmed fixed. The remaining issues are not one UI polish bucket; they are three separate failure classes:
+
+- **Assigned-set persistence after trainer re-login**: the trainer detail view currently derives assigned sets from `WorkoutSetController.state.selectedSet` in `apps/mobile/lib/relationships/authenticated_relationship_shell.dart:282`. A fresh trainer login has no selected set, so the detail screen can render an empty assigned-set list even though the assignment still exists on the server.
+- **Polish count labels**: the pluralization helper added during the QA fix is local to two widgets, while other visible counters still use hard-coded `ćwiczeń`, for example `apps/mobile/lib/workout_sets/trainer_workout_sets_screen.dart:166`.
+- **Live-session entry reliability**: trainer start/join and trainee self-start currently navigate to live view after awaiting controller calls, but the plan does not require checking that the controller loaded an active session before switching UI state. Manual QA reports that the active live screen is not visible for trainer and trainee self-start flows, so the fix needs routing/state diagnostics, not only design styling.
+
+### Frame Result
+
+The initial framing "logout clears assignments" is only partially supported. Backend pairing cleanup removes old assignments when a trainee re-pairs to a different trainer in `apps/api/LiftMate.Api/Auth/PairingEndpoints.cs:249`, but logout itself does not delete workout-set assignments. The stronger working hypothesis is that the mobile trainer detail screen loses assigned-set display state after re-login because it depends on a previously selected workout set rather than canonical relationship/assignment data.
+
+For planning, treat the actual problem statement as:
+
+> S-03 needs a QA remediation pass that makes assigned workout sets, Polish count labels, and live-session entry state canonical and testable after fresh login/reload paths, not only after the happy-path navigation that created local controller state.
+
+## Phase 7: Canonical Assigned Sets In Trainer Detail
+
+### Overview
+
+Make the trainer's trainee-detail screen display assigned workout sets from canonical server-backed state after logout/re-login, refresh, or direct navigation, without reintroducing the removed "Odepnij zestaw" action.
+
+### Changes Required
+
+#### Trainer Relationship Contract
+
+**Files**:
+- `apps/api/LiftMate.Api/Auth/AuthContracts.cs`
+- `apps/api/LiftMate.Api/Auth/PairingEndpoints.cs`
+
+**Intent**: Include enough assigned-set summary data in the trainer relationship response for the trainee-detail screen to render assigned sets after a fresh login.
+
+**Contract**: Extend `TrainerTraineeResponse` with an assigned workout-set summary list containing at minimum `id`, `name`, `exerciseCount`, `rowCount`, and `updatedAt`. Query only sets owned by the authenticated trainer and assigned to that trainee. Match the existing `WorkoutSetMapping.ToSummary` count semantics: `exerciseCount` is the number of distinct `ExerciseOrder` values, while `rowCount` is the total row count. Do not include full row values or unrelated trainer data in the relationship response.
+
+#### Mobile Relationship Models
+
+**File**: `apps/mobile/lib/relationships/relationship_models.dart`
+
+**Intent**: Parse assigned workout-set summaries together with trainee summaries.
+
+**Contract**: Add an immutable assigned-set summary model and expose it from `TrainerTraineeSummary`. Invalid or malformed assigned-set payloads should fail consistently with existing model parsing style.
+
+#### Trainer Detail UI
+
+**Files**:
+- `apps/mobile/lib/relationships/authenticated_relationship_shell.dart`
+- `apps/mobile/lib/relationships/trainer_trainee_detail_screen.dart`
+
+**Intent**: Stop using `WorkoutSetController.state.selectedSet` as the source of assigned sets in trainee detail.
+
+**Contract**: Render assigned-set cards from `TrainerTraineeSummary.assignedWorkoutSets`. The card should keep the design-compatible start action, no "Odepnij zestaw" button, and enough metadata for the trainer to understand the set. Starting a session should use the summary's set id; load a full detail only if the existing start method genuinely needs more than the id.
+
+#### Logout/Re-login Regression Tests
+
+**Files**:
+- `apps/api/LiftMate.Api.Tests/Auth/PairingEndpointTests.cs`
+- `apps/mobile/test/post_auth_relationship_screen_test.dart`
+- `apps/mobile/test/workout_set_trainer_screens_test.dart`
+
+**Intent**: Prove the assignment is not deleted and remains visible after trainer logout/re-login.
+
+**Contract**: Add API coverage for trainer relationship assigned-set summaries and mobile coverage that opens trainer detail from a fresh relationship load with no `selectedSet`, sees the assigned set, and can start a session from it. Add a guard that logout does not issue workout-set unassign/delete calls from the mobile flow.
+
+### Success Criteria
+
+#### Automated Verification
+
+- API tests prove trainer relationship summaries include assigned-set summaries for linked trainees.
+- API tests prove assigned-set summaries do not include unrelated trainer data.
+- Mobile widget tests prove trainer detail shows assigned sets after fresh login/reload without relying on `selectedSet`.
+- Mobile widget tests prove trainer logout/re-login does not clear the visible assigned-set list.
+- Mobile widget tests prove "Odepnij zestaw" remains absent from trainee detail.
+- `dotnet test LiftMate.slnx --no-build` passes after build.
+- `flutter test` passes.
+- `flutter analyze` passes.
+
+#### Manual Verification
+
+- Trainer logs out, logs back in, opens the same podopieczny, and still sees assigned workout sets.
+- Trainer can start a session from that assigned set after re-login.
+
+---
+
+## Phase 8: Central Polish Count Labels And Text Audit
+
+### Overview
+
+Replace local or hard-coded workout count labels with one shared Polish pluralization helper and audit the S-02/S-03 visible count labels.
+
+### Changes Required
+
+#### Shared Text Helper
+
+**File**: `apps/mobile/lib/workout_sets/workout_set_text.dart`
+
+**Intent**: Provide one reusable function for Polish workout/exercise count labels.
+
+**Contract**: Add a helper that returns:
+- `1 ćwiczenie`
+- `2 ćwiczenia`, `3 ćwiczenia`, `4 ćwiczenia`
+- `5 ćwiczeń`, `12 ćwiczeń`, `22 ćwiczenia`, `25 ćwiczeń`
+
+Use this helper for visible exercise-count labels instead of duplicating private widget helpers.
+
+#### Visible Label Replacement
+
+**Files**:
+- `apps/mobile/lib/workout_sets/trainer_workout_sets_screen.dart`
+- `apps/mobile/lib/workout_sets/trainee_assigned_workout_set_view.dart`
+- `apps/mobile/lib/relationships/trainer_trainee_detail_screen.dart`
+- any other S-02/S-03 mobile file found by searching for `ćwiczeń`, `ćwiczenia`, or mojibake variants
+
+**Intent**: Make every user-visible count label use the same grammar.
+
+**Contract**: Replace hard-coded `'$count ćwiczeń'` patterns and duplicated local helpers with the shared helper. Keep text compact and aligned with `apps/mobile/design/LiftMate.html`.
+
+#### Tests
+
+**Files**:
+- New or existing focused Dart unit test for the helper.
+- Relevant widget tests that render `1`, `2`, `5`, and `12` exercise counts.
+
+**Intent**: Lock the grammar rule so future UI work does not regress it.
+
+**Contract**: Tests should cover the helper directly and at least one widget path that previously showed the wrong form.
+
+### Success Criteria
+
+#### Automated Verification
+
+- Unit tests cover Polish pluralization for `1`, `2`, `4`, `5`, `12`, `22`, and `25`.
+- Widget tests prove visible labels render `2 ćwiczenia` where applicable.
+- Search shows no remaining hard-coded `ćwiczeń` count pattern in S-02/S-03 widgets except inside the shared helper or tests.
+- `flutter test` passes.
+- `flutter analyze` passes.
+
+#### Manual Verification
+
+- Trainer and trainee screens show correct Polish forms for 1, 2-4, and 5+ exercise counts on Android.
+
+---
+
+## Phase 9: Live-Session Entry Reliability And Design Contract Pass
+
+### Overview
+
+Make trainer start/join and trainee self-start reliably land on the active live-session screen, then tighten live-session layout against `apps/mobile/design/LiftMate.html`.
+
+### Changes Required
+
+#### Start/Join State Gates
+
+**File**: `apps/mobile/lib/relationships/authenticated_relationship_shell.dart`
+
+**Intent**: Do not switch to live UI unless the shared-session controller has successfully loaded an active session.
+
+**Contract**: For `_startTrainerSession`, `_joinTrainerSession`, `_startTraineeSession`, and `_joinTraineeActiveSession`, inspect the controller/API result before setting `_trainerView = live` or `_showTraineeLive = true`. On failure, keep the user on the current screen and expose the controller error state through existing UI patterns.
+
+#### Active Session Loading Semantics
+
+**Files**:
+- `apps/mobile/lib/shared_sessions/shared_session_controller.dart`
+- `apps/mobile/lib/shared_sessions/shared_session_api_client.dart` if needed
+
+**Intent**: Make start and join flows observable and deterministic for UI tests.
+
+**Contract**: Controller start/join methods should leave `state.session` populated only when an active session is available. Closed, null, or failed responses must not look joinable. Existing reconnect recovery remains intact.
+
+#### Live Screen Mode Verification
+
+**Files**:
+- `apps/mobile/lib/shared_sessions/live_session_screen.dart`
+- `apps/mobile/test/live_session_screen_test.dart`
+- `apps/mobile/test/trainee_assigned_workout_sets_screen_test.dart`
+- `apps/mobile/test/post_auth_relationship_screen_test.dart`
+
+**Intent**: Prove each entry point reaches the correct live screen mode.
+
+**Contract**: Add widget tests for:
+- trainer starts from trainee detail and sees editable live controls;
+- trainer joins a trainee self-started session and sees editable live controls;
+- trainee starts own workout and sees editable live controls;
+- trainee joins trainer-led session and sees read-only `c_live` with no steppers;
+- failed start/join does not navigate to a blank or empty live screen.
+
+#### Design Contract Pass
+
+**File**: `apps/mobile/lib/shared_sessions/live_session_screen.dart`
+
+**Intent**: Bring both editable and read-only active-session views closer to `t_live` and `c_live` in `apps/mobile/design/LiftMate.html`.
+
+**Contract**: Preserve the design's core hierarchy:
+- editable mode: live header, exercise counter, current exercise name, current exercise set rows, rest timer, next exercise, finish/save action;
+- read-only mode: trainer-led label, exercise counter, current exercise name, series position, prominent current value, completed-series count, rest timer display, "Wartości aktualizują się..." copy.
+
+Do not add a separate landing or marketing-like explanation screen before live content.
+
+### Success Criteria
+
+#### Automated Verification
+
+- Widget tests prove trainer start navigates to editable live UI with a loaded session.
+- Widget tests prove trainer join of trainee self-start navigates to editable live UI with a loaded session.
+- Widget tests prove trainee self-start navigates to editable live UI with a loaded session.
+- Widget tests prove trainer-led trainee join navigates to read-only live UI.
+- Widget tests prove failed start/join keeps the user out of an empty live screen.
+- `flutter test` passes.
+- `flutter analyze` passes.
+
+#### Manual Verification
+
+- Trainer can start an assigned session and immediately sees the editable active-session screen.
+- Trainer can join a trainee self-started session and sees the editable active-session screen.
+- Trainee can self-start and immediately sees the editable active-session screen.
+- Trainee joining a trainer-led session sees the limited read-only screen from the design.
+- No active-session path opens a blank screen or stale inactive session.
+
+---
+
+## Phase 10: QA Remediation Verification And Bookkeeping
+
+### Overview
+
+Run focused and full verification after phases 7-9, then keep the manual QA status explicit in the plan.
+
+### Changes Required
+
+#### Automated Verification
+
+**Files**:
+- `apps/api/LiftMate.slnx`
+- `apps/mobile`
+
+**Intent**: Re-run the full relevant verification set after the remediation phases.
+
+**Contract**: Run API restore/build/test because phase 7 changes backend relationship contracts, and always run mobile test/analyze after mobile fixes.
+
+#### Change Artifacts
+
+**File**: `context/changes/start-shared-workout-session/plan.md`
+
+**Intent**: Record the follow-up implementation commits and keep manual items pending until the user confirms them.
+
+**Contract**: `/10x-implement` should mark phase 7-10 automated rows with commit SHAs as they land. Manual rows remain unchecked until manual Android verification confirms the behavior.
+
+### Success Criteria
+
+#### Automated Verification
+
+- `dotnet restore LiftMate.slnx` passes.
+- `dotnet build LiftMate.slnx --no-restore` passes.
+- `dotnet test LiftMate.slnx --no-build` passes.
+- `flutter test` passes.
+- `flutter analyze` passes.
+
+#### Manual Verification
+
+- Manual QA confirms findings 3, 4, 5, and 8 are resolved.
+- The design contract for active-session screens is accepted against `apps/mobile/design/LiftMate.html`.
+
+---
+
 ## Testing Strategy
 
 ### Unit Tests
@@ -531,22 +793,27 @@ Run the full automated verification set and record manual verification expectati
 - Dart model tests for expanded shared-session response parsing and active-session summary parsing.
 - Dart client tests for new start routes and error mapping.
 - Controller tests for start, join, update, complete/cancel, and reconnect recovery.
+- Polish text helper tests for `ćwiczenie` / `ćwiczenia` / `ćwiczeń`.
 
 ### Integration Tests
 
 - Existing API test host should cover trainer/trainee auth, pairing, workout-set assignment, session start, read, update, close, and forbidden access.
 - Mobile widget tests should cover the trainer dashboard/detail flow and trainee home/live flow with fake clients/controllers.
+- Mobile widget tests should include fresh-login trainer detail, trainer start live entry, trainer join live entry, trainee self-start live entry, and trainer-led read-only trainee entry.
 
 ### Manual Testing Steps
 
 1. Create trainer and trainee accounts and pair them.
 2. Trainer creates a workout set with multiple exercises and assigns it to the trainee.
-3. Trainer starts a shared session from trainee detail; trainee joins and sees read-only live values.
-4. Trainer changes values and marks series done; trainee view updates to the same session.
-5. Complete/cancel the session.
-6. Trainee starts the assigned workout alone; trainee sees editable live controls.
-7. Trainer dashboard shows green "Aktywna sesja"; trainer opens trainee detail and joins the same session.
-8. Complete/cancel the self-start session and verify a new session can be started.
+3. Trainer logs out and logs back in; trainer opens trainee detail and still sees the assigned set.
+4. Verify exercise-count labels for 1, 2, 5, 12, and 22 exercises on visible trainer/trainee screens.
+5. Trainer starts a shared session from trainee detail and immediately sees editable live values.
+6. Trainee joins trainer-led session and sees read-only live values.
+7. Trainer changes values and marks series done; trainee view updates to the same session.
+8. Complete/cancel the session.
+9. Trainee starts the assigned workout alone and immediately sees editable live controls.
+10. Trainer dashboard shows green "Aktywna sesja"; trainer opens trainee detail and joins the same session.
+11. Complete/cancel the self-start session and verify a new session can be started.
 
 ## Performance Considerations
 
@@ -674,3 +941,70 @@ The filtered unique active-session index by trainee should remain in place.
 - [ ] 6.7 Trainee self-start flow works end to end: trainee starts, edits values, trainer sees active badge, trainer joins the same session
 - [ ] 6.8 Closing/cancelling a session allows another session to be started for that trainee
 - [ ] 6.9 Android text and controls match `apps/mobile/design/LiftMate.html` closely enough for the updated design contract
+
+### Phase 7: Canonical Assigned Sets In Trainer Detail
+
+#### Automated
+
+- [x] 7.1 API tests prove trainer relationship summaries include assigned-set summaries for linked trainees
+- [x] 7.2 API tests prove assigned-set summaries do not include unrelated trainer data
+- [x] 7.3 Mobile widget tests prove trainer detail shows assigned sets after fresh login/reload without relying on `selectedSet`
+- [x] 7.4 Mobile widget tests prove trainer logout/re-login does not clear the visible assigned-set list
+- [x] 7.5 Mobile widget tests prove "Odepnij zestaw" remains absent from trainee detail
+- [x] 7.6 `dotnet test LiftMate.slnx --no-build` passes after build
+- [x] 7.7 `flutter test` passes
+- [x] 7.8 `flutter analyze` passes
+
+#### Manual
+
+- [ ] 7.9 Trainer logs out, logs back in, opens the same podopieczny, and still sees assigned workout sets
+- [ ] 7.10 Trainer can start a session from that assigned set after re-login
+
+### Phase 8: Central Polish Count Labels And Text Audit
+
+#### Automated
+
+- [ ] 8.1 Unit tests cover Polish pluralization for `1`, `2`, `4`, `5`, `12`, `22`, and `25`
+- [ ] 8.2 Widget tests prove visible labels render `2 ćwiczenia` where applicable
+- [ ] 8.3 Search shows no remaining hard-coded `ćwiczeń` count pattern in S-02/S-03 widgets except inside the shared helper or tests
+- [ ] 8.4 `flutter test` passes
+- [ ] 8.5 `flutter analyze` passes
+
+#### Manual
+
+- [ ] 8.6 Trainer and trainee screens show correct Polish forms for 1, 2-4, and 5+ exercise counts on Android
+
+### Phase 9: Live-Session Entry Reliability And Design Contract Pass
+
+#### Automated
+
+- [ ] 9.1 Widget tests prove trainer start navigates to editable live UI with a loaded session
+- [ ] 9.2 Widget tests prove trainer join of trainee self-start navigates to editable live UI with a loaded session
+- [ ] 9.3 Widget tests prove trainee self-start navigates to editable live UI with a loaded session
+- [ ] 9.4 Widget tests prove trainer-led trainee join navigates to read-only live UI
+- [ ] 9.5 Widget tests prove failed start/join keeps the user out of an empty live screen
+- [ ] 9.6 `flutter test` passes
+- [ ] 9.7 `flutter analyze` passes
+
+#### Manual
+
+- [ ] 9.8 Trainer can start an assigned session and immediately sees the editable active-session screen
+- [ ] 9.9 Trainer can join a trainee self-started session and sees the editable active-session screen
+- [ ] 9.10 Trainee can self-start and immediately sees the editable active-session screen
+- [ ] 9.11 Trainee joining a trainer-led session sees the limited read-only screen from the design
+- [ ] 9.12 No active-session path opens a blank screen or stale inactive session
+
+### Phase 10: QA Remediation Verification And Bookkeeping
+
+#### Automated
+
+- [ ] 10.1 `dotnet restore LiftMate.slnx` passes
+- [ ] 10.2 `dotnet build LiftMate.slnx --no-restore` passes
+- [ ] 10.3 `dotnet test LiftMate.slnx --no-build` passes
+- [ ] 10.4 `flutter test` passes
+- [ ] 10.5 `flutter analyze` passes
+
+#### Manual
+
+- [ ] 10.6 Manual QA confirms findings 3, 4, 5, and 8 are resolved
+- [ ] 10.7 The design contract for active-session screens is accepted against `apps/mobile/design/LiftMate.html`

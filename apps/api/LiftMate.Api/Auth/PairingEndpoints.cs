@@ -73,12 +73,40 @@ public static class PairingEndpoints
             })
             .ToDictionaryAsync(session => session.TraineeUserId, session => session.Summary, cancellationToken);
 
+        var assignedSetRows = await dbContext.WorkoutSetAssignments
+            .Include(assignment => assignment.WorkoutSet)
+            .ThenInclude(workoutSet => workoutSet!.Rows)
+            .Where(assignment =>
+                traineeIds.Contains(assignment.TraineeUserId) &&
+                assignment.WorkoutSet != null &&
+                assignment.WorkoutSet.TrainerUserId == trainerUserId)
+            .ToListAsync(cancellationToken);
+        var assignedSetsByTrainee = assignedSetRows
+            .GroupBy(assignment => assignment.TraineeUserId)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyList<AssignedWorkoutSetSummaryResponse>)group
+                    .Select(assignment =>
+                    {
+                        var workoutSet = assignment.WorkoutSet!;
+                        return new AssignedWorkoutSetSummaryResponse(
+                            workoutSet.Id,
+                            workoutSet.Name,
+                            workoutSet.Rows.Select(row => row.ExerciseOrder).Distinct().Count(),
+                            workoutSet.Rows.Count,
+                            workoutSet.UpdatedAt);
+                    })
+                    .OrderBy(summary => summary.Name)
+                    .ThenBy(summary => summary.Id)
+                    .ToArray());
+
         var trainees = traineeUsers
             .Select(user => new TrainerTraineeResponse(
                 user.Id,
                 user.Email ?? string.Empty,
                 user.DisplayName,
-                activeSessions.GetValueOrDefault(user.Id)))
+                activeSessions.GetValueOrDefault(user.Id),
+                assignedSetsByTrainee.GetValueOrDefault(user.Id) ?? []))
             .ToArray();
 
         return Results.Ok(new TrainerRelationshipSummaryResponse(inviteCode.Code, trainees));

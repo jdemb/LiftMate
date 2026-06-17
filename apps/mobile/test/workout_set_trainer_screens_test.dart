@@ -12,7 +12,6 @@ import 'package:liftmate/relationships/relationship_api_client.dart';
 import 'package:liftmate/relationships/relationship_models.dart';
 import 'package:liftmate/relationships/trainer_trainee_detail_screen.dart';
 import 'package:liftmate/workout_sets/workout_set_api_client.dart';
-import 'package:liftmate/workout_sets/workout_set_models.dart';
 
 void main() {
   group('Workout set trainer screens', () {
@@ -273,7 +272,7 @@ void main() {
 
     testWidgets('trainee detail shows assigned sets without unassign action',
         (tester) async {
-      WorkoutSetDetail? started;
+      AssignedWorkoutSetSummary? started;
       var openedSets = false;
 
       await tester.pumpWidget(MaterialApp(
@@ -283,7 +282,7 @@ void main() {
             email: 'anna@example.test',
             displayName: 'Anna Nowak',
           ),
-          assignedSets: [WorkoutSetDetail.fromJson(_detailJson())],
+          assignedSets: [_assignedSummary()],
           onBack: () {},
           onLogout: () async {},
           onOpenWorkoutSets: () => openedSets = true,
@@ -327,7 +326,7 @@ void main() {
               updatedAt: DateTime.utc(2026, 6, 17),
             ),
           ),
-          assignedSets: [WorkoutSetDetail.fromJson(_detailJson())],
+          assignedSets: [_assignedSummary()],
           onBack: () {},
           onLogout: () async {},
           onOpenWorkoutSets: () {},
@@ -432,6 +431,19 @@ Map<String, Object?> _summaryJson({
     'createdAt': '2026-06-16T12:00:00Z',
     'updatedAt': '2026-06-16T12:05:00Z',
   };
+}
+
+AssignedWorkoutSetSummary _assignedSummary({
+  int exerciseCount = 1,
+  int rowCount = 1,
+}) {
+  return AssignedWorkoutSetSummary(
+    id: 'set-1',
+    name: 'Push A',
+    exerciseCount: exerciseCount,
+    rowCount: rowCount,
+    updatedAt: DateTime.utc(2026, 6, 16, 12, 5),
+  );
 }
 
 Map<String, Object?> _detailJson({

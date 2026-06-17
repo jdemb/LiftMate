@@ -77,6 +77,55 @@ void main() {
       expect(find.text('Aktywna relacja'), findsOneWidget);
     });
 
+    testWidgets('trainer detail renders assigned sets from relationship summary',
+        (tester) async {
+      final seen = <String>[];
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            seen.add('${request.method} ${request.url.path}');
+            if (request.url.path == '/auth/me') {
+              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+            }
+            if (request.url.path == '/trainer/relationship') {
+              return http.Response(
+                jsonEncode({
+                  'inviteCode': '7F2K9D',
+                  'trainees': [
+                    {
+                      'id': 'trainee-1',
+                      'email': 'trainee@example.test',
+                      'displayName': 'Anna Nowak',
+                      'assignedWorkoutSets': [
+                        {
+                          'id': 'set-1',
+                          'name': 'Push A',
+                          'exerciseCount': 2,
+                          'rowCount': 5,
+                          'updatedAt': '2026-06-16T12:05:00Z',
+                        },
+                      ],
+                    },
+                  ],
+                }),
+                200,
+              );
+            }
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.tap(find.textContaining('Anna').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Push A'), findsOneWidget);
+      expect(find.textContaining('2'), findsWidgets);
+      expect(find.text('Odepnij zestaw'), findsNothing);
+      expect(seen.where((path) => path == 'GET /workout-sets/set-1'), isEmpty);
+    });
+
     testWidgets('trainer dashboard shows active session badge', (tester) async {
       await tester.pumpWidget(
         _testApp(

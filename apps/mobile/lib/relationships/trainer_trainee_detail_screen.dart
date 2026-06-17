@@ -9,8 +9,8 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
     required this.trainee,
     required this.onBack,
     required this.onLogout,
+    required this.onOpenWorkoutSets,
     this.assignedSets = const [],
-    this.onUnassign,
     this.onStartSession,
     this.onJoinActiveSession,
     super.key,
@@ -19,8 +19,8 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
   final TrainerTraineeSummary trainee;
   final VoidCallback onBack;
   final Future<void> Function() onLogout;
+  final VoidCallback onOpenWorkoutSets;
   final List<WorkoutSetDetail> assignedSets;
-  final void Function(WorkoutSetDetail set)? onUnassign;
   final void Function(WorkoutSetDetail set)? onStartSession;
   final VoidCallback? onJoinActiveSession;
 
@@ -90,7 +90,7 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: onJoinActiveSession,
                   icon: const Icon(Icons.play_circle_rounded),
-                  label: const Text('DoÅ‚Ä…cz do sesji'),
+                  label: const Text('Dołącz do sesji'),
                 ),
               ],
               const SizedBox(height: 20),
@@ -134,7 +134,6 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                 for (final set in assignedSets)
                   _AssignedSetCard(
                     set: set,
-                    onUnassign: onUnassign == null ? null : () => onUnassign!(set),
                     onStartSession:
                         trainee.activeSession == null && onStartSession != null
                             ? () => onStartSession!(set)
@@ -143,9 +142,9 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
             ],
           ),
         ),
-        const RelationshipBottomNav(
+        RelationshipBottomNav(
           items: [
-            RelationshipBottomNavItem(
+            const RelationshipBottomNavItem(
               icon: Icons.dashboard_rounded,
               label: 'Pulpit',
               active: true,
@@ -153,12 +152,13 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
             RelationshipBottomNavItem(
               icon: Icons.fitness_center_rounded,
               label: 'Zestawy',
+              onTap: onOpenWorkoutSets,
             ),
-            RelationshipBottomNavItem(
+            const RelationshipBottomNavItem(
               icon: Icons.play_circle_rounded,
               label: 'Trening',
             ),
-            RelationshipBottomNavItem(
+            const RelationshipBottomNavItem(
               icon: Icons.menu_rounded,
               label: 'Profil',
             ),
@@ -172,16 +172,17 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
 class _AssignedSetCard extends StatelessWidget {
   const _AssignedSetCard({
     required this.set,
-    required this.onUnassign,
     required this.onStartSession,
   });
 
   final WorkoutSetDetail set;
-  final VoidCallback? onUnassign;
   final VoidCallback? onStartSession;
 
   @override
   Widget build(BuildContext context) {
+    final exerciseCount =
+        set.rows.map((row) => row.exerciseOrder).toSet().length;
+
     return RelationshipCard(
       margin: const EdgeInsets.only(bottom: 10),
       child: Column(
@@ -199,7 +200,7 @@ class _AssignedSetCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${set.rows.map((row) => row.exerciseOrder).toSet().length} ćwiczeń · ${set.rows.length} serii',
+            '${_exerciseCountLabel(exerciseCount)} · ${set.rows.length} serii',
             style: const TextStyle(color: lmMuted, fontSize: 13),
           ),
           if (onStartSession != null) ...[
@@ -207,15 +208,7 @@ class _AssignedSetCard extends StatelessWidget {
             FilledButton.icon(
               onPressed: onStartSession,
               icon: const Icon(Icons.play_arrow_rounded),
-              label: const Text('Rozpocznij wspÃ³lny trening'),
-            ),
-          ],
-          if (onUnassign != null) ...[
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: onUnassign,
-              icon: const Icon(Icons.link_off_rounded),
-              label: const Text('Odepnij zestaw'),
+              label: const Text('Rozpocznij wspólny trening'),
             ),
           ],
         ],
@@ -275,4 +268,16 @@ class _DetailRow extends StatelessWidget {
       ],
     );
   }
+}
+
+String _exerciseCountLabel(int count) {
+  final mod10 = count % 10;
+  final mod100 = count % 100;
+  if (count == 1) {
+    return '1 ćwiczenie';
+  }
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return '$count ćwiczenia';
+  }
+  return '$count ćwiczeń';
 }

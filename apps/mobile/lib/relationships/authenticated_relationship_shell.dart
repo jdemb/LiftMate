@@ -112,6 +112,7 @@ class _AuthenticatedRelationshipShellState
               user: widget.user,
               controller: _sharedSessionController,
               editable: true,
+              onSessionClosed: _handleTrainerSessionClosed,
               onBack: () {
                 setState(() => _trainerView = _TrainerView.dashboard);
                 _relationshipController.reload();
@@ -125,8 +126,8 @@ class _AuthenticatedRelationshipShellState
               trainee: selected,
               onBack: () => setState(() => _selectedTrainee = null),
               onLogout: widget.onLogout,
+              onOpenWorkoutSets: _openWorkoutSetsFromDetail,
               assignedSets: assignedSets,
-              onUnassign: (set) => _workoutSetController.unassign(set.id, selected.id),
               onStartSession: (set) => _startTrainerSession(selected, set),
               onJoinActiveSession: selected.activeSession == null
                   ? null
@@ -199,6 +200,7 @@ class _AuthenticatedRelationshipShellState
             user: widget.user,
             controller: _sharedSessionController,
             editable: session?.isTraineeSelfStarted ?? false,
+            onSessionClosed: _handleTraineeSessionClosed,
             onBack: () {
               setState(() => _showTraineeLive = false);
               _relationshipController.reload();
@@ -246,6 +248,14 @@ class _AuthenticatedRelationshipShellState
       widget.user,
       trainerSummary: _relationshipController.state.trainerSummary,
     );
+  }
+
+  void _openWorkoutSetsFromDetail() {
+    setState(() {
+      _selectedTrainee = null;
+      _trainerView = _TrainerView.sets;
+    });
+    _loadWorkoutSets();
   }
 
   Future<void> _openBuilder(WorkoutSetSummary summary) async {
@@ -332,6 +342,29 @@ class _AuthenticatedRelationshipShellState
       return;
     }
     setState(() => _showTraineeLive = true);
+  }
+
+  Future<void> _handleTrainerSessionClosed() async {
+    _sharedSessionController.clearSession();
+    await _relationshipController.reload();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _selectedTrainee = null;
+      _trainerView = _TrainerView.dashboard;
+    });
+  }
+
+  Future<void> _handleTraineeSessionClosed() async {
+    _sharedSessionController.clearSession();
+    await _relationshipController.reload();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _showTraineeLive = false);
   }
 }
 

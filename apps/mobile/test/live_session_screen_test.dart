@@ -39,14 +39,52 @@ void main() {
       ),
     ));
 
-    expect(find.text('Trening live'), findsOneWidget);
+    expect(find.text('trainee@example.test'), findsOneWidget);
     expect(find.text('Bench press'), findsOneWidget);
-    expect(find.text('6 powt. Â· 40.0 kg'), findsOneWidget);
+    expect(find.text('40 kg'), findsOneWidget);
+    expect(find.text('6'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.add_rounded).first);
     await tester.pumpAndSettle();
 
+    expect(apiClient.updatedValue?.weight, 42.5);
+
+    await tester.tap(find.byIcon(Icons.add_rounded).last);
+    await tester.pumpAndSettle();
+
     expect(apiClient.updatedValue?.reps, 7);
+  });
+
+  testWidgets('finish button closes session and notifies shell', (tester) async {
+    final authController = await _authController();
+    final apiClient = _FakeSharedSessionApiClient();
+    final controller = SharedSessionController(
+      apiClient: apiClient,
+      authController: authController,
+      realtimeClientFactory: _FakeRealtimeClient.new,
+    );
+    addTearDown(controller.dispose);
+    await controller.loadById(
+      user: authController.state.user!,
+      sessionId: 'session-1',
+    );
+    var closed = false;
+
+    await tester.pumpWidget(MaterialApp(
+      home: LiveSessionScreen(
+        user: authController.state.user!,
+        controller: controller,
+        editable: true,
+        onBack: () {},
+        onSessionClosed: () async => closed = true,
+      ),
+    ));
+
+    await tester.tap(find.text('Zakończ i zapisz trening'));
+    await tester.pumpAndSettle();
+
+    expect(apiClient.completed, isTrue);
+    expect(closed, isTrue);
   });
 }
 
@@ -78,7 +116,10 @@ Future<AuthController> _authController() async {
   return authController;
 }
 
-SharedSession _session({int reps = 6}) {
+SharedSession _session({
+  int reps = 6,
+  SharedSessionStatus status = SharedSessionStatus.active,
+}) {
   return SharedSession(
     id: 'session-1',
     trainerUserId: 'trainer-1',
@@ -88,7 +129,7 @@ SharedSession _session({int reps = 6}) {
     workoutSetId: 'set-1',
     startedByUserId: 'trainer-1',
     startedByRole: SharedSessionStartRole.trainer,
-    status: SharedSessionStatus.active,
+    status: status,
     version: reps == 6 ? 1 : 2,
     createdAt: DateTime.utc(2026, 6, 17),
     updatedAt: DateTime.utc(2026, 6, 17),
@@ -110,6 +151,7 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
   _FakeSharedSessionApiClient() : super(baseUrl: 'https://api.example.test');
 
   UpdateSharedSessionValue? updatedValue;
+  bool completed = false;
 
   @override
   Future<SharedSessionApiResult<SharedSession>> get({
@@ -135,6 +177,19 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
       status: SharedSessionApiStatus.success,
       message: 'Request succeeded.',
       data: _session(reps: value.reps ?? 6),
+    );
+  }
+
+  @override
+  Future<SharedSessionApiResult<SharedSession>> complete({
+    required String accessToken,
+    required String sessionId,
+  }) async {
+    completed = true;
+    return SharedSessionApiResult(
+      status: SharedSessionApiStatus.success,
+      message: 'Request succeeded.',
+      data: _session(status: SharedSessionStatus.completed),
     );
   }
 }

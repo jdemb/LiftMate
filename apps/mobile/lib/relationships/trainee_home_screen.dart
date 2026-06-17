@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../auth/auth_api_client.dart';
 import '../auth/auth_models.dart';
 import '../shared_sessions/shared_session_controller.dart';
+import '../shared_sessions/shared_session_models.dart';
 import '../workout_sets/trainee_assigned_workout_set_view.dart';
 import '../workout_sets/workout_set_controller.dart';
 import '../workout_sets/workout_set_models.dart';
@@ -319,9 +320,12 @@ class _AssignedSetsSection extends StatelessWidget {
         return AnimatedBuilder(
           animation: sharedSessionController,
           builder: (context, _) {
+            final activeSession = sharedSessionController.state.session;
             return TraineeAssignedWorkoutSetView(
               sets: state.traineeAssignedSets,
-              activeSession: sharedSessionController.state.session,
+              activeSession: activeSession?.status == SharedSessionStatus.active
+                  ? activeSession
+                  : null,
               onStartWorkout: onStartWorkout ?? (_) {},
               onJoinActiveWorkout: onJoinActiveWorkout ?? () {},
             );

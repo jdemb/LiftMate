@@ -213,6 +213,14 @@ class SharedSessionController extends ChangeNotifier {
     });
   }
 
+  void clearSession() {
+    _setState(SharedSessionControllerState(
+      status: SharedSessionControllerStatus.loaded,
+      user: _state.user,
+      connectionStatus: _state.connectionStatus,
+    ));
+  }
+
   @override
   void dispose() {
     _updatesSubscription.cancel();

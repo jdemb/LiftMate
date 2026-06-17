@@ -1,4 +1,5 @@
 using LiftMate.Api.Auth;
+using LiftMate.Api.WorkoutSets;
 
 namespace LiftMate.Api.SharedSessions;
 
@@ -13,6 +14,16 @@ public sealed class SharedSession
     public string TraineeUserId { get; set; } = string.Empty;
 
     public ApplicationUser? TraineeUser { get; set; }
+
+    public Guid? WorkoutSetId { get; set; }
+
+    public WorkoutSet? WorkoutSet { get; set; }
+
+    public string StartedByUserId { get; set; } = string.Empty;
+
+    public ApplicationUser? StartedByUser { get; set; }
+
+    public string StartedByRole { get; set; } = UserRole.Trainer;
 
     public string Status { get; set; } = SharedSessionStatus.Active;
 

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_controller.dart';
 import '../auth/auth_models.dart';
+import '../shared_sessions/shared_session_api_client.dart';
+import '../shared_sessions/shared_session_controller.dart';
+import '../shared_sessions/live_session_screen.dart';
+import '../shared_sessions/shared_session_realtime_client.dart';
 import '../workout_sets/assign_workout_set_screen.dart';
 import '../workout_sets/workout_set_api_client.dart';
 import '../workout_sets/workout_set_builder_screen.dart';
@@ -21,6 +25,8 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
     required this.authController,
     required this.relationshipApiClient,
     required this.workoutSetApiClient,
+    required this.sharedSessionApiClient,
+    required this.sharedSessionRealtimeClientFactory,
     required this.onLogout,
     super.key,
   });
@@ -29,6 +35,8 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
   final AuthController authController;
   final RelationshipApiClient relationshipApiClient;
   final WorkoutSetApiClient workoutSetApiClient;
+  final SharedSessionApiClient sharedSessionApiClient;
+  final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
   final Future<void> Function() onLogout;
 
   @override
@@ -40,10 +48,13 @@ class _AuthenticatedRelationshipShellState
     extends State<AuthenticatedRelationshipShell> {
   late final RelationshipController _relationshipController;
   late final WorkoutSetController _workoutSetController;
+  late final SharedSessionController _sharedSessionController;
   TrainerTraineeSummary? _selectedTrainee;
   _TrainerView _trainerView = _TrainerView.dashboard;
   WorkoutSetDetail? _builderDetail;
   String? _loadedTraineeWorkoutSetsForUserId;
+  String? _loadedTraineeActiveSessionForUserId;
+  bool _showTraineeLive = false;
 
   @override
   void initState() {
@@ -55,6 +66,12 @@ class _AuthenticatedRelationshipShellState
     _workoutSetController = WorkoutSetController(
       workoutSetApiClient: widget.workoutSetApiClient,
       authController: widget.authController,
+    );
+    _sharedSessionController = SharedSessionController(
+      apiClient: widget.sharedSessionApiClient,
+      authController: widget.authController,
+      realtimeClientFactory: widget.sharedSessionRealtimeClientFactory,
+      onTrainerSessionInvalidated: _relationshipController.reload,
     );
     _relationshipController.loadForUser(widget.user);
   }
@@ -68,6 +85,8 @@ class _AuthenticatedRelationshipShellState
       _trainerView = _TrainerView.dashboard;
       _builderDetail = null;
       _loadedTraineeWorkoutSetsForUserId = null;
+      _loadedTraineeActiveSessionForUserId = null;
+      _showTraineeLive = false;
       _relationshipController.loadForUser(widget.user);
     }
   }
@@ -76,6 +95,7 @@ class _AuthenticatedRelationshipShellState
   void dispose() {
     _relationshipController.dispose();
     _workoutSetController.dispose();
+    _sharedSessionController.dispose();
     super.dispose();
   }
 
@@ -87,6 +107,18 @@ class _AuthenticatedRelationshipShellState
         final state = _relationshipController.state;
         if (widget.user.role == UserRole.trainer) {
           final selected = _selectedTrainee;
+          if (_trainerView == _TrainerView.live) {
+            return LiveSessionScreen(
+              user: widget.user,
+              controller: _sharedSessionController,
+              editable: true,
+              onBack: () {
+                setState(() => _trainerView = _TrainerView.dashboard);
+                _relationshipController.reload();
+              },
+            );
+          }
+
           if (selected != null) {
             final assignedSets = _assignedSetsFor(selected.id);
             return TrainerTraineeDetailScreen(
@@ -95,6 +127,10 @@ class _AuthenticatedRelationshipShellState
               onLogout: widget.onLogout,
               assignedSets: assignedSets,
               onUnassign: (set) => _workoutSetController.unassign(set.id, selected.id),
+              onStartSession: (set) => _startTrainerSession(selected, set),
+              onJoinActiveSession: selected.activeSession == null
+                  ? null
+                  : () => _joinTrainerSession(selected.activeSession!.sessionId),
             );
           }
 
@@ -157,12 +193,34 @@ class _AuthenticatedRelationshipShellState
         }
 
         final traineeTrainer = state.traineeSummary?.trainer;
+        if (_showTraineeLive) {
+          final session = _sharedSessionController.state.session;
+          return LiveSessionScreen(
+            user: widget.user,
+            controller: _sharedSessionController,
+            editable: session?.isTraineeSelfStarted ?? false,
+            onBack: () {
+              setState(() => _showTraineeLive = false);
+              _relationshipController.reload();
+            },
+          );
+        }
+
         if (traineeTrainer != null &&
             _loadedTraineeWorkoutSetsForUserId != widget.user.id) {
           _loadedTraineeWorkoutSetsForUserId = widget.user.id;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
               _workoutSetController.loadForUser(widget.user);
+            }
+          });
+        }
+        if (traineeTrainer != null &&
+            _loadedTraineeActiveSessionForUserId != widget.user.id) {
+          _loadedTraineeActiveSessionForUserId = widget.user.id;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _sharedSessionController.loadActive(widget.user);
             }
           });
         }
@@ -174,6 +232,10 @@ class _AuthenticatedRelationshipShellState
           onReload: _relationshipController.reload,
           onLogout: widget.onLogout,
           workoutSetController: traineeTrainer == null ? null : _workoutSetController,
+          sharedSessionController:
+              traineeTrainer == null ? null : _sharedSessionController,
+          onStartWorkout: _startTraineeSession,
+          onJoinActiveWorkout: _joinTraineeActiveSession,
         );
       },
     );
@@ -218,6 +280,59 @@ class _AuthenticatedRelationshipShellState
     );
     return isAssigned ? [selectedSet] : const [];
   }
+
+  Future<void> _startTrainerSession(
+    TrainerTraineeSummary trainee,
+    WorkoutSetDetail set,
+  ) async {
+    await _sharedSessionController.startTrainerSession(
+      user: widget.user,
+      traineeUserId: trainee.id,
+      workoutSetId: set.id,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() => _trainerView = _TrainerView.live);
+  }
+
+  Future<void> _joinTrainerSession(String sessionId) async {
+    await _sharedSessionController.loadById(
+      user: widget.user,
+      sessionId: sessionId,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() => _trainerView = _TrainerView.live);
+  }
+
+  Future<void> _startTraineeSession(TraineeAssignedWorkoutSet set) async {
+    await _sharedSessionController.startTraineeSession(
+      user: widget.user,
+      workoutSetId: set.id,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() => _showTraineeLive = true);
+  }
+
+  Future<void> _joinTraineeActiveSession() async {
+    final activeSession = _sharedSessionController.state.session;
+    if (activeSession == null) {
+      await _sharedSessionController.loadActive(widget.user);
+    } else {
+      await _sharedSessionController.loadById(
+        user: widget.user,
+        sessionId: activeSession.id,
+      );
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() => _showTraineeLive = true);
+  }
 }
 
 enum _TrainerView {
@@ -225,4 +340,5 @@ enum _TrainerView {
   sets,
   builder,
   assign,
+  live,
 }

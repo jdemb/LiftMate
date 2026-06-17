@@ -48,15 +48,38 @@ public static class PairingEndpoints
             return Results.Problem("Could not generate a unique invite code.");
         }
 
-        var trainees = await dbContext.Users
+        var traineeUsers = await dbContext.Users
             .Where(user => user.TrainerUserId == trainerUserId && user.LiftMateRole == UserRole.Trainee)
             .OrderBy(user => user.DisplayName)
             .ThenBy(user => user.Email)
+            .ToListAsync(cancellationToken);
+
+        var traineeIds = traineeUsers.Select(user => user.Id).ToArray();
+        var activeSessions = await dbContext.SharedSessions
+            .Where(session =>
+                session.TrainerUserId == trainerUserId &&
+                traineeIds.Contains(session.TraineeUserId) &&
+                session.Status == SharedSessionStatus.Active)
+            .Select(session => new
+            {
+                session.TraineeUserId,
+                Summary = new ActiveSharedSessionSummaryResponse(
+                    session.Id,
+                    session.WorkoutSetId,
+                    session.WorkoutSet == null ? null : session.WorkoutSet.Name,
+                    session.StartedByUserId,
+                    session.StartedByRole,
+                    session.UpdatedAt),
+            })
+            .ToDictionaryAsync(session => session.TraineeUserId, session => session.Summary, cancellationToken);
+
+        var trainees = traineeUsers
             .Select(user => new TrainerTraineeResponse(
                 user.Id,
                 user.Email ?? string.Empty,
-                user.DisplayName))
-            .ToListAsync(cancellationToken);
+                user.DisplayName,
+                activeSessions.GetValueOrDefault(user.Id)))
+            .ToArray();
 
         return Results.Ok(new TrainerRelationshipSummaryResponse(inviteCode.Code, trainees));
     }
@@ -211,7 +234,7 @@ public static class PairingEndpoints
             cancelledSessions = await dbContext.SharedSessions
                 .Include(session => session.TrainerUser)
                 .Include(session => session.TraineeUser)
-                .Include(session => session.Values.OrderBy(value => value.SetIndex).ThenBy(value => value.Id))
+                .Include(session => session.Values.OrderBy(value => value.ExerciseOrder).ThenBy(value => value.SetIndex).ThenBy(value => value.Id))
                 .Where(session => session.TraineeUserId == trainee.Id && session.Status == SharedSessionStatus.Active)
                 .ToListAsync(cancellationToken);
 

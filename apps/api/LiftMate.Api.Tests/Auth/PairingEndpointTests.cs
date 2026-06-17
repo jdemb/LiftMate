@@ -101,6 +101,47 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
         Assert.Equal(trainee.User.Id, linkedTrainee.Id);
         Assert.Equal(trainee.User.Email, linkedTrainee.Email);
         Assert.Equal(trainee.User.DisplayName, linkedTrainee.DisplayName);
+        Assert.Null(linkedTrainee.ActiveSession);
+    }
+
+    [Fact]
+    public async Task TrainerRelationshipSummaryIncludesLinkedTraineeActiveSession()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var otherTrainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        var otherTrainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairTrainerAndTrainee(client, trainer, trainee);
+        await PairTrainerAndTrainee(client, otherTrainer, otherTrainee);
+        var workoutSet = await CreateWorkoutSet(client, trainer, "Solo day");
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+        var session = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.GetAsync("/trainer/relationship");
+        var summary = await response.Content.ReadFromJsonAsync<TrainerRelationshipSummaryResponse>();
+
+        client.DefaultRequestHeaders.Authorization = Bearer(otherTrainer.AccessToken);
+        var otherResponse = await client.GetAsync("/trainer/relationship");
+        var otherSummary = await otherResponse.Content.ReadFromJsonAsync<TrainerRelationshipSummaryResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(summary);
+        var linkedTrainee = Assert.Single(summary.Trainees);
+        Assert.Equal(trainee.User.Id, linkedTrainee.Id);
+        Assert.NotNull(linkedTrainee.ActiveSession);
+        Assert.Equal(session.Id, linkedTrainee.ActiveSession.SessionId);
+        Assert.Equal(workoutSet.Id, linkedTrainee.ActiveSession.WorkoutSetId);
+        Assert.Equal("Solo day", linkedTrainee.ActiveSession.WorkoutSetName);
+        Assert.Equal(trainee.User.Id, linkedTrainee.ActiveSession.StartedByUserId);
+        Assert.Equal("trainee", linkedTrainee.ActiveSession.StartedByRole);
+        Assert.Equal(session.UpdatedAt, linkedTrainee.ActiveSession.UpdatedAt);
+        Assert.Equal(HttpStatusCode.OK, otherResponse.StatusCode);
+        Assert.NotNull(otherSummary);
+        var otherLinkedTrainee = Assert.Single(otherSummary.Trainees);
+        Assert.Equal(otherTrainee.User.Id, otherLinkedTrainee.Id);
+        Assert.Null(otherLinkedTrainee.ActiveSession);
     }
 
     [Fact]
@@ -216,6 +257,61 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
         return inviteCode;
     }
 
+    private static async Task<WorkoutSetDetailResponse> CreateWorkoutSet(
+        HttpClient client,
+        AuthEndpointTests.AuthResponse trainer,
+        string name)
+    {
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.PostAsJsonAsync(
+            "/workout-sets",
+            new CreateWorkoutSetRequest(
+                name,
+                [new WorkoutSetRowRequest(1, 1, "Bench press", "repsWeight", 6, 40m, null)]));
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+
+        var workoutSet = await response.Content.ReadFromJsonAsync<WorkoutSetDetailResponse>();
+
+        Assert.NotNull(workoutSet);
+        return workoutSet;
+    }
+
+    private static async Task AssignWorkoutSet(
+        HttpClient client,
+        AuthEndpointTests.AuthResponse trainer,
+        Guid workoutSetId,
+        IReadOnlyList<string> traineeUserIds)
+    {
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.PostAsJsonAsync(
+            $"/workout-sets/{workoutSetId}/assignments",
+            new AssignWorkoutSetRequest(traineeUserIds));
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+    }
+
+    private static async Task<SharedSessionResponse> StartFromWorkoutSet(
+        HttpClient client,
+        AuthEndpointTests.AuthResponse actor,
+        Guid workoutSetId)
+    {
+        client.DefaultRequestHeaders.Authorization = Bearer(actor.AccessToken);
+        var response = await client.PostAsJsonAsync(
+            "/shared-sessions/from-workout-set",
+            new StartSharedSessionFromWorkoutSetRequest(workoutSetId, null));
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+
+        var session = await response.Content.ReadFromJsonAsync<SharedSessionResponse>();
+
+        Assert.NotNull(session);
+        return session;
+    }
+
     private static AuthenticationHeaderValue Bearer(string accessToken)
     {
         return new AuthenticationHeaderValue("Bearer", accessToken);
@@ -235,7 +331,16 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
     private sealed record TrainerTraineeResponse(
         string Id,
         string Email,
-        string DisplayName);
+        string DisplayName,
+        ActiveSharedSessionSummaryResponse? ActiveSession);
+
+    private sealed record ActiveSharedSessionSummaryResponse(
+        Guid SessionId,
+        Guid? WorkoutSetId,
+        string? WorkoutSetName,
+        string StartedByUserId,
+        string StartedByRole,
+        DateTimeOffset UpdatedAt);
 
     private sealed record TraineeRelationshipSummaryResponse(TraineeTrainerResponse? Trainer);
 
@@ -243,4 +348,77 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
         string Id,
         string Email,
         string DisplayName);
+
+    private sealed record CreateWorkoutSetRequest(
+        string Name,
+        IReadOnlyList<WorkoutSetRowRequest> Rows);
+
+    private sealed record WorkoutSetRowRequest(
+        int ExerciseOrder,
+        int SetIndex,
+        string ExerciseName,
+        string ExerciseType,
+        int? Reps,
+        decimal? Weight,
+        int? Seconds);
+
+    private sealed record AssignWorkoutSetRequest(IReadOnlyList<string> TraineeUserIds);
+
+    private sealed record StartSharedSessionFromWorkoutSetRequest(
+        Guid WorkoutSetId,
+        string? TraineeUserId);
+
+    private sealed record WorkoutSetDetailResponse(
+        Guid Id,
+        string Name,
+        IReadOnlyList<WorkoutSetRowResponse> Rows,
+        IReadOnlyList<WorkoutSetAssignmentResponse> Assignments,
+        DateTimeOffset CreatedAt,
+        DateTimeOffset UpdatedAt);
+
+    private sealed record WorkoutSetRowResponse(
+        Guid Id,
+        int ExerciseOrder,
+        int SetIndex,
+        string ExerciseName,
+        string ExerciseType,
+        int? Reps,
+        decimal? Weight,
+        int? Seconds);
+
+    private sealed record WorkoutSetAssignmentResponse(
+        string TraineeUserId,
+        string TraineeEmail,
+        string TraineeDisplayName,
+        DateTimeOffset AssignedAt);
+
+    private sealed record SharedSessionResponse(
+        Guid Id,
+        string TrainerUserId,
+        string TraineeUserId,
+        string TrainerEmail,
+        string TraineeEmail,
+        Guid? WorkoutSetId,
+        string StartedByUserId,
+        string StartedByRole,
+        string Status,
+        long Version,
+        DateTimeOffset CreatedAt,
+        DateTimeOffset UpdatedAt,
+        DateTimeOffset? ClosedAt,
+        IReadOnlyList<SharedSessionValueResponse> Values);
+
+    private sealed record SharedSessionValueResponse(
+        Guid Id,
+        string ExerciseName,
+        string ExerciseType,
+        int ExerciseOrder,
+        int SetIndex,
+        int? Reps,
+        decimal? Weight,
+        int? Seconds,
+        bool IsDone,
+        DateTimeOffset? CompletedAt,
+        string? UpdatedByUserId,
+        DateTimeOffset? UpdatedAt);
 }

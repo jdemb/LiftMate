@@ -11,6 +11,8 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
     required this.onLogout,
     this.assignedSets = const [],
     this.onUnassign,
+    this.onStartSession,
+    this.onJoinActiveSession,
     super.key,
   });
 
@@ -19,6 +21,8 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
   final Future<void> Function() onLogout;
   final List<WorkoutSetDetail> assignedSets;
   final void Function(WorkoutSetDetail set)? onUnassign;
+  final void Function(WorkoutSetDetail set)? onStartSession;
+  final VoidCallback? onJoinActiveSession;
 
   @override
   Widget build(BuildContext context) {
@@ -72,11 +76,23 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                           'Połączona',
                           style: TextStyle(color: lmMuted, fontSize: 13.5),
                         ),
+                        if (trainee.activeSession != null) ...[
+                          const SizedBox(height: 8),
+                          const _ActiveStatusPill(),
+                        ],
                       ],
                     ),
                   ),
                 ],
               ),
+              if (trainee.activeSession != null && onJoinActiveSession != null) ...[
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  onPressed: onJoinActiveSession,
+                  icon: const Icon(Icons.play_circle_rounded),
+                  label: const Text('DoÅ‚Ä…cz do sesji'),
+                ),
+              ],
               const SizedBox(height: 20),
               RelationshipCard(
                 child: Column(
@@ -119,6 +135,10 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                   _AssignedSetCard(
                     set: set,
                     onUnassign: onUnassign == null ? null : () => onUnassign!(set),
+                    onStartSession:
+                        trainee.activeSession == null && onStartSession != null
+                            ? () => onStartSession!(set)
+                            : null,
                   ),
             ],
           ),
@@ -153,10 +173,12 @@ class _AssignedSetCard extends StatelessWidget {
   const _AssignedSetCard({
     required this.set,
     required this.onUnassign,
+    required this.onStartSession,
   });
 
   final WorkoutSetDetail set;
   final VoidCallback? onUnassign;
+  final VoidCallback? onStartSession;
 
   @override
   Widget build(BuildContext context) {
@@ -180,6 +202,14 @@ class _AssignedSetCard extends StatelessWidget {
             '${set.rows.map((row) => row.exerciseOrder).toSet().length} ćwiczeń · ${set.rows.length} serii',
             style: const TextStyle(color: lmMuted, fontSize: 13),
           ),
+          if (onStartSession != null) ...[
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: onStartSession,
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: const Text('Rozpocznij wspÃ³lny trening'),
+            ),
+          ],
           if (onUnassign != null) ...[
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -189,6 +219,29 @@ class _AssignedSetCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _ActiveStatusPill extends StatelessWidget {
+  const _ActiveStatusPill();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF21C97A).withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Text(
+        'Aktywna sesja',
+        style: TextStyle(
+          color: Color(0xFF7EE0AD),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

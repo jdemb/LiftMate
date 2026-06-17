@@ -9,6 +9,8 @@ import 'package:liftmate/auth/auth_controller.dart';
 import 'package:liftmate/auth/auth_screen.dart';
 import 'package:liftmate/auth/token_store.dart';
 import 'package:liftmate/relationships/relationship_api_client.dart';
+import 'package:liftmate/shared_sessions/shared_session_api_client.dart';
+import 'package:liftmate/shared_sessions/shared_session_realtime_client.dart';
 import 'package:liftmate/workout_sets/workout_set_api_client.dart';
 
 void main() {
@@ -40,7 +42,85 @@ void main() {
       expect(find.text('Leg Day'), findsOneWidget);
       expect(find.text('Bench press'), findsNWidgets(2));
       expect(find.text('Plank'), findsNWidgets(2));
-      expect(find.text('Rozpocznij trening w S-03'), findsNWidgets(2));
+      expect(find.text('Rozpocznij trening'), findsNWidgets(2));
+    });
+
+    testWidgets('linked trainee starts assigned workout from set card', (tester) async {
+      final seen = <String>[];
+      await tester.pumpWidget(_testApp(
+        includeSharedSessionClient: true,
+        httpClient: MockClient((request) async {
+          seen.add('${request.method} ${request.url.path}');
+          if (request.url.path == '/auth/me') {
+            return http.Response(
+              jsonEncode(_userResponse(role: 'trainee', trainerUserId: 'trainer-1')),
+              200,
+            );
+          }
+          if (request.url.path == '/trainee/relationship') {
+            return http.Response(jsonEncode({'trainer': _trainer()}), 200);
+          }
+          if (request.url.path == '/trainee/workout-sets') {
+            return http.Response(jsonEncode([_assignedSet('Push A')]), 200);
+          }
+          if (request.url.path == '/shared-sessions/active') {
+            return http.Response('', 404);
+          }
+          if (request.url.path == '/shared-sessions/from-workout-set') {
+            expect(jsonDecode(request.body), {
+              'workoutSetId': 'set-1',
+              'traineeUserId': null,
+            });
+            return http.Response(jsonEncode(_sessionJson(startedByRole: 'trainee')), 201);
+          }
+
+          fail('Unexpected request: ${request.method} ${request.url}');
+        }),
+      ));
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rozpocznij trening'));
+      await tester.pumpAndSettle();
+
+      expect(seen, contains('POST /shared-sessions/from-workout-set'));
+      expect(find.text('Trening live'), findsOneWidget);
+      expect(find.byIcon(Icons.add_rounded), findsWidgets);
+    });
+
+    testWidgets('trainer-led active workout opens read-only live view', (tester) async {
+      await tester.pumpWidget(_testApp(
+        includeSharedSessionClient: true,
+        httpClient: MockClient((request) async {
+          if (request.url.path == '/auth/me') {
+            return http.Response(
+              jsonEncode(_userResponse(role: 'trainee', trainerUserId: 'trainer-1')),
+              200,
+            );
+          }
+          if (request.url.path == '/trainee/relationship') {
+            return http.Response(jsonEncode({'trainer': _trainer()}), 200);
+          }
+          if (request.url.path == '/trainee/workout-sets') {
+            return http.Response(jsonEncode([_assignedSet('Push A')]), 200);
+          }
+          if (request.url.path == '/shared-sessions/active') {
+            return http.Response(jsonEncode(_sessionJson(startedByRole: 'trainer')), 200);
+          }
+          if (request.url.path == '/shared-sessions/session-1') {
+            return http.Response(jsonEncode(_sessionJson(startedByRole: 'trainer')), 200);
+          }
+
+          fail('Unexpected request: ${request.method} ${request.url}');
+        }),
+      ));
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('DoÅ‚Ä…cz do aktywnego treningu'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aktualne Ä‡wiczenie'), findsOneWidget);
+      expect(find.textContaining('nic nie musisz'), findsOneWidget);
+      expect(find.byIcon(Icons.add_rounded), findsNothing);
     });
 
     testWidgets('unlinked trainee still sees trainer-code prompt', (tester) async {
@@ -96,7 +176,10 @@ void main() {
   });
 }
 
-Widget _testApp({required http.Client httpClient}) {
+Widget _testApp({
+  required http.Client httpClient,
+  bool includeSharedSessionClient = false,
+}) {
   final authApiClient = AuthApiClient(
     baseUrl: 'https://api.example.test',
     httpClient: httpClient,
@@ -122,6 +205,14 @@ Widget _testApp({required http.Client httpClient}) {
         baseUrl: 'https://api.example.test',
         httpClient: httpClient,
       ),
+      sharedSessionApiClient: includeSharedSessionClient
+          ? SharedSessionApiClient(
+              baseUrl: 'https://api.example.test',
+              httpClient: httpClient,
+            )
+          : null,
+      sharedSessionRealtimeClientFactory:
+          includeSharedSessionClient ? _FakeRealtimeClient.new : null,
     ),
   );
 }
@@ -177,6 +268,60 @@ Map<String, Object?> _assignedSet(String name) {
       },
     ],
   };
+}
+
+Map<String, Object?> _sessionJson({required String startedByRole}) {
+  return {
+    'id': 'session-1',
+    'trainerUserId': 'trainer-1',
+    'traineeUserId': 'trainee-1',
+    'trainerEmail': 'trainer@example.test',
+    'traineeEmail': 'trainee@example.test',
+    'workoutSetId': 'set-1',
+    'startedByUserId': startedByRole == 'trainer' ? 'trainer-1' : 'trainee-1',
+    'startedByRole': startedByRole,
+    'status': 'active',
+    'version': 1,
+    'createdAt': '2026-06-17T12:00:00Z',
+    'updatedAt': '2026-06-17T12:00:00Z',
+    'closedAt': null,
+    'values': [
+      {
+        'id': 'value-1',
+        'exerciseName': 'Bench press',
+        'exerciseType': 'repsWeight',
+        'exerciseOrder': 1,
+        'setIndex': 1,
+        'reps': 6,
+        'weight': 40.0,
+        'seconds': null,
+        'isDone': false,
+        'completedAt': null,
+        'updatedByUserId': null,
+        'updatedAt': null,
+      },
+    ],
+  };
+}
+
+class _FakeRealtimeClient implements SharedSessionRealtimeClient {
+  @override
+  Stream<Never> get errors => const Stream.empty();
+
+  @override
+  Stream<SharedSessionConnectionStatus> get connectionStatus => const Stream.empty();
+
+  @override
+  Stream<Never> get updates => const Stream.empty();
+
+  @override
+  Future<void> connect({required String accessToken}) async {}
+
+  @override
+  Future<void> disconnect() async {}
+
+  @override
+  Future<void> joinSession({required String sessionId}) async {}
 }
 
 class _InMemoryTokenStore implements TokenStore {

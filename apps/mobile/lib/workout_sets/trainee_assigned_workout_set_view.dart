@@ -7,26 +7,46 @@ import 'workout_set_models.dart';
 class TraineeAssignedWorkoutSetView extends StatelessWidget {
   const TraineeAssignedWorkoutSetView({
     required this.sets,
+    required this.activeSession,
+    required this.onStartWorkout,
+    required this.onJoinActiveWorkout,
     super.key,
   });
 
   final List<TraineeAssignedWorkoutSet> sets;
+  final SharedSession? activeSession;
+  final ValueChanged<TraineeAssignedWorkoutSet> onStartWorkout;
+  final VoidCallback onJoinActiveWorkout;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final set in sets) _AssignedSetCard(set: set),
+        for (final set in sets)
+          _AssignedSetCard(
+            set: set,
+            activeSession: activeSession,
+            onStartWorkout: () => onStartWorkout(set),
+            onJoinActiveWorkout: onJoinActiveWorkout,
+          ),
       ],
     );
   }
 }
 
 class _AssignedSetCard extends StatelessWidget {
-  const _AssignedSetCard({required this.set});
+  const _AssignedSetCard({
+    required this.set,
+    required this.activeSession,
+    required this.onStartWorkout,
+    required this.onJoinActiveWorkout,
+  });
 
   final TraineeAssignedWorkoutSet set;
+  final SharedSession? activeSession;
+  final VoidCallback onStartWorkout;
+  final VoidCallback onJoinActiveWorkout;
 
   @override
   Widget build(BuildContext context) {
@@ -65,9 +85,11 @@ class _AssignedSetCard extends StatelessWidget {
             ),
           const SizedBox(height: 16),
           FilledButton.icon(
-            onPressed: null,
+            onPressed: activeSession == null ? onStartWorkout : onJoinActiveWorkout,
             icon: const Icon(Icons.play_arrow_rounded),
-            label: const Text('Rozpocznij trening w S-03'),
+            label: Text(
+              activeSession == null ? 'Rozpocznij trening' : 'DoÅ‚Ä…cz do aktywnego treningu',
+            ),
           ),
         ],
       ),

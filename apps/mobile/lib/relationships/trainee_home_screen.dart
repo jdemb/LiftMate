@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_api_client.dart';
 import '../auth/auth_models.dart';
+import '../shared_sessions/shared_session_controller.dart';
 import '../workout_sets/trainee_assigned_workout_set_view.dart';
 import '../workout_sets/workout_set_controller.dart';
+import '../workout_sets/workout_set_models.dart';
 import 'relationship_controller.dart';
 import 'relationship_screen_styles.dart';
 
@@ -15,6 +17,9 @@ class TraineeHomeScreen extends StatefulWidget {
     required this.onReload,
     required this.onLogout,
     this.workoutSetController,
+    this.sharedSessionController,
+    this.onStartWorkout,
+    this.onJoinActiveWorkout,
     super.key,
   });
 
@@ -24,6 +29,9 @@ class TraineeHomeScreen extends StatefulWidget {
   final Future<void> Function() onReload;
   final Future<void> Function() onLogout;
   final WorkoutSetController? workoutSetController;
+  final SharedSessionController? sharedSessionController;
+  final ValueChanged<TraineeAssignedWorkoutSet>? onStartWorkout;
+  final VoidCallback? onJoinActiveWorkout;
 
   @override
   State<TraineeHomeScreen> createState() => _TraineeHomeScreenState();
@@ -80,6 +88,9 @@ class _TraineeHomeScreenState extends State<TraineeHomeScreen> {
                     isLoading: isLoading,
                     onSubmit: _submit,
                     workoutSetController: widget.workoutSetController,
+                    sharedSessionController: widget.sharedSessionController,
+                    onStartWorkout: widget.onStartWorkout,
+                    onJoinActiveWorkout: widget.onJoinActiveWorkout,
                   ),
               ],
             ),
@@ -167,6 +178,9 @@ class _LinkedTrainerCard extends StatelessWidget {
     required this.isLoading,
     required this.onSubmit,
     required this.workoutSetController,
+    required this.sharedSessionController,
+    required this.onStartWorkout,
+    required this.onJoinActiveWorkout,
   });
 
   final String trainerName;
@@ -176,6 +190,9 @@ class _LinkedTrainerCard extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onSubmit;
   final WorkoutSetController? workoutSetController;
+  final SharedSessionController? sharedSessionController;
+  final ValueChanged<TraineeAssignedWorkoutSet>? onStartWorkout;
+  final VoidCallback? onJoinActiveWorkout;
 
   @override
   Widget build(BuildContext context) {
@@ -224,7 +241,12 @@ class _LinkedTrainerCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 18),
-        _AssignedSetsSection(controller: workoutSetController),
+        _AssignedSetsSection(
+          controller: workoutSetController,
+          sharedSessionController: sharedSessionController,
+          onStartWorkout: onStartWorkout,
+          onJoinActiveWorkout: onJoinActiveWorkout,
+        ),
         const SizedBox(height: 22),
         _TrainerCodeForm(
           controller: controller,
@@ -240,9 +262,17 @@ class _LinkedTrainerCard extends StatelessWidget {
 }
 
 class _AssignedSetsSection extends StatelessWidget {
-  const _AssignedSetsSection({required this.controller});
+  const _AssignedSetsSection({
+    required this.controller,
+    required this.sharedSessionController,
+    required this.onStartWorkout,
+    required this.onJoinActiveWorkout,
+  });
 
   final WorkoutSetController? controller;
+  final SharedSessionController? sharedSessionController;
+  final ValueChanged<TraineeAssignedWorkoutSet>? onStartWorkout;
+  final VoidCallback? onJoinActiveWorkout;
 
   @override
   Widget build(BuildContext context) {
@@ -276,7 +306,27 @@ class _AssignedSetsSection extends StatelessWidget {
           return const _NoAssignedSetCard();
         }
 
-        return TraineeAssignedWorkoutSetView(sets: state.traineeAssignedSets);
+        final sharedSessionController = this.sharedSessionController;
+        if (sharedSessionController == null) {
+          return TraineeAssignedWorkoutSetView(
+            sets: state.traineeAssignedSets,
+            activeSession: null,
+            onStartWorkout: onStartWorkout ?? (_) {},
+            onJoinActiveWorkout: onJoinActiveWorkout ?? () {},
+          );
+        }
+
+        return AnimatedBuilder(
+          animation: sharedSessionController,
+          builder: (context, _) {
+            return TraineeAssignedWorkoutSetView(
+              sets: state.traineeAssignedSets,
+              activeSession: sharedSessionController.state.session,
+              onStartWorkout: onStartWorkout ?? (_) {},
+              onJoinActiveWorkout: onJoinActiveWorkout ?? () {},
+            );
+          },
+        );
       },
     );
   }

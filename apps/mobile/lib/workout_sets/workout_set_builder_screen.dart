@@ -24,13 +24,15 @@ class WorkoutSetBuilderScreen extends StatefulWidget {
 
 class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
   late final TextEditingController _nameController;
-  final List<WorkoutSetDraftExercise> _draft = [];
-  bool _addingExercise = false;
+  late final List<WorkoutSetDraftExercise> _draft;
+  bool _showingExerciseEditor = false;
+  String? _editingDraftId;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.initialDetail?.name ?? 'Push A');
+    _draft = _draftFromDetail(widget.initialDetail);
   }
 
   @override
@@ -41,20 +43,13 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_addingExercise) {
+    if (_showingExerciseEditor) {
       return AddWorkoutSetExerciseScreen(
-        onBack: () => setState(() => _addingExercise = false),
-        onAddExercise: (exercise) {
-          setState(() {
-            _draft.add(exercise);
-            _addingExercise = false;
-          });
-        },
+        initialExercise: _editingExercise,
+        onBack: _closeExerciseEditor,
+        onAddExercise: _saveDraftExercise,
       );
     }
-
-    final existingRows = widget.initialDetail?.rows ?? const <WorkoutSetRow>[];
-    final hasRows = _draft.isNotEmpty || existingRows.isNotEmpty;
 
     return AnimatedBuilder(
       animation: widget.controller,
@@ -73,9 +68,9 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
                     decoration: const InputDecoration(hintText: 'Nazwa zestawu'),
                   ),
                   const SizedBox(height: 22),
-                  RelationshipSectionLabel('Ćwiczenia · ${_draft.length + existingRows.length}'),
+                  RelationshipSectionLabel('Ćwiczenia · ${_draft.length}'),
                   const SizedBox(height: 12),
-                  if (!hasRows)
+                  if (_draft.isEmpty)
                     const RelationshipCard(
                       child: Text(
                         'Dodaj pierwsze ćwiczenie do globalnego zestawu.',
@@ -83,13 +78,16 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
                       ),
                     ),
                   for (var i = 0; i < _draft.length; i += 1)
-                    _DraftExerciseCard(index: i + 1, exercise: _draft[i]),
-                  if (_draft.isEmpty)
-                    for (final row in existingRows)
-                      _ExistingRowCard(row: row),
+                    _DraftExerciseCard(
+                      index: i + 1,
+                      exercise: _draft[i],
+                      onTap: () => _openExerciseEditor(_draft[i].draftId),
+                      onDelete: () => _deleteDraftExercise(_draft[i].draftId),
+                    ),
                   const SizedBox(height: 4),
                   OutlinedButton.icon(
-                    onPressed: () => setState(() => _addingExercise = true),
+                    key: const ValueKey('builder-add-exercise'),
+                    onPressed: () => _openExerciseEditor(null),
                     icon: const Icon(Icons.add_rounded),
                     label: const Text('Dodaj ćwiczenie'),
                     style: OutlinedButton.styleFrom(
@@ -107,6 +105,7 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
               ),
             ),
             _BottomAction(
+              key: const ValueKey('builder-save'),
               label: state.status == WorkoutSetControllerStatus.saving ? 'Zapisywanie...' : 'Zapisz zestaw',
               onPressed: state.status == WorkoutSetControllerStatus.saving ? null : _save,
             ),
@@ -114,6 +113,54 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
         );
       },
     );
+  }
+
+  WorkoutSetDraftExercise? get _editingExercise {
+    final draftId = _editingDraftId;
+    if (draftId == null) {
+      return null;
+    }
+
+    for (final exercise in _draft) {
+      if (exercise.draftId == draftId) {
+        return exercise;
+      }
+    }
+
+    return null;
+  }
+
+  void _openExerciseEditor(String? draftId) {
+    setState(() {
+      _editingDraftId = draftId;
+      _showingExerciseEditor = true;
+    });
+  }
+
+  void _closeExerciseEditor() {
+    setState(() {
+      _editingDraftId = null;
+      _showingExerciseEditor = false;
+    });
+  }
+
+  void _saveDraftExercise(WorkoutSetDraftExercise exercise) {
+    setState(() {
+      final index = _draft.indexWhere((draft) => draft.draftId == exercise.draftId);
+      if (index == -1) {
+        _draft.add(exercise);
+      } else {
+        _draft[index] = exercise;
+      }
+      _editingDraftId = null;
+      _showingExerciseEditor = false;
+    });
+  }
+
+  void _deleteDraftExercise(String draftId) {
+    setState(() {
+      _draft.removeWhere((exercise) => exercise.draftId == draftId);
+    });
   }
 
   Future<void> _save() async {
@@ -133,27 +180,32 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
       return;
     }
 
-    final updateRows = rows.isEmpty
-        ? initialDetail.rows.map((row) {
-            return WorkoutSetRowRequest(
-              exerciseOrder: row.exerciseOrder,
-              setIndex: row.setIndex,
-              exerciseName: row.exerciseName,
-              exerciseType: row.exerciseType,
-              reps: row.reps,
-              weight: row.weight,
-              seconds: row.seconds,
-            );
-          }).toList(growable: false)
-        : rows;
     final result = await widget.controller.updateSet(
       initialDetail.id,
-      UpdateWorkoutSetRequest(name: _nameController.text.trim(), rows: updateRows),
+      UpdateWorkoutSetRequest(name: _nameController.text.trim(), rows: rows),
     );
     if (result.isSuccess && mounted) {
       widget.onBack();
     }
   }
+}
+
+List<WorkoutSetDraftExercise> _draftFromDetail(WorkoutSetDetail? detail) {
+  final rows = detail?.rows ?? const <WorkoutSetRow>[];
+  if (rows.isEmpty) {
+    return <WorkoutSetDraftExercise>[];
+  }
+
+  final grouped = <int, List<WorkoutSetRow>>{};
+  for (final row in rows) {
+    grouped.putIfAbsent(row.exerciseOrder, () => <WorkoutSetRow>[]).add(row);
+  }
+
+  final orders = grouped.keys.toList()..sort();
+  return [
+    for (final order in orders)
+      WorkoutSetDraftExercise.fromRows(order, grouped[order]!),
+  ];
 }
 
 class _Header extends StatelessWidget {
@@ -199,62 +251,56 @@ class _FieldLabel extends StatelessWidget {
 }
 
 class _DraftExerciseCard extends StatelessWidget {
-  const _DraftExerciseCard({required this.index, required this.exercise});
+  const _DraftExerciseCard({
+    required this.index,
+    required this.exercise,
+    required this.onTap,
+    required this.onDelete,
+  });
 
   final int index;
   final WorkoutSetDraftExercise exercise;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     return RelationshipCard(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          _IndexBox(index.toString()),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      padding: EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+            child: Row(
               children: [
-                Text(exercise.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 3),
-                Text(exercise.params, style: const TextStyle(color: lmMuted, fontSize: 12.5)),
+                _IndexBox(index.toString()),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(exercise.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 3),
+                      Text(exercise.params, style: const TextStyle(color: lmMuted, fontSize: 12.5)),
+                    ],
+                  ),
+                ),
+                _TypeChip(exercise.typeLabel),
+                const SizedBox(width: 4),
+                IconButton(
+                  tooltip: 'Usuń ćwiczenie',
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  color: lmMuted,
+                ),
               ],
             ),
           ),
-          _TypeChip(exercise.typeLabel),
-        ],
-      ),
-    );
-  }
-}
-
-class _ExistingRowCard extends StatelessWidget {
-  const _ExistingRowCard({required this.row});
-
-  final WorkoutSetRow row;
-
-  @override
-  Widget build(BuildContext context) {
-    return RelationshipCard(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          _IndexBox(row.exerciseOrder.toString()),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(row.exerciseName, style: const TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 3),
-                Text('Seria ${row.setIndex}', style: const TextStyle(color: lmMuted, fontSize: 12.5)),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -306,7 +352,11 @@ class _TypeChip extends StatelessWidget {
 }
 
 class _BottomAction extends StatelessWidget {
-  const _BottomAction({required this.label, required this.onPressed});
+  const _BottomAction({
+    required this.label,
+    required this.onPressed,
+    super.key,
+  });
 
   final String label;
   final VoidCallback? onPressed;

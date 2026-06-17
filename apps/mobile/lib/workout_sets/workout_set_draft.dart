@@ -3,6 +3,7 @@ import 'workout_set_models.dart';
 
 class WorkoutSetDraftExercise {
   const WorkoutSetDraftExercise({
+    required this.draftId,
     required this.name,
     required this.exerciseType,
     required this.sets,
@@ -11,6 +12,47 @@ class WorkoutSetDraftExercise {
     this.seconds,
   });
 
+  factory WorkoutSetDraftExercise.create({
+    required String name,
+    required ExerciseValueType exerciseType,
+    required int sets,
+    int? reps,
+    double? weight,
+    int? seconds,
+  }) {
+    final id = _nextDraftId;
+    _nextDraftId += 1;
+    return WorkoutSetDraftExercise(
+      draftId: 'draft-$id',
+      name: name,
+      exerciseType: exerciseType,
+      sets: sets,
+      reps: reps,
+      weight: weight,
+      seconds: seconds,
+    );
+  }
+
+  factory WorkoutSetDraftExercise.fromRows(
+    int exerciseOrder,
+    List<WorkoutSetRow> rows,
+  ) {
+    final sortedRows = [...rows]..sort((a, b) => a.setIndex.compareTo(b.setIndex));
+    final first = sortedRows.first;
+    return WorkoutSetDraftExercise(
+      draftId: 'existing-$exerciseOrder',
+      name: first.exerciseName,
+      exerciseType: first.exerciseType,
+      sets: sortedRows.length,
+      reps: first.reps,
+      weight: first.weight,
+      seconds: first.seconds,
+    );
+  }
+
+  static int _nextDraftId = 1;
+
+  final String draftId;
   final String name;
   final ExerciseValueType exerciseType;
   final int sets;

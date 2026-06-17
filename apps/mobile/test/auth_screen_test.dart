@@ -25,6 +25,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('LiftMate'), findsOneWidget);
+      expect(_radialGradientDecoratedBox(), findsOneWidget);
       expect(find.text('Trenuj bez myślenia\no liczbach.'), findsOneWidget);
       expect(
         find.text('Trener ustawia plan, Ty widzisz co robić, ile podnieść i kiedy poprawiasz wynik.'),
@@ -109,6 +110,7 @@ void main() {
       expect(find.text('Twój kod zaproszenia'), findsOneWidget);
       expect(find.text('Zaproś podopiecznego'), findsOneWidget);
       expect(find.text('Tymczasowy panel'), findsNothing);
+      expect(_radialGradientDecoratedBox(), findsNothing);
 
       await _tapButton(tester, 'Wyloguj');
 
@@ -322,6 +324,17 @@ Finder _textContaining(String value) {
   return find.byWidgetPredicate(
     (widget) => widget is Text && (widget.data?.contains(value) ?? false),
   );
+}
+
+Finder _radialGradientDecoratedBox() {
+  return find.byWidgetPredicate((widget) {
+    if (widget is! DecoratedBox) {
+      return false;
+    }
+
+    final decoration = widget.decoration;
+    return decoration is BoxDecoration && decoration.gradient is RadialGradient;
+  });
 }
 
 Widget _testApp({

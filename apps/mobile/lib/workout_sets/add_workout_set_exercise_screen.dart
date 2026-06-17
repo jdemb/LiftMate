@@ -74,7 +74,7 @@ class _AddWorkoutSetExerciseScreenState extends State<AddWorkoutSetExerciseScree
                 children: [
                   Expanded(
                     child: _TypeButton(
-                      label: 'Powtórzenia\n+ waga',
+                      label: 'Powtórzenia + waga',
                       active: isWeight,
                       onTap: () => setState(() => _type = ExerciseValueType.repsWeight),
                     ),
@@ -82,7 +82,7 @@ class _AddWorkoutSetExerciseScreenState extends State<AddWorkoutSetExerciseScree
                   const SizedBox(width: 9),
                   Expanded(
                     child: _TypeButton(
-                      label: 'Same\npowtórzenia',
+                      label: 'Same powtórzenia',
                       active: isReps,
                       onTap: () => setState(() => _type = ExerciseValueType.repsOnly),
                     ),
@@ -229,7 +229,12 @@ class _TypeButton extends StatelessWidget {
         backgroundColor: active ? lmBlue.withValues(alpha: 0.18) : lmSurface,
         side: BorderSide(color: active ? lmBlue : Colors.white.withValues(alpha: 0.08)),
       ),
-      child: Text(label, textAlign: TextAlign.center),
+      child: Text(
+        label,
+        maxLines: 2,
+        softWrap: true,
+        textAlign: TextAlign.center,
+      ),
     );
   }
 }

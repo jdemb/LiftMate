@@ -346,11 +346,117 @@ void main() {
       await _startAuthenticated(tester);
 
       expect(find.text('TWÓJ TRENER'), findsOneWidget);
-      expect(find.text('Test Trainer'), findsOneWidget);
-      expect(find.text('trainer@example.test'), findsOneWidget);
-    });
+    expect(find.text('Test Trainer'), findsOneWidget);
+    expect(find.text('trainer@example.test'), findsOneWidget);
+  });
 
-    testWidgets('trainee unlinked sees enter-code prompt', (tester) async {
+  testWidgets(
+    'trainee trainer-led read-only live has back action and trainer first name',
+    (tester) async {
+      final seen = <String>[];
+      await tester.pumpWidget(
+        _testApp(
+          includeSharedSessionClient: true,
+          httpClient: MockClient((request) async {
+            seen.add('${request.method} ${request.url.path}');
+            if (request.url.path == '/auth/me') {
+              return http.Response(
+                jsonEncode(
+                  _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
+                ),
+                200,
+              );
+            }
+            if (request.url.path == '/trainee/relationship') {
+              return http.Response(
+                jsonEncode({'trainer': _trainer('Test Trainer')}),
+                200,
+              );
+            }
+            if (request.url.path == '/trainee/workout-sets') {
+              return http.Response(jsonEncode([_assignedSet()]), 200);
+            }
+            if (request.url.path == '/shared-sessions/active') {
+              return http.Response(
+                jsonEncode(_sessionResponse(startedByRole: 'trainer')),
+                200,
+              );
+            }
+            if (request.url.path == '/shared-sessions/session-1') {
+              return http.Response(
+                jsonEncode(_sessionResponse(startedByRole: 'trainer')),
+                200,
+              );
+            }
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.pumpAndSettle();
+      await _tapButton(tester, 'aktywnego treningu');
+
+      expect(find.text('Prowadzi trener Test'), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.add_rounded), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+      await tester.pumpAndSettle();
+
+      expect(find.text('DZISIEJSZY TRENING'), findsOneWidget);
+      expect(find.textContaining('aktywnego treningu'), findsOneWidget);
+      expect(seen.where((request) => request.contains('/complete')), isEmpty);
+      expect(seen.where((request) => request.contains('/cancel')), isEmpty);
+    },
+  );
+
+  testWidgets('trainee trainer-led read-only live falls back to trainer email', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _testApp(
+        includeSharedSessionClient: true,
+        httpClient: MockClient((request) async {
+          if (request.url.path == '/auth/me') {
+            return http.Response(
+              jsonEncode(
+                _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
+              ),
+              200,
+            );
+          }
+          if (request.url.path == '/trainee/relationship') {
+            return http.Response(jsonEncode({'trainer': _trainer('')}), 200);
+          }
+          if (request.url.path == '/trainee/workout-sets') {
+            return http.Response(jsonEncode([_assignedSet()]), 200);
+          }
+          if (request.url.path == '/shared-sessions/active') {
+            return http.Response(
+              jsonEncode(_sessionResponse(startedByRole: 'trainer')),
+              200,
+            );
+          }
+          if (request.url.path == '/shared-sessions/session-1') {
+            return http.Response(
+              jsonEncode(_sessionResponse(startedByRole: 'trainer')),
+              200,
+            );
+          }
+          fail('Unexpected request: ${request.method} ${request.url}');
+        }),
+      ),
+    );
+
+    await _startAuthenticated(tester);
+    await tester.pumpAndSettle();
+    await _tapButton(tester, 'aktywnego treningu');
+
+    expect(find.text('Prowadzi trener trainer@example.test'), findsOneWidget);
+  });
+
+  testWidgets('trainee unlinked sees enter-code prompt', (tester) async {
       await tester.pumpWidget(
         _testApp(
           httpClient: MockClient((request) async {
@@ -592,6 +698,38 @@ Map<String, Object?> _trainerRelationshipWithAssignedSet({
             'updatedAt': '2026-06-16T12:05:00Z',
           },
         ],
+      },
+    ],
+  };
+}
+
+Map<String, Object?> _assignedSet() {
+  return {
+    'id': 'set-1',
+    'name': 'Push A',
+    'trainerDisplayName': 'Test Trainer',
+    'assignedAt': '2026-06-16T12:10:00Z',
+    'updatedAt': '2026-06-16T12:05:00Z',
+    'rows': [
+      {
+        'id': 'row-1',
+        'exerciseOrder': 1,
+        'setIndex': 1,
+        'exerciseName': 'Bench press',
+        'exerciseType': 'repsWeight',
+        'reps': 6,
+        'weight': 40.0,
+        'seconds': null,
+      },
+      {
+        'id': 'row-2',
+        'exerciseOrder': 2,
+        'setIndex': 1,
+        'exerciseName': 'Plank',
+        'exerciseType': 'time',
+        'reps': null,
+        'weight': null,
+        'seconds': 60,
       },
     ],
   };

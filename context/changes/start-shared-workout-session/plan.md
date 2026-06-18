@@ -1234,12 +1234,12 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [ ] 12.1 Read-only trainer-led live view renders a functional `Wróć` action
-- [ ] 12.2 Back returns to trainee "Dziś" without completing, cancelling, or clearing the active session
-- [ ] 12.3 Trainer label renders `Prowadzi trener <first name>`
-- [ ] 12.4 Empty trainer display name falls back to trainer email
-- [ ] 12.5 Focused read-only live widget tests pass
-- [ ] 12.6 `flutter analyze` passes
+- [x] 12.1 Read-only trainer-led live view renders a functional `Wróć` action
+- [x] 12.2 Back returns to trainee "Dziś" without completing, cancelling, or clearing the active session
+- [x] 12.3 Trainer label renders `Prowadzi trener <first name>`
+- [x] 12.4 Empty trainer display name falls back to trainer email
+- [x] 12.5 Focused read-only live widget tests pass
+- [x] 12.6 `flutter analyze` passes
 
 #### Manual
 

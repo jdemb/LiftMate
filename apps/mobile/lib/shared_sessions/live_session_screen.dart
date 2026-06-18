@@ -13,6 +13,7 @@ class LiveSessionScreen extends StatefulWidget {
     required this.controller,
     required this.editable,
     required this.onBack,
+    this.trainerDisplayName,
     this.onSessionClosed,
     super.key,
   });
@@ -21,6 +22,7 @@ class LiveSessionScreen extends StatefulWidget {
   final SharedSessionController controller;
   final bool editable;
   final VoidCallback onBack;
+  final String? trainerDisplayName;
   final Future<void> Function()? onSessionClosed;
 
   @override
@@ -100,10 +102,12 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
         if (!widget.editable) {
           return _ReadOnlyLiveView(
             session: session,
+            trainerDisplayName: widget.trainerDisplayName,
             group: currentGroup,
             exerciseIndex: currentIndex,
             exerciseTotal: groups.length,
             restRemaining: _restRemaining,
+            onBack: widget.onBack,
           );
         }
 
@@ -287,17 +291,21 @@ class _LiveTopBar extends StatelessWidget {
 class _ReadOnlyLiveView extends StatelessWidget {
   const _ReadOnlyLiveView({
     required this.session,
+    required this.trainerDisplayName,
     required this.group,
     required this.exerciseIndex,
     required this.exerciseTotal,
     required this.restRemaining,
+    required this.onBack,
   });
 
   final SharedSession session;
+  final String? trainerDisplayName;
   final _ExerciseValueGroup group;
   final int exerciseIndex;
   final int exerciseTotal;
   final int restRemaining;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -317,8 +325,13 @@ class _ReadOnlyLiveView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(22, 14, 22, 0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                IconButton(
+                  tooltip: 'Wróć',
+                  onPressed: onBack,
+                  icon: const Icon(Icons.chevron_left_rounded, size: 30),
+                ),
+                const SizedBox(width: 4),
                 Container(
                   width: 8,
                   height: 8,
@@ -330,9 +343,7 @@ class _ReadOnlyLiveView extends StatelessWidget {
                 const SizedBox(width: 9),
                 Flexible(
                   child: Text(
-                    session.isTrainerLed
-                        ? 'Trener prowadzi · ${session.trainerEmail}'
-                        : 'Trening własny',
+                    _readOnlySessionLabel(session, trainerDisplayName),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -924,6 +935,22 @@ SharedSessionValue _firstOpenValue(List<SharedSessionValue> values) {
 
 String _sessionSubtitle(SharedSession session) {
   return session.workoutSetId == null ? 'Aktywny trening' : 'Zestaw ${session.workoutSetId}';
+}
+
+String _readOnlySessionLabel(
+  SharedSession session,
+  String? trainerDisplayName,
+) {
+  if (!session.isTrainerLed) {
+    return 'Trening własny';
+  }
+
+  final trimmedName = trainerDisplayName?.trim();
+  final trainerLabel = trimmedName == null || trimmedName.isEmpty
+      ? session.trainerEmail
+      : trimmedName.split(RegExp(r'\s+')).first;
+
+  return 'Prowadzi trener $trainerLabel';
 }
 
 String _primaryValueLabel(SharedSessionValue value) {

@@ -37,7 +37,10 @@ After this plan:
 - A trainer sees a green status dot and "Aktywna sesja" on the trainee list when a trainee has an active session.
 - A trainer opening that trainee detail sees "Dołącz do sesji" when an active session exists, otherwise "Rozpocznij wspólny trening" for an assigned set.
 - If the trainer started the session, the trainee button says "Dołącz do aktywnego treningu" and opens the limited read-only `c_live` view from the design.
+- The trainer-led read-only trainee view has a back action that returns to "Dziś" without closing or clearing the active session.
+- The trainer-led read-only trainee view identifies the coach as `Prowadzi trener <first name>`, falling back to trainer email only when the relationship display name is empty.
 - If the trainee started the session, the trainee sees the full editable live-session view like the trainer, and the trainer can later join it.
+- Opening trainer trainee-detail refreshes relationship data first, so assigned-set summaries reflect later edits made in "Moje zestawy".
 - Closing or cancelling a session frees the trainee to start another active session.
 
 ### Key Discoveries
@@ -55,6 +58,8 @@ After this plan:
 - No separate trainer "active sessions" screen; active state appears in the trainee list and detail view.
 - No paid realtime infrastructure or Azure SignalR Service changes.
 - No broad redesign of auth, pairing, or workout-set builder screens.
+- No change to where the trainer lands after saving a workout-set edit; editing remains inside "Moje zestawy".
+- No new `firstName` or shared-session trainer-name API field; trainee relationship display name remains the source.
 - No removal of the old diagnostic shared-session panel unless it directly conflicts with the new production flow.
 - No support for multiple simultaneous active sessions for the same trainee.
 
@@ -785,6 +790,200 @@ Run focused and full verification after phases 7-9, then keep the manual QA stat
 
 ---
 
+## Phase 11: Renderable Live Session Guard And Contract Coverage
+
+### Overview
+
+Prevent trainer and trainee editable live-session entry unless the active session contains a renderable workout snapshot, and lock the full editable screen hierarchy with realistic multi-exercise widget tests.
+
+### Changes Required
+
+#### Renderable Session Guard
+
+**Files**:
+- `apps/mobile/lib/shared_sessions/shared_session_controller.dart`
+- `apps/mobile/lib/relationships/authenticated_relationship_shell.dart`
+
+**Contract**: A session is eligible for live navigation only when it is active and contains at least one value. Start/join responses with an empty snapshot must remain on the source screen and expose a readable error instead of opening an incomplete live view.
+
+#### Editable Live Contract
+
+**Files**:
+- `apps/mobile/lib/shared_sessions/live_session_screen.dart`
+- `apps/mobile/test/live_session_screen_test.dart`
+- `apps/mobile/test/post_auth_relationship_screen_test.dart`
+- `apps/mobile/test/trainee_assigned_workout_sets_screen_test.dart`
+
+**Contract**: Trainer start, trainer join, and trainee self-start tests use multiple series and at least two exercises. Tests verify exercise position/name, editable series controls, rest timer controls, next exercise, and finish/save action at a phone-sized viewport matching the design contract.
+
+### Success Criteria
+
+#### Automated Verification
+
+- Empty active-session snapshots do not navigate to the live screen.
+- Trainer start renders exercise data, editable series, rest timer, next exercise, and finish/save action.
+- Trainer join of a trainee self-start renders the same editable hierarchy.
+- Trainee self-start renders the same editable hierarchy.
+- Focused live-session widget tests pass.
+- `flutter test` passes.
+- `flutter analyze` passes.
+
+#### Manual Verification
+
+- Trainer and self-starting trainee see all exercise rows and rest-timer controls on Android.
+- Editable live-session layout matches `apps/mobile/design/LiftMate.html`.
+
+---
+
+## Phase 12: Read-Only Session Back Navigation And Trainer Identity
+
+### Overview
+
+Complete the trainer-led trainee live view with a visible back action and a human-readable trainer label sourced from canonical trainee relationship data.
+
+### Changes Required
+
+#### Read-Only Live Header
+
+**File**: `apps/mobile/lib/shared_sessions/live_session_screen.dart`
+
+**Intent**: Let a trainee leave the limited trainer-led live view without closing or clearing the active session.
+
+**Contract**: Pass the existing `LiveSessionScreen.onBack` callback into `_ReadOnlyLiveView` and render a leading back icon with the same `Wróć` semantics as the editable live top bar. Activating it returns to the trainee "Dziś" screen; the controller keeps the active session so the trainee can join again.
+
+#### Trainer Display Identity
+
+**Files**:
+- `apps/mobile/lib/relationships/authenticated_relationship_shell.dart`
+- `apps/mobile/lib/shared_sessions/live_session_screen.dart`
+
+**Intent**: Replace the trainer email-led status copy with the first name visible in the trainee relationship.
+
+**Contract**: When rendering trainee live mode, pass the current `TraineeTrainerSummary.displayName` to `LiveSessionScreen`. Derive the label from the first whitespace-delimited non-empty part and render `Prowadzi trener <first name>`. If no usable display-name part exists, fall back to `session.trainerEmail`. Do not add or infer a new backend `firstName` field.
+
+#### Widget Tests
+
+**Files**:
+- `apps/mobile/test/live_session_screen_test.dart`
+- `apps/mobile/test/trainee_assigned_workout_sets_screen_test.dart`
+
+**Intent**: Lock navigation and identity behavior in the limited `c_live` path.
+
+**Contract**: Tests prove trainer-led trainee live displays `Prowadzi trener Test`, does not display the trainer email when a display name exists, invokes the back callback, returns to "Dziś", preserves the active-session join action, and uses email fallback for an empty display name.
+
+### Success Criteria
+
+#### Automated Verification
+
+- Read-only trainer-led live view renders a functional `Wróć` action.
+- Back returns to trainee "Dziś" without completing, cancelling, or clearing the active session.
+- Trainer label renders `Prowadzi trener <first name>`.
+- Empty trainer display name falls back to trainer email.
+- Focused read-only live widget tests pass.
+- `flutter analyze` passes.
+
+#### Manual Verification
+
+- On Android, the limited trainee live screen shows a visible back icon aligned with the design.
+- Returning to "Dziś" leaves "Dołącz do aktywnego treningu" available.
+- The label shows only the trainer's first name.
+
+---
+
+## Phase 13: Fresh Trainer Trainee-Detail On Entry
+
+### Overview
+
+Refresh canonical trainer relationship data before opening trainee detail so assigned-set summaries never reuse stale list objects after a workout set is edited in "Moje zestawy".
+
+### Changes Required
+
+#### Detail Entry Refresh
+
+**File**: `apps/mobile/lib/relationships/authenticated_relationship_shell.dart`
+
+**Intent**: Select the trainee from a freshly loaded relationship summary rather than retaining the object captured before a workout-set edit.
+
+**Contract**: Replace direct `_selectedTrainee = trainee` navigation with an asynchronous open-detail flow. Keep the trainer dashboard visible, reload relationship data, locate the trainee by stable user ID in the successful refreshed summary, and only then set `_selectedTrainee` to that fresh object. Do not couple `WorkoutSetBuilderScreen` save behavior to relationship refresh and do not change its post-save destination.
+
+#### Dashboard Loading And Failure State
+
+**File**: `apps/mobile/lib/relationships/trainer_dashboard_screen.dart`
+
+**Intent**: Make the pre-navigation refresh observable and prevent duplicate detail-open requests.
+
+**Contract**: Accept the ID of the trainee currently being opened or an equivalent local loading state. Show a compact loading indicator on that trainee row and disable repeated activation until refresh finishes. On refresh failure, remain on the dashboard and expose the existing relationship error with its existing reload/retry path; do not open stale detail data.
+
+#### Fresh-Data Reconciliation
+
+**File**: `apps/mobile/lib/relationships/authenticated_relationship_shell.dart`
+
+**Intent**: Handle relationship changes safely while opening detail.
+
+**Contract**: If the refreshed summary no longer contains the requested trainee, remain on the dashboard and present a readable relationship-state error instead of opening the old object. Successful refresh uses updated assigned-set `name`, `exerciseCount`, `rowCount`, and `updatedAt`.
+
+#### Widget Tests
+
+**File**: `apps/mobile/test/post_auth_relationship_screen_test.dart`
+
+**Intent**: Reproduce the stale assigned-set summary and prove the detail screen uses the second API response.
+
+**Contract**: Add tests where the initial trainer relationship response contains the pre-edit assigned-set summary and the refresh triggered by tapping the trainee returns updated name/counts. Verify detail opens only after the second response and renders the updated summary. Add loading/double-tap protection and refresh-failure cases proving detail remains closed and retry remains available.
+
+### Success Criteria
+
+#### Automated Verification
+
+- Tapping a trainee triggers a fresh trainer relationship request before detail opens.
+- Detail renders updated assigned-set name, exercise count, and row count from the refreshed response.
+- The clicked trainee row shows loading and cannot trigger duplicate refreshes.
+- Refresh failure keeps the trainer on the dashboard and exposes retry/error state.
+- Missing trainee after refresh does not open stale detail data.
+- Focused trainer relationship widget tests pass.
+- `flutter analyze` passes.
+
+#### Manual Verification
+
+- Trainer edits and saves a set in "Moje zestawy", then navigates `Pulpit -> Podopieczni -> Podopieczny` and sees updated assigned-set information.
+- Saving/editing navigation inside "Moje zestawy" remains unchanged.
+- A temporary refresh failure does not open outdated trainee details.
+
+---
+
+## Phase 14: Follow-Up Regression Verification And Bookkeeping
+
+### Overview
+
+Run the complete mobile verification set after phases 12-13 and keep the new manual Android acceptance items explicit.
+
+### Changes Required
+
+#### Automated Verification
+
+**Files**:
+- `apps/mobile`
+- `context/changes/start-shared-workout-session/plan.md`
+
+**Intent**: Confirm the new navigation and refresh behavior does not regress existing shared-session or workout-set flows.
+
+**Contract**: Run focused widget tests, full `flutter test`, and `flutter analyze`. Record implementation commit SHAs on automated progress rows. Leave manual rows pending until Android verification.
+
+### Success Criteria
+
+#### Automated Verification
+
+- Focused trainee read-only live tests pass.
+- Focused trainer detail refresh tests pass.
+- `flutter test` passes.
+- `flutter analyze` passes.
+
+#### Manual Verification
+
+- Manual QA confirms requirements 1-3 are resolved on Android.
+- `apps/mobile/design/LiftMate.html` remains the accepted contract for the limited trainee live screen.
+
+---
+
 ## Testing Strategy
 
 ### Unit Tests
@@ -800,6 +999,8 @@ Run focused and full verification after phases 7-9, then keep the manual QA stat
 - Existing API test host should cover trainer/trainee auth, pairing, workout-set assignment, session start, read, update, close, and forbidden access.
 - Mobile widget tests should cover the trainer dashboard/detail flow and trainee home/live flow with fake clients/controllers.
 - Mobile widget tests should include fresh-login trainer detail, trainer start live entry, trainer join live entry, trainee self-start live entry, and trainer-led read-only trainee entry.
+- Read-only trainee live tests should verify back navigation, preserved active-session state, first-name trainer copy, and email fallback.
+- Trainer detail tests should use sequential relationship responses to prove entry refresh replaces stale assigned-set summaries.
 
 ### Manual Testing Steps
 
@@ -814,6 +1015,9 @@ Run focused and full verification after phases 7-9, then keep the manual QA stat
 9. Trainee starts the assigned workout alone and immediately sees editable live controls.
 10. Trainer dashboard shows green "Aktywna sesja"; trainer opens trainee detail and joins the same session.
 11. Complete/cancel the self-start session and verify a new session can be started.
+12. Start a trainer-led session, join as trainee, confirm `Prowadzi trener <first name>`, return with the back icon, and verify the active join action remains on "Dziś".
+13. Edit an assigned set in "Moje zestawy", save it, then navigate through `Pulpit -> Podopieczni -> Podopieczny` and verify the assigned-set summary is current.
+14. Simulate or observe a relationship refresh failure and verify stale trainee detail is not opened.
 
 ## Performance Considerations
 
@@ -1008,3 +1212,69 @@ The filtered unique active-session index by trainee should remain in place.
 
 - [ ] 10.6 Manual QA confirms findings 3, 4, 5, and 8 are resolved
 - [ ] 10.7 The design contract for active-session screens is accepted against `apps/mobile/design/LiftMate.html`
+
+### Phase 11: Renderable Live Session Guard And Contract Coverage
+
+#### Automated
+
+- [x] 11.1 Empty active-session snapshots do not navigate to the live screen
+- [x] 11.2 Trainer start renders the full editable live hierarchy
+- [x] 11.3 Trainer join of trainee self-start renders the full editable live hierarchy
+- [x] 11.4 Trainee self-start renders the full editable live hierarchy
+- [x] 11.5 Focused live-session widget tests pass
+- [x] 11.6 `flutter test` passes
+- [x] 11.7 `flutter analyze` passes
+
+#### Manual
+
+- [ ] 11.8 Trainer and self-starting trainee see exercise rows and rest-timer controls on Android
+- [ ] 11.9 Editable live-session layout matches `apps/mobile/design/LiftMate.html`
+
+### Phase 12: Read-Only Session Back Navigation And Trainer Identity
+
+#### Automated
+
+- [x] 12.1 Read-only trainer-led live view renders a functional `Wróć` action — 01466b4
+- [x] 12.2 Back returns to trainee "Dziś" without completing, cancelling, or clearing the active session — 01466b4
+- [x] 12.3 Trainer label renders `Prowadzi trener <first name>` — 01466b4
+- [x] 12.4 Empty trainer display name falls back to trainer email — 01466b4
+- [x] 12.5 Focused read-only live widget tests pass — 01466b4
+- [x] 12.6 `flutter analyze` passes — 01466b4
+
+#### Manual
+
+- [ ] 12.7 On Android, the limited trainee live screen shows a visible back icon aligned with the design
+- [ ] 12.8 Returning to "Dziś" leaves "Dołącz do aktywnego treningu" available
+- [ ] 12.9 The label shows only the trainer's first name
+
+### Phase 13: Fresh Trainer Trainee-Detail On Entry
+
+#### Automated
+
+- [x] 13.1 Tapping a trainee triggers a fresh trainer relationship request before detail opens — b8dec87
+- [x] 13.2 Detail renders updated assigned-set name, exercise count, and row count from the refreshed response — b8dec87
+- [x] 13.3 The clicked trainee row shows loading and cannot trigger duplicate refreshes — b8dec87
+- [x] 13.4 Refresh failure keeps the trainer on the dashboard and exposes retry/error state — b8dec87
+- [x] 13.5 Missing trainee after refresh does not open stale detail data — b8dec87
+- [x] 13.6 Focused trainer relationship widget tests pass — b8dec87
+- [x] 13.7 `flutter analyze` passes — b8dec87
+
+#### Manual
+
+- [ ] 13.8 Trainer edits and saves a set in "Moje zestawy", then navigates `Pulpit -> Podopieczni -> Podopieczny` and sees updated assigned-set information
+- [ ] 13.9 Saving/editing navigation inside "Moje zestawy" remains unchanged
+- [ ] 13.10 A temporary refresh failure does not open outdated trainee details
+
+### Phase 14: Follow-Up Regression Verification And Bookkeeping
+
+#### Automated
+
+- [x] 14.1 Focused trainee read-only live tests pass — 5092e65
+- [x] 14.2 Focused trainer detail refresh tests pass — 5092e65
+- [x] 14.3 `flutter test` passes — 5092e65
+- [x] 14.4 `flutter analyze` passes — 5092e65
+
+#### Manual
+
+- [ ] 14.5 Manual QA confirms requirements 1-3 are resolved on Android
+- [ ] 14.6 `apps/mobile/design/LiftMate.html` remains the accepted contract for the limited trainee live screen

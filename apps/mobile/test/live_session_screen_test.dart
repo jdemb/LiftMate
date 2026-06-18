@@ -31,6 +31,7 @@ void main() {
     );
 
     await tester.pumpWidget(MaterialApp(
+      theme: _liveTestTheme(),
       home: LiveSessionScreen(
         user: authController.state.user!,
         controller: controller,
@@ -71,6 +72,7 @@ void main() {
     var closed = false;
 
     await tester.pumpWidget(MaterialApp(
+      theme: _liveTestTheme(),
       home: LiveSessionScreen(
         user: authController.state.user!,
         controller: controller,
@@ -86,6 +88,79 @@ void main() {
     expect(apiClient.completed, isTrue);
     expect(closed, isTrue);
   });
+
+  testWidgets('editable live hierarchy is available at design phone size',
+      (tester) async {
+    tester.view.physicalSize = const Size(412, 892);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final authController = await _authController();
+    final apiClient = _FakeSharedSessionApiClient(
+      session: _multiExerciseSession(),
+    );
+    final controller = SharedSessionController(
+      apiClient: apiClient,
+      authController: authController,
+      realtimeClientFactory: _FakeRealtimeClient.new,
+    );
+    addTearDown(controller.dispose);
+    await controller.loadById(
+      user: authController.state.user!,
+      sessionId: 'session-1',
+    );
+
+    await tester.pumpWidget(MaterialApp(
+      theme: _liveTestTheme(),
+      home: LiveSessionScreen(
+        user: authController.state.user!,
+        controller: controller,
+        editable: true,
+        onBack: () {},
+      ),
+    ));
+
+    expect(find.textContaining('Ćwiczenie 1 / 2'), findsOneWidget);
+    expect(find.text('Bench press'), findsOneWidget);
+    expect(find.text('Seria 1'), findsOneWidget);
+    expect(find.text('Seria 2'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('ODPOCZYNEK'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('ODPOCZYNEK'), findsOneWidget);
+    expect(find.text('Start'), findsOneWidget);
+    expect(find.text('Pauza'), findsOneWidget);
+    expect(find.text('+15s'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Plank'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('Plank'), findsOneWidget);
+    expect(find.text('Zakończ i zapisz trening'), findsOneWidget);
+  });
+}
+
+ThemeData _liveTestTheme() {
+  return ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(54),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(54),
+      ),
+    ),
+  );
 }
 
 Future<AuthController> _authController() async {
@@ -147,9 +222,50 @@ SharedSession _session({
   );
 }
 
-class _FakeSharedSessionApiClient extends SharedSessionApiClient {
-  _FakeSharedSessionApiClient() : super(baseUrl: 'https://api.example.test');
+SharedSession _multiExerciseSession() {
+  final session = _session();
+  return SharedSession(
+    id: session.id,
+    trainerUserId: session.trainerUserId,
+    traineeUserId: session.traineeUserId,
+    trainerEmail: session.trainerEmail,
+    traineeEmail: session.traineeEmail,
+    workoutSetId: session.workoutSetId,
+    startedByUserId: session.startedByUserId,
+    startedByRole: session.startedByRole,
+    status: session.status,
+    version: session.version,
+    createdAt: session.createdAt,
+    updatedAt: session.updatedAt,
+    values: [
+      session.values.single,
+      const SharedSessionValue(
+        id: 'value-2',
+        exerciseName: 'Bench press',
+        exerciseType: ExerciseValueType.repsWeight,
+        exerciseOrder: 1,
+        setIndex: 2,
+        reps: 6,
+        weight: 42.5,
+      ),
+      const SharedSessionValue(
+        id: 'value-3',
+        exerciseName: 'Plank',
+        exerciseType: ExerciseValueType.time,
+        exerciseOrder: 2,
+        setIndex: 1,
+        seconds: 60,
+      ),
+    ],
+  );
+}
 
+class _FakeSharedSessionApiClient extends SharedSessionApiClient {
+  _FakeSharedSessionApiClient({SharedSession? session})
+      : _currentSession = session ?? _session(),
+        super(baseUrl: 'https://api.example.test');
+
+  SharedSession _currentSession;
   UpdateSharedSessionValue? updatedValue;
   bool completed = false;
 
@@ -161,7 +277,7 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
     return SharedSessionApiResult(
       status: SharedSessionApiStatus.success,
       message: 'Request succeeded.',
-      data: _session(),
+      data: _currentSession,
     );
   }
 
@@ -173,10 +289,11 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
     required UpdateSharedSessionValue value,
   }) async {
     updatedValue = value;
+    _currentSession = _session(reps: value.reps ?? 6);
     return SharedSessionApiResult(
       status: SharedSessionApiStatus.success,
       message: 'Request succeeded.',
-      data: _session(reps: value.reps ?? 6),
+      data: _currentSession,
     );
   }
 

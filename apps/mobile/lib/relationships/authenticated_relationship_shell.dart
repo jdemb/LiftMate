@@ -5,7 +5,6 @@ import '../auth/auth_models.dart';
 import '../shared_sessions/shared_session_api_client.dart';
 import '../shared_sessions/shared_session_controller.dart';
 import '../shared_sessions/live_session_screen.dart';
-import '../shared_sessions/shared_session_models.dart';
 import '../shared_sessions/shared_session_realtime_client.dart';
 import '../workout_sets/assign_workout_set_screen.dart';
 import '../workout_sets/workout_set_api_client.dart';
@@ -49,9 +48,10 @@ class _AuthenticatedRelationshipShellState
     extends State<AuthenticatedRelationshipShell> {
   late final RelationshipController _relationshipController;
   late final WorkoutSetController _workoutSetController;
-  late final SharedSessionController _sharedSessionController;
-  TrainerTraineeSummary? _selectedTrainee;
-  _TrainerView _trainerView = _TrainerView.dashboard;
+late final SharedSessionController _sharedSessionController;
+TrainerTraineeSummary? _selectedTrainee;
+String? _openingTraineeId;
+_TrainerView _trainerView = _TrainerView.dashboard;
   WorkoutSetDetail? _builderDetail;
   String? _loadedTraineeWorkoutSetsForUserId;
   String? _loadedTraineeActiveSessionForUserId;
@@ -82,8 +82,9 @@ class _AuthenticatedRelationshipShellState
     super.didUpdateWidget(oldWidget);
     if (oldWidget.user.id != widget.user.id ||
         oldWidget.user.trainerUserId != widget.user.trainerUserId) {
-      _selectedTrainee = null;
-      _trainerView = _TrainerView.dashboard;
+_selectedTrainee = null;
+_openingTraineeId = null;
+_trainerView = _TrainerView.dashboard;
       _builderDetail = null;
       _loadedTraineeWorkoutSetsForUserId = null;
       _loadedTraineeActiveSessionForUserId = null;
@@ -182,13 +183,12 @@ class _AuthenticatedRelationshipShellState
             );
           }
 
-          return TrainerDashboardScreen(
-            user: widget.user,
-            state: state,
-            onOpenTrainee: (trainee) {
-              setState(() => _selectedTrainee = trainee);
-            },
-            onOpenWorkoutSets: () {
+return TrainerDashboardScreen(
+user: widget.user,
+state: state,
+openingTraineeId: _openingTraineeId,
+onOpenTrainee: _openTraineeDetail,
+onOpenWorkoutSets: () {
               setState(() => _trainerView = _TrainerView.sets);
               _loadWorkoutSets();
             },
@@ -204,6 +204,7 @@ class _AuthenticatedRelationshipShellState
             user: widget.user,
             controller: _sharedSessionController,
             editable: session?.isTraineeSelfStarted ?? false,
+            trainerDisplayName: traineeTrainer?.displayName,
             onSessionClosed: _handleTraineeSessionClosed,
             onBack: () {
               setState(() => _showTraineeLive = false);
@@ -247,14 +248,49 @@ class _AuthenticatedRelationshipShellState
     );
   }
 
-  Future<void> _loadWorkoutSets() {
-    return _workoutSetController.loadForUser(
-      widget.user,
-      trainerSummary: _relationshipController.state.trainerSummary,
-    );
-  }
+Future<void> _loadWorkoutSets() {
+return _workoutSetController.loadForUser(
+widget.user,
+trainerSummary: _relationshipController.state.trainerSummary,
+);
+}
 
-  void _openWorkoutSetsFromDetail() {
+Future<void> _openTraineeDetail(TrainerTraineeSummary trainee) async {
+if (_openingTraineeId != null) {
+return;
+}
+
+setState(() => _openingTraineeId = trainee.id);
+await _relationshipController.reload();
+if (!mounted) {
+return;
+}
+
+if (_relationshipController.state.status != RelationshipControllerStatus.loaded) {
+setState(() => _openingTraineeId = null);
+return;
+}
+
+final refreshedTrainees =
+_relationshipController.state.trainerSummary?.trainees ??
+const <TrainerTraineeSummary>[];
+TrainerTraineeSummary? refreshed;
+for (final candidate in refreshedTrainees) {
+if (candidate.id == trainee.id) {
+refreshed = candidate;
+break;
+}
+}
+
+setState(() {
+_openingTraineeId = null;
+if (refreshed != null) {
+_selectedTrainee = refreshed;
+}
+});
+}
+
+void _openWorkoutSetsFromDetail() {
     setState(() {
       _selectedTrainee = null;
       _trainerView = _TrainerView.sets;
@@ -353,8 +389,7 @@ class _AuthenticatedRelationshipShellState
   }
 
   bool get _hasActiveLoadedSession {
-    return _sharedSessionController.state.session?.status ==
-        SharedSessionStatus.active;
+    return _sharedSessionController.hasRenderableActiveSession;
   }
 
   Future<void> _handleTrainerSessionClosed() async {

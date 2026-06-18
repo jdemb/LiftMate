@@ -83,8 +83,29 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(seen, contains('POST /shared-sessions/from-workout-set'));
+      expect(find.textContaining('Ćwiczenie 1 / 2'), findsOneWidget);
       expect(find.text('Bench press'), findsOneWidget);
+      expect(find.text('Seria 1'), findsOneWidget);
+      expect(find.text('Seria 2'), findsOneWidget);
       expect(find.byIcon(Icons.add_rounded), findsWidgets);
+
+      await tester.scrollUntilVisible(
+        find.text('ODPOCZYNEK'),
+        300,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text('ODPOCZYNEK'), findsOneWidget);
+      expect(find.text('Start'), findsOneWidget);
+      expect(find.text('Pauza'), findsOneWidget);
+      expect(find.text('+15s'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('Plank'),
+        300,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text('Plank'), findsOneWidget);
+      expect(find.text('Zakończ i zapisz trening'), findsOneWidget);
     });
 
     testWidgets('trainer-led active workout opens read-only live view', (tester) async {
@@ -118,7 +139,7 @@ void main() {
       await tester.tap(find.text('Dołącz do aktywnego treningu'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Ćwiczenie 1 / 1'), findsOneWidget);
+      expect(find.textContaining('Ćwiczenie 1 / 2'), findsOneWidget);
       expect(find.textContaining('nic nie musisz'), findsOneWidget);
       expect(find.byIcon(Icons.add_rounded), findsNothing);
     });
@@ -295,6 +316,34 @@ Map<String, Object?> _sessionJson({required String startedByRole}) {
         'reps': 6,
         'weight': 40.0,
         'seconds': null,
+        'isDone': false,
+        'completedAt': null,
+        'updatedByUserId': null,
+        'updatedAt': null,
+      },
+      {
+        'id': 'value-2',
+        'exerciseName': 'Bench press',
+        'exerciseType': 'repsWeight',
+        'exerciseOrder': 1,
+        'setIndex': 2,
+        'reps': 6,
+        'weight': 42.5,
+        'seconds': null,
+        'isDone': false,
+        'completedAt': null,
+        'updatedByUserId': null,
+        'updatedAt': null,
+      },
+      {
+        'id': 'value-3',
+        'exerciseName': 'Plank',
+        'exerciseType': 'time',
+        'exerciseOrder': 2,
+        'setIndex': 1,
+        'reps': null,
+        'weight': null,
+        'seconds': 60,
         'isDone': false,
         'completedAt': null,
         'updatedByUserId': null,

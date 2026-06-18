@@ -26,7 +26,7 @@ North star means the first end-to-end workflow that proves the product is useful
 | F-03 | shared-session-sync-contract | A minimal active-session sync contract exists for shared workout state. | F-01 | FR-004, FR-012, US-03 | done |
 | S-01 | trainer-trainee-pairing | Trainer and trainee can create accounts, choose roles, and form the allowed relationship. | F-02 | FR-001, FR-002, FR-003, FR-004, FR-005 | done |
 | S-02 | assign-global-workout-set | Trainer can define exercises in a global set and assign that set to a trainee. | S-01 | FR-007, FR-008, FR-010, US-01 | done |
-| S-03 | start-shared-workout-session | Trainer can start one active workout session for a trainee and assigned set. | S-01, S-02 | FR-004, FR-010, FR-012, US-03 | proposed |
+| S-03 | start-shared-workout-session | Trainer can start one active workout session for a trainee and assigned set. | S-01, S-02 | FR-004, FR-010, FR-012, US-03 | done |
 | S-04 | live-trainer-led-entry | Trainer enters exercise values and trainee sees the same active session without manual refresh. | F-03, S-03 | FR-004, FR-011, FR-012, US-03 | proposed |
 | S-05 | save-progress-next-session | Values from a completed workout become the starting point for the next session. | S-04 | FR-011, US-02 | proposed |
 | S-06 | trainee-self-edit-training-values | Trainee can view and edit own training values when completing a workout without trainer input. | S-02, S-05 | FR-005, FR-011, US-02 | proposed |
@@ -118,7 +118,7 @@ North star means the first end-to-end workflow that proves the product is useful
 - Blockers: none
 - Unknowns: none
 - Risk: The product can drift into separate trainer and trainee copies unless the active session is a single shared object.
-- Status: proposed
+- Status: done
 
 ### S-04: Trainer enters values and trainee sees the same active session
 
@@ -190,3 +190,4 @@ North star means the first end-to-end workflow that proves the product is useful
 - **F-03: A minimal active-session sync contract exists for shared workout state.** — Archived 2026-06-18 → `context/archive/2026-06-03-shared-session-sync-contract/`. Lesson: —.
 - **S-01: Trainer and trainee can create accounts, choose roles, and form the allowed relationship.** — Archived 2026-06-18 → `context/archive/2026-06-15-trainer-trainee-pairing/`. Lesson: —.
 - **S-02: Trainer can define exercises in a global set and assign that set to a trainee.** — Archived 2026-06-18 → `context/archive/2026-06-16-assign-global-workout-set/`. Lesson: —.
+- **S-03: Trainer can start one active workout session for a trainee and assigned set.** — Archived 2026-06-18 → `context/archive/2026-06-17-start-shared-workout-session/`. Lesson: —.

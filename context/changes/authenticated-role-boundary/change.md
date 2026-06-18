@@ -1,9 +1,9 @@
 ---
 change_id: authenticated-role-boundary
 title: Authenticated role boundary
-status: implementing
+status: implemented
 created: 2026-06-02
-updated: 2026-06-02
+updated: 2026-06-18
 archived_at: null
 ---
 

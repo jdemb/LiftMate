@@ -825,12 +825,12 @@ Make Azure-hosted verification part of the plan because the previous physical-de
 
 #### Manual
 
-- [ ] 5.4 Register/login as trainer on one device/emulator and trainee on another
-- [ ] 5.5 Trainer creates a demo session for the trainee user ID
-- [ ] 5.6 Trainee joins by session ID
-- [ ] 5.7 Updates from trainer and trainee appear on the other client without pressing refresh
-- [ ] 5.8 Complete or cancel the session and confirm further value edits are blocked
-- [ ] 5.9 Observe typical update delivery under local/Azure conditions and record delays if Free tier is slower than expected
+- [x] 5.4 Register/login as trainer on one device/emulator and trainee on another
+- [x] 5.5 Trainer creates a demo session for the trainee user ID
+- [x] 5.6 Trainee joins by session ID
+- [x] 5.7 Updates from trainer and trainee appear on the other client without pressing refresh
+- [x] 5.8 Complete or cancel the session and confirm further value edits are blocked
+- [x] 5.9 Observe typical update delivery under local/Azure conditions and record delays if Free tier is slower than expected
 
 ### Phase 6: API Email-Based Active Session Discovery
 
@@ -858,9 +858,9 @@ Make Azure-hosted verification part of the plan because the previous physical-de
 
 #### Manual
 
-- [ ] 7.7 On physical release builds, trainer creates a session by trainee email and sees the active session without copying any ID
-- [ ] 7.8 On a second physical device already logged in as trainee, the session appears without manual refresh or manual join
-- [ ] 7.9 On a trainee device logged out during trainer creation, logging in shows the active session without entering a session ID
+- [x] 7.7 On physical release builds, trainer creates a session by trainee email and sees the active session without copying any ID
+- [x] 7.8 On a second physical device already logged in as trainee, the session appears without manual refresh or manual join
+- [x] 7.9 On a trainee device logged out during trainer creation, logging in shows the active session without entering a session ID
 
 ### Phase 8: Azure Realtime Hardening and Final Physical-Device Gate
 

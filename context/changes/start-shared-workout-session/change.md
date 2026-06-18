@@ -1,7 +1,7 @@
 ---
 change_id: start-shared-workout-session
 title: Start shared workout session
-status: implementing
+status: implemented
 created: 2026-06-17
 updated: 2026-06-18
 archived_at: null

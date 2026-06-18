@@ -324,36 +324,63 @@ class _ReadOnlyLiveView extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(22, 14, 22, 0),
-            child: Row(
-              children: [
-                IconButton(
-                  tooltip: 'Wróć',
-                  onPressed: onBack,
-                  icon: const Icon(Icons.chevron_left_rounded, size: 30),
-                ),
-                const SizedBox(width: 4),
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFF4D4D),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 9),
-                Flexible(
-                  child: Text(
-                    _readOnlySessionLabel(session, trainerDisplayName),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFFFF8D8D),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
+            child: SizedBox(
+              key: const ValueKey('read-only-live-header'),
+              width: double.infinity,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          tooltip: 'Wróć',
+                          onPressed: onBack,
+                          icon: const Icon(Icons.chevron_left_rounded, size: 30),
+                        ),
+                      ),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: constraints.maxWidth - 112,
+                        ),
+                        child: Row(
+                          key: const ValueKey(
+                            'read-only-live-trainer-status',
+                          ),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFF4D4D),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 9),
+                            Flexible(
+                              child: Text(
+                                _readOnlySessionLabel(
+                                  session,
+                                  trainerDisplayName,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFFFF8D8D),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
           Expanded(

@@ -1269,10 +1269,10 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [x] 14.1 Focused trainee read-only live tests pass
-- [x] 14.2 Focused trainer detail refresh tests pass
-- [x] 14.3 `flutter test` passes
-- [x] 14.4 `flutter analyze` passes
+- [x] 14.1 Focused trainee read-only live tests pass — 5092e65
+- [x] 14.2 Focused trainer detail refresh tests pass — 5092e65
+- [x] 14.3 `flutter test` passes — 5092e65
+- [x] 14.4 `flutter analyze` passes — 5092e65
 
 #### Manual
 

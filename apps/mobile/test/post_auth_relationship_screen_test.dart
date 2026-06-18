@@ -161,8 +161,7 @@ void main() {
       await tester.pumpAndSettle();
       await _tapButton(tester, 'Rozpocznij wspÃ³lny trening');
 
-      expect(find.text('Bench press'), findsOneWidget);
-      expect(find.byIcon(Icons.add_rounded), findsWidgets);
+      await _expectEditableLiveHierarchy(tester);
     });
 
     testWidgets('trainer joins trainee self-start and opens loaded editable live screen',
@@ -198,8 +197,47 @@ void main() {
       await tester.tap(find.textContaining('sesji').first);
       await tester.pumpAndSettle();
 
-      expect(find.text('Bench press'), findsOneWidget);
-      expect(find.byIcon(Icons.add_rounded), findsWidgets);
+      await _expectEditableLiveHierarchy(tester);
+    });
+
+    testWidgets('active trainer start without values stays on trainee detail',
+        (tester) async {
+      await tester.pumpWidget(
+        _testApp(
+          includeSharedSessionClient: true,
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+            }
+            if (request.url.path == '/trainer/relationship') {
+              return http.Response(
+                jsonEncode(_trainerRelationshipWithAssignedSet()),
+                200,
+              );
+            }
+            if (request.url.path == '/shared-sessions/from-workout-set') {
+              return http.Response(
+                jsonEncode(_sessionResponse(includeValues: false)),
+                201,
+              );
+            }
+
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.tap(find.textContaining('Anna').first);
+      await tester.pumpAndSettle();
+      await _tapButton(tester, 'Rozpocznij wspÃ³lny trening');
+
+      expect(find.text('Push A'), findsOneWidget);
+      expect(find.text('Trening live'), findsNothing);
+      expect(
+        find.text('Aktywna sesja nie zawiera żadnych serii.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('failed trainer start stays on detail instead of blank live',
@@ -559,7 +597,36 @@ Map<String, Object?> _trainerRelationshipWithAssignedSet({
   };
 }
 
-Map<String, Object?> _sessionResponse({String startedByRole = 'trainer'}) {
+Future<void> _expectEditableLiveHierarchy(WidgetTester tester) async {
+  expect(find.textContaining('Ćwiczenie 1 / 2'), findsOneWidget);
+  expect(find.text('Bench press'), findsOneWidget);
+  expect(find.text('Seria 1'), findsOneWidget);
+  expect(find.text('Seria 2'), findsOneWidget);
+  expect(find.byIcon(Icons.add_rounded), findsWidgets);
+
+  await tester.scrollUntilVisible(
+    find.text('ODPOCZYNEK'),
+    300,
+    scrollable: find.byType(Scrollable).last,
+  );
+  expect(find.text('ODPOCZYNEK'), findsOneWidget);
+  expect(find.text('Start'), findsOneWidget);
+  expect(find.text('Pauza'), findsOneWidget);
+  expect(find.text('+15s'), findsOneWidget);
+
+  await tester.scrollUntilVisible(
+    find.text('Plank'),
+    300,
+    scrollable: find.byType(Scrollable).last,
+  );
+  expect(find.text('Plank'), findsOneWidget);
+  expect(find.text('Zakończ i zapisz trening'), findsOneWidget);
+}
+
+Map<String, Object?> _sessionResponse({
+  String startedByRole = 'trainer',
+  bool includeValues = true,
+}) {
   return {
     'id': 'session-1',
     'trainerUserId': 'trainer-1',
@@ -574,22 +641,52 @@ Map<String, Object?> _sessionResponse({String startedByRole = 'trainer'}) {
     'createdAt': '2026-06-17T12:00:00Z',
     'updatedAt': '2026-06-17T12:00:00Z',
     'closedAt': null,
-    'values': [
-      {
-        'id': 'value-1',
-        'exerciseName': 'Bench press',
-        'exerciseType': 'repsWeight',
-        'exerciseOrder': 1,
-        'setIndex': 1,
-        'reps': 6,
-        'weight': 40.0,
-        'seconds': null,
-        'isDone': false,
-        'completedAt': null,
-        'updatedByUserId': null,
-        'updatedAt': null,
-      },
-    ],
+    'values': includeValues
+        ? [
+            {
+              'id': 'value-1',
+              'exerciseName': 'Bench press',
+              'exerciseType': 'repsWeight',
+              'exerciseOrder': 1,
+              'setIndex': 1,
+              'reps': 6,
+              'weight': 40.0,
+              'seconds': null,
+              'isDone': false,
+              'completedAt': null,
+              'updatedByUserId': null,
+              'updatedAt': null,
+            },
+            {
+              'id': 'value-2',
+              'exerciseName': 'Bench press',
+              'exerciseType': 'repsWeight',
+              'exerciseOrder': 1,
+              'setIndex': 2,
+              'reps': 6,
+              'weight': 42.5,
+              'seconds': null,
+              'isDone': false,
+              'completedAt': null,
+              'updatedByUserId': null,
+              'updatedAt': null,
+            },
+            {
+              'id': 'value-3',
+              'exerciseName': 'Plank',
+              'exerciseType': 'time',
+              'exerciseOrder': 2,
+              'setIndex': 1,
+              'reps': null,
+              'weight': null,
+              'seconds': 60,
+              'isDone': false,
+              'completedAt': null,
+              'updatedByUserId': null,
+              'updatedAt': null,
+            },
+          ]
+        : <Map<String, Object?>>[],
   };
 }
 

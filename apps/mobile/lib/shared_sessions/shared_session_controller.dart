@@ -79,6 +79,12 @@ class SharedSessionController extends ChangeNotifier {
 
   SharedSessionControllerState get state => _state;
 
+  bool get hasRenderableActiveSession {
+    final session = _state.session;
+    return session?.status == SharedSessionStatus.active &&
+        session!.values.isNotEmpty;
+  }
+
   Future<void> loadActive(AuthUser user) async {
     final accessToken = authController.tokens?.accessToken;
     _setState(SharedSessionControllerState(
@@ -299,6 +305,16 @@ class SharedSessionController extends ChangeNotifier {
         status: SharedSessionControllerStatus.error,
         user: user,
         message: 'Shared session is not active.',
+        connectionStatus: _state.connectionStatus,
+      ));
+      return;
+    }
+
+    if (joinLoadedSession && session.values.isEmpty) {
+      _setState(SharedSessionControllerState(
+        status: SharedSessionControllerStatus.error,
+        user: user,
+        message: 'Aktywna sesja nie zawiera żadnych serii.',
         connectionStatus: _state.connectionStatus,
       ));
       return;

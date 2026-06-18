@@ -85,6 +85,30 @@ void main() {
       expect(realtimeClient.joinedSessionIds, isEmpty);
     });
 
+    test('loadById rejects active sessions without workout values', () async {
+      final authController = await _authController(role: UserRole.trainer);
+      final apiClient = _FakeSharedSessionApiClient(
+        activeSession: _session(values: const []),
+      );
+      final realtimeClient = _FakeSharedSessionRealtimeClient();
+      final controller = SharedSessionController(
+        apiClient: apiClient,
+        authController: authController,
+        realtimeClientFactory: () => realtimeClient,
+      );
+      addTearDown(controller.dispose);
+
+      await controller.loadById(
+        user: authController.state.user!,
+        sessionId: 'session-1',
+      );
+
+      expect(controller.state.status, SharedSessionControllerStatus.error);
+      expect(controller.state.session, isNull);
+      expect(controller.state.message, contains('serii'));
+      expect(realtimeClient.joinedSessionIds, isEmpty);
+    });
+
     test('failed self-start leaves no loaded session', () async {
       final authController = await _authController(role: UserRole.trainee);
       final apiClient = _FakeSharedSessionApiClient(
@@ -215,6 +239,7 @@ SharedSession _session({
   SharedSessionStartRole startedByRole = SharedSessionStartRole.trainee,
   SharedSessionStatus status = SharedSessionStatus.active,
   bool isDone = false,
+  List<SharedSessionValue>? values,
 }) {
   return SharedSession(
     id: 'session-1',
@@ -230,18 +255,19 @@ SharedSession _session({
     version: isDone ? 2 : 1,
     createdAt: DateTime.parse('2026-06-03T12:00:00Z').toUtc(),
     updatedAt: DateTime.parse('2026-06-03T12:00:00Z').toUtc(),
-    values: [
-      SharedSessionValue(
-        id: 'value-1',
-        exerciseOrder: 1,
-        exerciseName: 'Bench press',
-        exerciseType: ExerciseValueType.repsWeight,
-        setIndex: 1,
-        reps: 6,
-        weight: 40,
-        isDone: isDone,
-      ),
-    ],
+    values: values ??
+        [
+          SharedSessionValue(
+            id: 'value-1',
+            exerciseOrder: 1,
+            exerciseName: 'Bench press',
+            exerciseType: ExerciseValueType.repsWeight,
+            setIndex: 1,
+            reps: 6,
+            weight: 40,
+            isDone: isDone,
+          ),
+        ],
   );
 }
 

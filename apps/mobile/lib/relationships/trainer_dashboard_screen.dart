@@ -11,17 +11,19 @@ class TrainerDashboardScreen extends StatelessWidget {
     required this.state,
     required this.onOpenTrainee,
     required this.onOpenWorkoutSets,
-    required this.onReload,
-    required this.onLogout,
-    super.key,
-  });
+required this.onReload,
+required this.onLogout,
+this.openingTraineeId,
+super.key,
+});
 
   final AuthUser user;
   final RelationshipControllerState state;
   final ValueChanged<TrainerTraineeSummary> onOpenTrainee;
-  final VoidCallback onOpenWorkoutSets;
-  final Future<void> Function() onReload;
-  final Future<void> Function() onLogout;
+final VoidCallback onOpenWorkoutSets;
+final Future<void> Function() onReload;
+final Future<void> Function() onLogout;
+final String? openingTraineeId;
 
   @override
   Widget build(BuildContext context) {
@@ -72,12 +74,16 @@ class TrainerDashboardScreen extends StatelessWidget {
                   )
                 else if (state.status == RelationshipControllerStatus.error && summary == null)
                   _ErrorState(message: state.message ?? 'Nie udało się pobrać relacji.')
+                else if (state.status == RelationshipControllerStatus.error)
+                  _ErrorState(message: state.message ?? 'Nie udało się pobrać relacji.')
                 else if (trainees.isEmpty)
                   const _TrainerEmptyState()
                 else
                   ...trainees.map(
                     (trainee) => _TraineeListItem(
                       trainee: trainee,
+                      isOpening: openingTraineeId == trainee.id,
+                      isDisabled: openingTraineeId != null,
                       onTap: () => onOpenTrainee(trainee),
                     ),
                   ),
@@ -283,13 +289,17 @@ class _TrainerEmptyState extends StatelessWidget {
 }
 
 class _TraineeListItem extends StatelessWidget {
-  const _TraineeListItem({
-    required this.trainee,
-    required this.onTap,
-  });
+const _TraineeListItem({
+required this.trainee,
+required this.isOpening,
+required this.isDisabled,
+required this.onTap,
+});
 
-  final TrainerTraineeSummary trainee;
-  final VoidCallback onTap;
+final TrainerTraineeSummary trainee;
+final bool isOpening;
+final bool isDisabled;
+final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -297,10 +307,10 @@ class _TraineeListItem extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: RelationshipCard(
+child: InkWell(
+borderRadius: BorderRadius.circular(16),
+onTap: isDisabled ? null : onTap,
+child: RelationshipCard(
             child: Row(
               children: [
                 RelationshipAvatar(label: trainee.displayName),
@@ -332,7 +342,13 @@ class _TraineeListItem extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded, color: lmMutedDark),
+if (isOpening)
+const SizedBox.square(
+dimension: 22,
+child: CircularProgressIndicator(strokeWidth: 2),
+)
+else
+const Icon(Icons.chevron_right_rounded, color: lmMutedDark),
               ],
             ),
           ),

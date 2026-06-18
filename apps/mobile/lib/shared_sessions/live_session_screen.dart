@@ -13,6 +13,7 @@ class LiveSessionScreen extends StatefulWidget {
     required this.controller,
     required this.editable,
     required this.onBack,
+    this.trainerDisplayName,
     this.onSessionClosed,
     super.key,
   });
@@ -21,6 +22,7 @@ class LiveSessionScreen extends StatefulWidget {
   final SharedSessionController controller;
   final bool editable;
   final VoidCallback onBack;
+  final String? trainerDisplayName;
   final Future<void> Function()? onSessionClosed;
 
   @override
@@ -100,10 +102,12 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
         if (!widget.editable) {
           return _ReadOnlyLiveView(
             session: session,
+            trainerDisplayName: widget.trainerDisplayName,
             group: currentGroup,
             exerciseIndex: currentIndex,
             exerciseTotal: groups.length,
             restRemaining: _restRemaining,
+            onBack: widget.onBack,
           );
         }
 
@@ -287,17 +291,21 @@ class _LiveTopBar extends StatelessWidget {
 class _ReadOnlyLiveView extends StatelessWidget {
   const _ReadOnlyLiveView({
     required this.session,
+    required this.trainerDisplayName,
     required this.group,
     required this.exerciseIndex,
     required this.exerciseTotal,
     required this.restRemaining,
+    required this.onBack,
   });
 
   final SharedSession session;
+  final String? trainerDisplayName;
   final _ExerciseValueGroup group;
   final int exerciseIndex;
   final int exerciseTotal;
   final int restRemaining;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -316,33 +324,63 @@ class _ReadOnlyLiveView extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(22, 14, 22, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFF4D4D),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 9),
-                Flexible(
-                  child: Text(
-                    session.isTrainerLed
-                        ? 'Trener prowadzi · ${session.trainerEmail}'
-                        : 'Trening własny',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFFFF8D8D),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
+            child: SizedBox(
+              key: const ValueKey('read-only-live-header'),
+              width: double.infinity,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          tooltip: 'Wróć',
+                          onPressed: onBack,
+                          icon: const Icon(Icons.chevron_left_rounded, size: 30),
+                        ),
+                      ),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: constraints.maxWidth - 112,
+                        ),
+                        child: Row(
+                          key: const ValueKey(
+                            'read-only-live-trainer-status',
+                          ),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFF4D4D),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 9),
+                            Flexible(
+                              child: Text(
+                                _readOnlySessionLabel(
+                                  session,
+                                  trainerDisplayName,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFFFF8D8D),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
           Expanded(
@@ -449,26 +487,37 @@ class _EditableSetCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                'Seria ${value.setIndex}',
-                style: const TextStyle(
-                  color: Color(0xFFC2C7CE),
-                  fontWeight: FontWeight.w800,
+              Expanded(
+                child: Text(
+                  'Seria ${value.setIndex}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFC2C7CE),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
-              const Spacer(),
-              IconButton(
-                tooltip: value.isDone ? 'Cofnij serię' : 'Oznacz serię',
-                onPressed: () => controller.toggleDone(
-                  user: user,
-                  value: value,
-                  isDone: !value.isDone,
-                ),
-                icon: Icon(
-                  value.isDone
-                      ? Icons.check_box_rounded
-                      : Icons.check_box_outline_blank_rounded,
-                  color: value.isDone ? const Color(0xFF21C97A) : lmMuted,
+              SizedBox.square(
+                dimension: 40,
+                child: IconButton(
+                  tooltip: value.isDone ? 'Cofnij serię' : 'Oznacz serię',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 40,
+                    height: 40,
+                  ),
+                  onPressed: () => controller.toggleDone(
+                    user: user,
+                    value: value,
+                    isDone: !value.isDone,
+                  ),
+                  icon: Icon(
+                    value.isDone
+                        ? Icons.check_box_rounded
+                        : Icons.check_box_outline_blank_rounded,
+                    color: value.isDone ? const Color(0xFF21C97A) : lmMuted,
+                  ),
                 ),
               ),
             ],
@@ -699,18 +748,49 @@ class _RestTimerCard extends StatelessWidget {
           const SizedBox(height: 13),
           Row(
             children: [
-              Expanded(child: FilledButton(onPressed: onStart, child: const Text('Start'))),
-              const SizedBox(width: 9),
               Expanded(
-                child: OutlinedButton(onPressed: onPause, child: const Text('Pauza')),
+                child: FilledButton(
+                  onPressed: onStart,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  child: const Text('Start'),
+                ),
               ),
               const SizedBox(width: 9),
-              OutlinedButton(onPressed: onAdd, child: const Text('+15s')),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onPause,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  child: const Text('Pauza'),
+                ),
+              ),
               const SizedBox(width: 9),
-              IconButton.outlined(
-                tooltip: 'Reset',
-                onPressed: onReset,
-                icon: const Icon(Icons.restart_alt_rounded),
+              OutlinedButton(
+                onPressed: onAdd,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(58, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                ),
+                child: const Text('+15s'),
+              ),
+              const SizedBox(width: 9),
+              SizedBox.square(
+                dimension: 44,
+                child: IconButton.outlined(
+                  tooltip: 'Reset',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 44,
+                    height: 44,
+                  ),
+                  onPressed: onReset,
+                  icon: const Icon(Icons.restart_alt_rounded),
+                ),
               ),
             ],
           ),
@@ -882,6 +962,22 @@ SharedSessionValue _firstOpenValue(List<SharedSessionValue> values) {
 
 String _sessionSubtitle(SharedSession session) {
   return session.workoutSetId == null ? 'Aktywny trening' : 'Zestaw ${session.workoutSetId}';
+}
+
+String _readOnlySessionLabel(
+  SharedSession session,
+  String? trainerDisplayName,
+) {
+  if (!session.isTrainerLed) {
+    return 'Trening własny';
+  }
+
+  final trimmedName = trainerDisplayName?.trim();
+  final trainerLabel = trimmedName == null || trimmedName.isEmpty
+      ? session.trainerEmail
+      : trimmedName.split(RegExp(r'\s+')).first;
+
+  return 'Prowadzi trener $trainerLabel';
 }
 
 String _primaryValueLabel(SharedSessionValue value) {

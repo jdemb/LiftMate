@@ -1251,13 +1251,13 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [x] 13.1 Tapping a trainee triggers a fresh trainer relationship request before detail opens
-- [x] 13.2 Detail renders updated assigned-set name, exercise count, and row count from the refreshed response
-- [x] 13.3 The clicked trainee row shows loading and cannot trigger duplicate refreshes
-- [x] 13.4 Refresh failure keeps the trainer on the dashboard and exposes retry/error state
-- [x] 13.5 Missing trainee after refresh does not open stale detail data
-- [x] 13.6 Focused trainer relationship widget tests pass
-- [x] 13.7 `flutter analyze` passes
+- [x] 13.1 Tapping a trainee triggers a fresh trainer relationship request before detail opens — b8dec87
+- [x] 13.2 Detail renders updated assigned-set name, exercise count, and row count from the refreshed response — b8dec87
+- [x] 13.3 The clicked trainee row shows loading and cannot trigger duplicate refreshes — b8dec87
+- [x] 13.4 Refresh failure keeps the trainer on the dashboard and exposes retry/error state — b8dec87
+- [x] 13.5 Missing trainee after refresh does not open stale detail data — b8dec87
+- [x] 13.6 Focused trainer relationship widget tests pass — b8dec87
+- [x] 13.7 `flutter analyze` passes — b8dec87
 
 #### Manual
 
@@ -1269,10 +1269,10 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [ ] 14.1 Focused trainee read-only live tests pass
-- [ ] 14.2 Focused trainer detail refresh tests pass
-- [ ] 14.3 `flutter test` passes
-- [ ] 14.4 `flutter analyze` passes
+- [x] 14.1 Focused trainee read-only live tests pass
+- [x] 14.2 Focused trainer detail refresh tests pass
+- [x] 14.3 `flutter test` passes
+- [x] 14.4 `flutter analyze` passes
 
 #### Manual
 

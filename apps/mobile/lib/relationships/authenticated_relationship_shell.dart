@@ -203,6 +203,7 @@ class _AuthenticatedRelationshipShellState
             user: widget.user,
             controller: _sharedSessionController,
             editable: session?.isTraineeSelfStarted ?? false,
+            trainerDisplayName: traineeTrainer?.displayName,
             onSessionClosed: _handleTraineeSessionClosed,
             onBack: () {
               setState(() => _showTraineeLive = false);

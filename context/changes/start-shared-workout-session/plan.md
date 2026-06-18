@@ -1234,12 +1234,12 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [x] 12.1 Read-only trainer-led live view renders a functional `Wróć` action
-- [x] 12.2 Back returns to trainee "Dziś" without completing, cancelling, or clearing the active session
-- [x] 12.3 Trainer label renders `Prowadzi trener <first name>`
-- [x] 12.4 Empty trainer display name falls back to trainer email
-- [x] 12.5 Focused read-only live widget tests pass
-- [x] 12.6 `flutter analyze` passes
+- [x] 12.1 Read-only trainer-led live view renders a functional `Wróć` action — 01466b4
+- [x] 12.2 Back returns to trainee "Dziś" without completing, cancelling, or clearing the active session — 01466b4
+- [x] 12.3 Trainer label renders `Prowadzi trener <first name>` — 01466b4
+- [x] 12.4 Empty trainer display name falls back to trainer email — 01466b4
+- [x] 12.5 Focused read-only live widget tests pass — 01466b4
+- [x] 12.6 `flutter analyze` passes — 01466b4
 
 #### Manual
 
@@ -1251,13 +1251,13 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Automated
 
-- [ ] 13.1 Tapping a trainee triggers a fresh trainer relationship request before detail opens
-- [ ] 13.2 Detail renders updated assigned-set name, exercise count, and row count from the refreshed response
-- [ ] 13.3 The clicked trainee row shows loading and cannot trigger duplicate refreshes
-- [ ] 13.4 Refresh failure keeps the trainer on the dashboard and exposes retry/error state
-- [ ] 13.5 Missing trainee after refresh does not open stale detail data
-- [ ] 13.6 Focused trainer relationship widget tests pass
-- [ ] 13.7 `flutter analyze` passes
+- [x] 13.1 Tapping a trainee triggers a fresh trainer relationship request before detail opens
+- [x] 13.2 Detail renders updated assigned-set name, exercise count, and row count from the refreshed response
+- [x] 13.3 The clicked trainee row shows loading and cannot trigger duplicate refreshes
+- [x] 13.4 Refresh failure keeps the trainer on the dashboard and exposes retry/error state
+- [x] 13.5 Missing trainee after refresh does not open stale detail data
+- [x] 13.6 Focused trainer relationship widget tests pass
+- [x] 13.7 `flutter analyze` passes
 
 #### Manual
 

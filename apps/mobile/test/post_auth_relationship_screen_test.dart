@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -126,6 +127,156 @@ void main() {
       expect(find.text('2 ćwiczenia · 5 serii'), findsOneWidget);
       expect(find.text('Odepnij zestaw'), findsNothing);
       expect(seen.where((path) => path == 'GET /workout-sets/set-1'), isEmpty);
+    });
+
+    testWidgets('trainer opens trainee detail only after fresh relationship reload',
+        (tester) async {
+      var relationshipRequests = 0;
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+            }
+            if (request.url.path == '/trainer/relationship') {
+              relationshipRequests += 1;
+              return http.Response(
+                jsonEncode(
+                  _trainerRelationshipWithAssignedSet(
+                    setName: relationshipRequests == 1 ? 'Push A' : 'Push B',
+                    exerciseCount: relationshipRequests == 1 ? 2 : 5,
+                    rowCount: relationshipRequests == 1 ? 5 : 12,
+                  ),
+                ),
+                200,
+              );
+            }
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.tap(find.textContaining('Anna').first);
+      await tester.pumpAndSettle();
+
+      expect(relationshipRequests, 2);
+      expect(find.text('Podopieczny'), findsOneWidget);
+      expect(find.text('Push B'), findsOneWidget);
+      expect(find.text('5 ćwiczeń · 12 serii'), findsOneWidget);
+      expect(find.text('Push A'), findsNothing);
+    });
+
+    testWidgets('trainer trainee row shows loading and ignores duplicate opens',
+        (tester) async {
+      var relationshipRequests = 0;
+      final refreshCompleter = Completer<http.Response>();
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+            }
+            if (request.url.path == '/trainer/relationship') {
+              relationshipRequests += 1;
+              if (relationshipRequests == 1) {
+                return http.Response(
+                  jsonEncode(_trainerRelationshipWithAssignedSet()),
+                  200,
+                );
+              }
+              return refreshCompleter.future;
+            }
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.tap(find.textContaining('Anna').first);
+      await tester.pump();
+      await tester.tap(find.textContaining('Anna').first);
+      await tester.pump();
+
+      expect(relationshipRequests, 2);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('Podopieczny'), findsNothing);
+
+      refreshCompleter.complete(
+        http.Response(jsonEncode(_trainerRelationshipWithAssignedSet()), 200),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Podopieczny'), findsOneWidget);
+    });
+
+    testWidgets('trainer detail refresh failure keeps dashboard with retry error',
+        (tester) async {
+      var relationshipRequests = 0;
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+            }
+            if (request.url.path == '/trainer/relationship') {
+              relationshipRequests += 1;
+              if (relationshipRequests == 1) {
+                return http.Response(
+                  jsonEncode(_trainerRelationshipWithAssignedSet()),
+                  200,
+                );
+              }
+              return http.Response('{"error":"Temporary relationship failure."}', 503);
+            }
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.tap(find.textContaining('Anna').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Podopieczny'), findsNothing);
+      expect(find.text('Temporary relationship failure.'), findsOneWidget);
+      expect(find.text('PODOPIECZNI'), findsOneWidget);
+    });
+
+    testWidgets('trainer detail refresh missing trainee does not open stale detail',
+        (tester) async {
+      var relationshipRequests = 0;
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+            }
+            if (request.url.path == '/trainer/relationship') {
+              relationshipRequests += 1;
+              if (relationshipRequests == 1) {
+                return http.Response(
+                  jsonEncode(_trainerRelationshipWithAssignedSet()),
+                  200,
+                );
+              }
+              return http.Response(
+                jsonEncode({'inviteCode': '7F2K9D', 'trainees': []}),
+                200,
+              );
+            }
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.tap(find.textContaining('Anna').first);
+      await tester.pumpAndSettle();
+
+      expect(relationshipRequests, 2);
+      expect(find.text('Podopieczny'), findsNothing);
+      expect(find.text('Brak podopiecznych'), findsOneWidget);
+      expect(find.text('Push A'), findsNothing);
     });
 
     testWidgets('trainer starts assigned set and opens loaded editable live screen',
@@ -672,6 +823,9 @@ Map<String, Object?> _trainer(String displayName) {
 
 Map<String, Object?> _trainerRelationshipWithAssignedSet({
   bool activeSession = false,
+  String setName = 'Push A',
+  int exerciseCount = 2,
+  int rowCount = 5,
 }) {
   return {
     'inviteCode': '7F2K9D',
@@ -692,9 +846,9 @@ Map<String, Object?> _trainerRelationshipWithAssignedSet({
         'assignedWorkoutSets': [
           {
             'id': 'set-1',
-            'name': 'Push A',
-            'exerciseCount': 2,
-            'rowCount': 5,
+            'name': setName,
+            'exerciseCount': exerciseCount,
+            'rowCount': rowCount,
             'updatedAt': '2026-06-16T12:05:00Z',
           },
         ],

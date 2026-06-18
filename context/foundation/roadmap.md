@@ -3,7 +3,7 @@ project: "Aplikacja mobilna treningowa dla trenera i podopiecznego"
 version: 1
 status: proposed
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-06-18
 prd_version: 2
 main_goal: market-feedback
 top_blocker: time
@@ -21,7 +21,7 @@ North star means the first end-to-end workflow that proves the product is useful
 
 | ID | Change ID | Outcome | Prerequisites | PRD refs | Status |
 |---|---|---|---|---|---|
-| F-01 | mobile-api-smoke-path | Mobile app can verify the deployed API is reachable before product flows depend on it. | none | FR-001, US-01 | ready |
+| F-01 | mobile-api-smoke-path | Mobile app can verify the deployed API is reachable before product flows depend on it. | none | FR-001, US-01 | done |
 | F-02 | authenticated-role-boundary | A minimal authenticated identity and role boundary exists for trainer/trainee actions. | F-01 | FR-001, FR-002, FR-003, FR-004, FR-005 | proposed |
 | F-03 | shared-session-sync-contract | A minimal active-session sync contract exists for shared workout state. | F-01 | FR-004, FR-012, US-03 | proposed |
 | S-01 | trainer-trainee-pairing | Trainer and trainee can create accounts, choose roles, and form the allowed relationship. | F-02 | FR-001, FR-002, FR-003, FR-004, FR-005 | proposed |
@@ -52,7 +52,7 @@ North star means the first end-to-end workflow that proves the product is useful
 - Blockers: none
 - Unknowns: none
 - Risk: Without a verified mobile-to-backend path, later slices can fail on environment wiring instead of product behavior.
-- Status: ready
+- Status: done
 - Unlocks: F-02, F-03, and every user-facing slice that crosses mobile/API boundaries.
 
 ### F-02: Authenticated role boundary
@@ -185,4 +185,4 @@ North star means the first end-to-end workflow that proves the product is useful
 
 ## Done
 
-No roadmap items are done yet.
+- **F-01: Mobile app can verify the deployed API is reachable before product flows depend on it.** — Archived 2026-06-18 → `context/archive/2026-06-01-mobile-api-smoke-path/`. Lesson: —.

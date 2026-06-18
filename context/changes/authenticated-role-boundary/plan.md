@@ -649,11 +649,11 @@ Before Azure migration, rollback is a normal code revert. After Azure migration,
 
 #### Manual
 
-- [ ] 5.3 Flutter app registers and authenticates a trainer against local API
-- [ ] 5.4 Flutter app registers and authenticates a trainee against local API
-- [ ] 5.5 Flutter app restores or refreshes auth state after restart
-- [ ] 5.6 Flutter logout clears stored session and protected calls fail
-- [ ] 5.7 Health diagnostics still report configured API status
+- [x] 5.3 Flutter app registers and authenticates a trainer against local API
+- [x] 5.4 Flutter app registers and authenticates a trainee against local API
+- [x] 5.5 Flutter app restores or refreshes auth state after restart
+- [x] 5.6 Flutter logout clears stored session and protected calls fail
+- [x] 5.7 Health diagnostics still report configured API status
 
 ### Phase 6: Local Migration and Azure Manual Gate
 

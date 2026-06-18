@@ -1,9 +1,9 @@
 ---
 change_id: shared-session-sync-contract
 title: Shared-session sync contract
-status: implementing
+status: implemented
 created: 2026-06-03
-updated: 2026-06-07
+updated: 2026-06-18
 archived_at: null
 ---
 

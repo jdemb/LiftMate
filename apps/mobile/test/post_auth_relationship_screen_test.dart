@@ -552,6 +552,14 @@ void main() {
       expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
       expect(find.byIcon(Icons.add_rounded), findsNothing);
 
+      final header = tester.getRect(
+        find.byKey(const ValueKey('read-only-live-header')),
+      );
+      final trainerStatus = tester.getRect(
+        find.byKey(const ValueKey('read-only-live-trainer-status')),
+      );
+      expect(trainerStatus.center.dx, closeTo(header.center.dx, 0.5));
+
       await tester.tap(find.byIcon(Icons.chevron_left_rounded));
       await tester.pumpAndSettle();
 

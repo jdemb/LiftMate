@@ -5,7 +5,6 @@ import '../auth/auth_models.dart';
 import '../shared_sessions/shared_session_api_client.dart';
 import '../shared_sessions/shared_session_controller.dart';
 import '../shared_sessions/live_session_screen.dart';
-import '../shared_sessions/shared_session_models.dart';
 import '../shared_sessions/shared_session_realtime_client.dart';
 import '../workout_sets/assign_workout_set_screen.dart';
 import '../workout_sets/workout_set_api_client.dart';
@@ -353,8 +352,7 @@ class _AuthenticatedRelationshipShellState
   }
 
   bool get _hasActiveLoadedSession {
-    return _sharedSessionController.state.session?.status ==
-        SharedSessionStatus.active;
+    return _sharedSessionController.hasRenderableActiveSession;
   }
 
   Future<void> _handleTrainerSessionClosed() async {

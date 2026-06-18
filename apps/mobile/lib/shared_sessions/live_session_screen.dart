@@ -449,26 +449,37 @@ class _EditableSetCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                'Seria ${value.setIndex}',
-                style: const TextStyle(
-                  color: Color(0xFFC2C7CE),
-                  fontWeight: FontWeight.w800,
+              Expanded(
+                child: Text(
+                  'Seria ${value.setIndex}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFC2C7CE),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
-              const Spacer(),
-              IconButton(
-                tooltip: value.isDone ? 'Cofnij serię' : 'Oznacz serię',
-                onPressed: () => controller.toggleDone(
-                  user: user,
-                  value: value,
-                  isDone: !value.isDone,
-                ),
-                icon: Icon(
-                  value.isDone
-                      ? Icons.check_box_rounded
-                      : Icons.check_box_outline_blank_rounded,
-                  color: value.isDone ? const Color(0xFF21C97A) : lmMuted,
+              SizedBox.square(
+                dimension: 40,
+                child: IconButton(
+                  tooltip: value.isDone ? 'Cofnij serię' : 'Oznacz serię',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 40,
+                    height: 40,
+                  ),
+                  onPressed: () => controller.toggleDone(
+                    user: user,
+                    value: value,
+                    isDone: !value.isDone,
+                  ),
+                  icon: Icon(
+                    value.isDone
+                        ? Icons.check_box_rounded
+                        : Icons.check_box_outline_blank_rounded,
+                    color: value.isDone ? const Color(0xFF21C97A) : lmMuted,
+                  ),
                 ),
               ),
             ],
@@ -699,18 +710,49 @@ class _RestTimerCard extends StatelessWidget {
           const SizedBox(height: 13),
           Row(
             children: [
-              Expanded(child: FilledButton(onPressed: onStart, child: const Text('Start'))),
-              const SizedBox(width: 9),
               Expanded(
-                child: OutlinedButton(onPressed: onPause, child: const Text('Pauza')),
+                child: FilledButton(
+                  onPressed: onStart,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  child: const Text('Start'),
+                ),
               ),
               const SizedBox(width: 9),
-              OutlinedButton(onPressed: onAdd, child: const Text('+15s')),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onPause,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  child: const Text('Pauza'),
+                ),
+              ),
               const SizedBox(width: 9),
-              IconButton.outlined(
-                tooltip: 'Reset',
-                onPressed: onReset,
-                icon: const Icon(Icons.restart_alt_rounded),
+              OutlinedButton(
+                onPressed: onAdd,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(58, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                ),
+                child: const Text('+15s'),
+              ),
+              const SizedBox(width: 9),
+              SizedBox.square(
+                dimension: 44,
+                child: IconButton.outlined(
+                  tooltip: 'Reset',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 44,
+                    height: 44,
+                  ),
+                  onPressed: onReset,
+                  icon: const Icon(Icons.restart_alt_rounded),
+                ),
               ),
             ],
           ),

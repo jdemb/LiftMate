@@ -22,7 +22,7 @@ North star means the first end-to-end workflow that proves the product is useful
 | ID | Change ID | Outcome | Prerequisites | PRD refs | Status |
 |---|---|---|---|---|---|
 | F-01 | mobile-api-smoke-path | Mobile app can verify the deployed API is reachable before product flows depend on it. | none | FR-001, US-01 | done |
-| F-02 | authenticated-role-boundary | A minimal authenticated identity and role boundary exists for trainer/trainee actions. | F-01 | FR-001, FR-002, FR-003, FR-004, FR-005 | proposed |
+| F-02 | authenticated-role-boundary | A minimal authenticated identity and role boundary exists for trainer/trainee actions. | F-01 | FR-001, FR-002, FR-003, FR-004, FR-005 | done |
 | F-03 | shared-session-sync-contract | A minimal active-session sync contract exists for shared workout state. | F-01 | FR-004, FR-012, US-03 | proposed |
 | S-01 | trainer-trainee-pairing | Trainer and trainee can create accounts, choose roles, and form the allowed relationship. | F-02 | FR-001, FR-002, FR-003, FR-004, FR-005 | proposed |
 | S-02 | assign-global-workout-set | Trainer can define exercises in a global set and assign that set to a trainee. | S-01 | FR-007, FR-008, FR-010, US-01 | proposed |
@@ -65,7 +65,7 @@ North star means the first end-to-end workflow that proves the product is useful
 - Blockers: none
 - Unknowns: none
 - Risk: Pairing and training-data access rules become unreliable if role identity is not established before user-facing relationship slices.
-- Status: proposed
+- Status: done
 - Unlocks: S-01, S-03, S-04, S-06.
 
 ### F-03: Shared-session sync contract
@@ -186,3 +186,4 @@ North star means the first end-to-end workflow that proves the product is useful
 ## Done
 
 - **F-01: Mobile app can verify the deployed API is reachable before product flows depend on it.** — Archived 2026-06-18 → `context/archive/2026-06-01-mobile-api-smoke-path/`. Lesson: —.
+- **F-02: A minimal authenticated identity and role boundary exists for trainer/trainee actions.** — Archived 2026-06-18 → `context/archive/2026-06-02-authenticated-role-boundary/`. Lesson: —.

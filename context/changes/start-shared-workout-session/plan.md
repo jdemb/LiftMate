@@ -1064,7 +1064,7 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 1.8 API response shape is understandable enough for mobile implementation: session origin, workout-set identity, exercise grouping, and done state are present
+- [x] 1.8 API response shape is understandable enough for mobile implementation: session origin, workout-set identity, exercise grouping, and done state are present
 
 ### Phase 2: Backend Active-Session Discovery For Trainer And Trainee
 
@@ -1078,7 +1078,7 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 2.6 The active-session summary maps directly to the planned trainer "Aktywna sesja" list badge and detail "Dołącz do sesji" button
+- [x] 2.6 The active-session summary maps directly to the planned trainer "Aktywna sesja" list badge and detail "Dołącz do sesji" button
 
 ### Phase 3: Mobile Shared-Session Models And Controllers
 
@@ -1093,7 +1093,7 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 3.7 Controller state names and failure messages are usable by the planned trainer and trainee screens
+- [x] 3.7 Controller state names and failure messages are usable by the planned trainer and trainee screens
 
 ### Phase 4: Mobile Trainer Flow
 
@@ -1107,9 +1107,9 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 4.6 Trainer can see "Aktywna sesja" on the trainee list
-- [ ] 4.7 Trainer can open details and join an active trainee session
-- [ ] 4.8 Trainer can start a trainer-led session from an assigned set
+- [x] 4.6 Trainer can see "Aktywna sesja" on the trainee list
+- [x] 4.7 Trainer can open details and join an active trainee session
+- [x] 4.8 Trainer can start a trainer-led session from an assigned set
 
 ### Phase 5: Mobile Trainee Flow And Live Screens
 
@@ -1124,10 +1124,10 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 5.7 Trainee can start an assigned workout without trainer involvement
-- [ ] 5.8 Trainee sees full editable live controls for self-start
-- [ ] 5.9 Trainee sees read-only live view when trainer started the session
-- [ ] 5.10 Trainer can later join a self-started trainee session
+- [x] 5.7 Trainee can start an assigned workout without trainer involvement
+- [x] 5.8 Trainee sees full editable live controls for self-start
+- [x] 5.9 Trainee sees read-only live view when trainer started the session
+- [x] 5.10 Trainer can later join a self-started trainee session
 
 ### Phase 6: Verification And Plan Bookkeeping
 
@@ -1141,10 +1141,10 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 6.6 Trainer-led flow works end to end: trainer starts, trainee joins read-only, trainer edits values, both see the same session
-- [ ] 6.7 Trainee self-start flow works end to end: trainee starts, edits values, trainer sees active badge, trainer joins the same session
-- [ ] 6.8 Closing/cancelling a session allows another session to be started for that trainee
-- [ ] 6.9 Android text and controls match `apps/mobile/design/LiftMate.html` closely enough for the updated design contract
+- [x] 6.6 Trainer-led flow works end to end: trainer starts, trainee joins read-only, trainer edits values, both see the same session
+- [x] 6.7 Trainee self-start flow works end to end: trainee starts, edits values, trainer sees active badge, trainer joins the same session
+- [x] 6.8 Closing/cancelling a session allows another session to be started for that trainee
+- [x] 6.9 Android text and controls match `apps/mobile/design/LiftMate.html` closely enough for the updated design contract
 
 ### Phase 7: Canonical Assigned Sets In Trainer Detail
 
@@ -1161,8 +1161,8 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 7.9 Trainer logs out, logs back in, opens the same podopieczny, and still sees assigned workout sets
-- [ ] 7.10 Trainer can start a session from that assigned set after re-login
+- [x] 7.9 Trainer logs out, logs back in, opens the same podopieczny, and still sees assigned workout sets
+- [x] 7.10 Trainer can start a session from that assigned set after re-login
 
 ### Phase 8: Central Polish Count Labels And Text Audit
 
@@ -1176,7 +1176,7 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 8.6 Trainer and trainee screens show correct Polish forms for 1, 2-4, and 5+ exercise counts on Android
+- [x] 8.6 Trainer and trainee screens show correct Polish forms for 1, 2-4, and 5+ exercise counts on Android
 
 ### Phase 9: Live-Session Entry Reliability And Design Contract Pass
 
@@ -1192,11 +1192,11 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 9.8 Trainer can start an assigned session and immediately sees the editable active-session screen
-- [ ] 9.9 Trainer can join a trainee self-started session and sees the editable active-session screen
-- [ ] 9.10 Trainee can self-start and immediately sees the editable active-session screen
-- [ ] 9.11 Trainee joining a trainer-led session sees the limited read-only screen from the design
-- [ ] 9.12 No active-session path opens a blank screen or stale inactive session
+- [x] 9.8 Trainer can start an assigned session and immediately sees the editable active-session screen
+- [x] 9.9 Trainer can join a trainee self-started session and sees the editable active-session screen
+- [x] 9.10 Trainee can self-start and immediately sees the editable active-session screen
+- [x] 9.11 Trainee joining a trainer-led session sees the limited read-only screen from the design
+- [x] 9.12 No active-session path opens a blank screen or stale inactive session
 
 ### Phase 10: QA Remediation Verification And Bookkeeping
 
@@ -1210,8 +1210,8 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 10.6 Manual QA confirms findings 3, 4, 5, and 8 are resolved
-- [ ] 10.7 The design contract for active-session screens is accepted against `apps/mobile/design/LiftMate.html`
+- [x] 10.6 Manual QA confirms findings 3, 4, 5, and 8 are resolved
+- [x] 10.7 The design contract for active-session screens is accepted against `apps/mobile/design/LiftMate.html`
 
 ### Phase 11: Renderable Live Session Guard And Contract Coverage
 
@@ -1227,8 +1227,8 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 11.8 Trainer and self-starting trainee see exercise rows and rest-timer controls on Android
-- [ ] 11.9 Editable live-session layout matches `apps/mobile/design/LiftMate.html`
+- [x] 11.8 Trainer and self-starting trainee see exercise rows and rest-timer controls on Android
+- [x] 11.9 Editable live-session layout matches `apps/mobile/design/LiftMate.html`
 
 ### Phase 12: Read-Only Session Back Navigation And Trainer Identity
 
@@ -1243,9 +1243,9 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 12.7 On Android, the limited trainee live screen shows a visible back icon aligned with the design
-- [ ] 12.8 Returning to "Dziś" leaves "Dołącz do aktywnego treningu" available
-- [ ] 12.9 The label shows only the trainer's first name
+- [x] 12.7 On Android, the limited trainee live screen shows a visible back icon aligned with the design
+- [x] 12.8 Returning to "Dziś" leaves "Dołącz do aktywnego treningu" available
+- [x] 12.9 The label shows only the trainer's first name
 
 ### Phase 13: Fresh Trainer Trainee-Detail On Entry
 
@@ -1261,9 +1261,9 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 13.8 Trainer edits and saves a set in "Moje zestawy", then navigates `Pulpit -> Podopieczni -> Podopieczny` and sees updated assigned-set information
-- [ ] 13.9 Saving/editing navigation inside "Moje zestawy" remains unchanged
-- [ ] 13.10 A temporary refresh failure does not open outdated trainee details
+- [x] 13.8 Trainer edits and saves a set in "Moje zestawy", then navigates `Pulpit -> Podopieczni -> Podopieczny` and sees updated assigned-set information
+- [x] 13.9 Saving/editing navigation inside "Moje zestawy" remains unchanged
+- [x] 13.10 A temporary refresh failure does not open outdated trainee details
 
 ### Phase 14: Follow-Up Regression Verification And Bookkeeping
 
@@ -1276,5 +1276,5 @@ The filtered unique active-session index by trainee should remain in place.
 
 #### Manual
 
-- [ ] 14.5 Manual QA confirms requirements 1-3 are resolved on Android
-- [ ] 14.6 `apps/mobile/design/LiftMate.html` remains the accepted contract for the limited trainee live screen
+- [x] 14.5 Manual QA confirms requirements 1-3 are resolved on Android
+- [x] 14.6 `apps/mobile/design/LiftMate.html` remains the accepted contract for the limited trainee live screen

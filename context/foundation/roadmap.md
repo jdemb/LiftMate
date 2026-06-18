@@ -23,7 +23,7 @@ North star means the first end-to-end workflow that proves the product is useful
 |---|---|---|---|---|---|
 | F-01 | mobile-api-smoke-path | Mobile app can verify the deployed API is reachable before product flows depend on it. | none | FR-001, US-01 | done |
 | F-02 | authenticated-role-boundary | A minimal authenticated identity and role boundary exists for trainer/trainee actions. | F-01 | FR-001, FR-002, FR-003, FR-004, FR-005 | done |
-| F-03 | shared-session-sync-contract | A minimal active-session sync contract exists for shared workout state. | F-01 | FR-004, FR-012, US-03 | proposed |
+| F-03 | shared-session-sync-contract | A minimal active-session sync contract exists for shared workout state. | F-01 | FR-004, FR-012, US-03 | done |
 | S-01 | trainer-trainee-pairing | Trainer and trainee can create accounts, choose roles, and form the allowed relationship. | F-02 | FR-001, FR-002, FR-003, FR-004, FR-005 | proposed |
 | S-02 | assign-global-workout-set | Trainer can define exercises in a global set and assign that set to a trainee. | S-01 | FR-007, FR-008, FR-010, US-01 | proposed |
 | S-03 | start-shared-workout-session | Trainer can start one active workout session for a trainee and assigned set. | S-01, S-02 | FR-004, FR-010, FR-012, US-03 | proposed |
@@ -79,7 +79,7 @@ North star means the first end-to-end workflow that proves the product is useful
 - Unknowns:
   - Confirm how much near-real-time behavior is acceptable on the free Azure tier. Block: no. Owner: product/engineering.
 - Risk: The shared workout can miss the "same training window" requirement if synchronization is deferred until late implementation.
-- Status: proposed
+- Status: done
 - Unlocks: S-04.
 
 ## Slices
@@ -187,3 +187,4 @@ North star means the first end-to-end workflow that proves the product is useful
 
 - **F-01: Mobile app can verify the deployed API is reachable before product flows depend on it.** — Archived 2026-06-18 → `context/archive/2026-06-01-mobile-api-smoke-path/`. Lesson: —.
 - **F-02: A minimal authenticated identity and role boundary exists for trainer/trainee actions.** — Archived 2026-06-18 → `context/archive/2026-06-02-authenticated-role-boundary/`. Lesson: —.
+- **F-03: A minimal active-session sync contract exists for shared workout state.** — Archived 2026-06-18 → `context/archive/2026-06-03-shared-session-sync-contract/`. Lesson: —.

@@ -22,11 +22,19 @@ class RelationshipControllerState {
     this.message,
   });
 
-  const RelationshipControllerState.idle()
-      : this(status: RelationshipControllerStatus.idle);
+const RelationshipControllerState.idle()
+: this(status: RelationshipControllerStatus.idle);
 
-  const RelationshipControllerState.loading(AuthUser user)
-      : this(status: RelationshipControllerStatus.loading, user: user);
+const RelationshipControllerState.loading(
+AuthUser user, {
+TrainerRelationshipSummary? trainerSummary,
+TraineeRelationshipSummary? traineeSummary,
+}) : this(
+status: RelationshipControllerStatus.loading,
+user: user,
+trainerSummary: trainerSummary,
+traineeSummary: traineeSummary,
+);
 
   const RelationshipControllerState.loaded({
     required AuthUser user,
@@ -72,9 +80,15 @@ class RelationshipController extends ChangeNotifier {
 
   RelationshipControllerState get state => _state;
 
-  Future<void> loadForUser(AuthUser user) async {
-    final accessToken = authController.tokens?.accessToken;
-    _setState(RelationshipControllerState.loading(user));
+Future<void> loadForUser(AuthUser user) async {
+final accessToken = authController.tokens?.accessToken;
+final previousTrainerSummary = _state.trainerSummary;
+final previousTraineeSummary = _state.traineeSummary;
+_setState(RelationshipControllerState.loading(
+user,
+trainerSummary: previousTrainerSummary,
+traineeSummary: previousTraineeSummary,
+));
 
     if (accessToken == null) {
       _setState(RelationshipControllerState.error(

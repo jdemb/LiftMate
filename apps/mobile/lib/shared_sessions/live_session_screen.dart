@@ -102,6 +102,7 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
         if (!widget.editable) {
           return _ReadOnlyLiveView(
             session: session,
+            errorMessage: state.message,
             trainerDisplayName: widget.trainerDisplayName,
             group: currentGroup,
             exerciseIndex: currentIndex,
@@ -118,6 +119,11 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
               subtitle: _sessionSubtitle(session),
               onBack: widget.onBack,
             ),
+            if (state.message != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22, 10, 22, 0),
+                child: _RealtimeErrorBanner(message: state.message!),
+              ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
@@ -163,7 +169,9 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
                         ? groups[currentIndex + 1].exerciseName
                         : 'Koniec treningu',
                     onNext: currentIndex + 1 < groups.length
-                        ? () => setState(() => _currentExerciseIndex = currentIndex + 1)
+                        ? () => setState(
+                            () => _currentExerciseIndex = currentIndex + 1,
+                          )
                         : null,
                   ),
                 ],
@@ -177,7 +185,9 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
                 label: const Text('Zakończ i zapisz trening'),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
-                  backgroundColor: const Color(0xFF21C97A).withValues(alpha: 0.16),
+                  backgroundColor: const Color(
+                    0xFF21C97A,
+                  ).withValues(alpha: 0.16),
                   foregroundColor: const Color(0xFF7EE0AD),
                   side: BorderSide(
                     color: const Color(0xFF21C97A).withValues(alpha: 0.4),
@@ -267,7 +277,10 @@ class _LiveTopBar extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
@@ -288,9 +301,54 @@ class _LiveTopBar extends StatelessWidget {
   }
 }
 
+class _RealtimeErrorBanner extends StatelessWidget {
+  const _RealtimeErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('realtime-error-banner'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFB74D).withValues(alpha: 0.12),
+        border: Border.all(
+          color: const Color(0xFFFFB74D).withValues(alpha: 0.35),
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.sync_problem_rounded,
+            color: Color(0xFFFFC66D),
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Synchronizacja treningu została przerwana. '
+              'Spróbujemy ponownie po odzyskaniu połączenia.\n$message',
+              style: const TextStyle(
+                color: Color(0xFFFFD9A0),
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ReadOnlyLiveView extends StatelessWidget {
   const _ReadOnlyLiveView({
     required this.session,
+    required this.errorMessage,
     required this.trainerDisplayName,
     required this.group,
     required this.exerciseIndex,
@@ -300,6 +358,7 @@ class _ReadOnlyLiveView extends StatelessWidget {
   });
 
   final SharedSession session;
+  final String? errorMessage;
   final String? trainerDisplayName;
   final _ExerciseValueGroup group;
   final int exerciseIndex;
@@ -337,7 +396,10 @@ class _ReadOnlyLiveView extends StatelessWidget {
                         child: IconButton(
                           tooltip: 'Wróć',
                           onPressed: onBack,
-                          icon: const Icon(Icons.chevron_left_rounded, size: 30),
+                          icon: const Icon(
+                            Icons.chevron_left_rounded,
+                            size: 30,
+                          ),
                         ),
                       ),
                       ConstrainedBox(
@@ -345,9 +407,7 @@ class _ReadOnlyLiveView extends StatelessWidget {
                           maxWidth: constraints.maxWidth - 112,
                         ),
                         child: Row(
-                          key: const ValueKey(
-                            'read-only-live-trainer-status',
-                          ),
+                          key: const ValueKey('read-only-live-trainer-status'),
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
@@ -383,6 +443,11 @@ class _ReadOnlyLiveView extends StatelessWidget {
               ),
             ),
           ),
+          if (errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 10, 22, 0),
+              child: _RealtimeErrorBanner(message: errorMessage!),
+            ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -436,7 +501,10 @@ class _ReadOnlyLiveView extends StatelessWidget {
                   ),
                   const SizedBox(height: 26),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(999),
@@ -801,10 +869,7 @@ class _RestTimerCard extends StatelessWidget {
 }
 
 class _NextExerciseCard extends StatelessWidget {
-  const _NextExerciseCard({
-    required this.name,
-    required this.onNext,
-  });
+  const _NextExerciseCard({required this.name, required this.onNext});
 
   final String name;
   final VoidCallback? onNext;
@@ -838,10 +903,7 @@ class _NextExerciseCard extends StatelessWidget {
               ],
             ),
           ),
-          TextButton(
-            onPressed: onNext,
-            child: const Text('Dalej'),
-          ),
+          TextButton(onPressed: onNext, child: const Text('Dalej')),
         ],
       ),
     );
@@ -932,7 +994,8 @@ class _LiveBadge extends StatelessWidget {
 }
 
 List<_ExerciseValueGroup> _groupValues(List<SharedSessionValue> values) {
-  final sorted = [...values]..sort((a, b) {
+  final sorted = [...values]
+    ..sort((a, b) {
       final order = a.exerciseOrder.compareTo(b.exerciseOrder);
       if (order != 0) {
         return order;
@@ -943,11 +1006,13 @@ List<_ExerciseValueGroup> _groupValues(List<SharedSessionValue> values) {
   final groups = <_ExerciseValueGroup>[];
   for (final value in sorted) {
     if (groups.isEmpty || groups.last.exerciseOrder != value.exerciseOrder) {
-      groups.add(_ExerciseValueGroup(
-        exerciseOrder: value.exerciseOrder,
-        exerciseName: value.exerciseName,
-        values: [value],
-      ));
+      groups.add(
+        _ExerciseValueGroup(
+          exerciseOrder: value.exerciseOrder,
+          exerciseName: value.exerciseName,
+          values: [value],
+        ),
+      );
     } else {
       groups.last.values.add(value);
     }
@@ -961,7 +1026,9 @@ SharedSessionValue _firstOpenValue(List<SharedSessionValue> values) {
 }
 
 String _sessionSubtitle(SharedSession session) {
-  return session.workoutSetId == null ? 'Aktywny trening' : 'Zestaw ${session.workoutSetId}';
+  return session.workoutSetId == null
+      ? 'Aktywny trening'
+      : 'Zestaw ${session.workoutSetId}';
 }
 
 String _readOnlySessionLabel(

@@ -31,6 +31,7 @@ public sealed class WorkoutSetPersistenceTests(TestApplicationFactory factory)
         workoutSet.Rows.Add(new WorkoutSetRow
         {
             Id = Guid.NewGuid(),
+            ExerciseId = Guid.NewGuid(),
             ExerciseOrder = 1,
             SetIndex = 1,
             ExerciseName = "Bench press",
@@ -61,6 +62,7 @@ public sealed class WorkoutSetPersistenceTests(TestApplicationFactory factory)
         Assert.Equal("Push A", saved.Name);
         var row = Assert.Single(saved.Rows);
         Assert.Equal(1, row.ExerciseOrder);
+        Assert.NotEqual(Guid.Empty, row.ExerciseId);
         Assert.Equal(1, row.SetIndex);
         Assert.Equal("Bench press", row.ExerciseName);
         Assert.Equal(ExerciseValueType.RepsWeight, row.ExerciseType);

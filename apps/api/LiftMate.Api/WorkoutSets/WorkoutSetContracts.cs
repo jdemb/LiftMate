@@ -15,7 +15,9 @@ public sealed record WorkoutSetRowRequest(
     string ExerciseType,
     int? Reps,
     decimal? Weight,
-    int? Seconds);
+    int? Seconds,
+    Guid? Id = null,
+    Guid? ExerciseId = null);
 
 public sealed record AssignWorkoutSetRequest(IReadOnlyList<string> TraineeUserIds);
 
@@ -38,6 +40,7 @@ public sealed record WorkoutSetDetailResponse(
 
 public sealed record WorkoutSetRowResponse(
     Guid Id,
+    Guid ExerciseId,
     int ExerciseOrder,
     int SetIndex,
     string ExerciseName,

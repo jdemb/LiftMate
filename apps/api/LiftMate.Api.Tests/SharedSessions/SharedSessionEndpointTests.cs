@@ -192,6 +192,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         Assert.Equal(trainer.User.Id, session.TrainerUserId);
         Assert.Equal(trainee.User.Id, session.TraineeUserId);
         Assert.Equal(workoutSet.Id, session.WorkoutSetId);
+        Assert.Equal("Full body", session.WorkoutSetName);
         Assert.Equal(trainer.User.Id, session.StartedByUserId);
         Assert.Equal("trainer", session.StartedByRole);
         Assert.Equal(3, session.Values.Count);
@@ -202,11 +203,14 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
                 Assert.Equal(1, first.ExerciseOrder);
                 Assert.Equal(1, first.SetIndex);
                 Assert.Equal("Bench press", first.ExerciseName);
+                Assert.NotNull(first.ExerciseId);
+                Assert.NotNull(first.WorkoutSetRowId);
                 Assert.False(first.IsDone);
                 Assert.Null(first.CompletedAt);
             },
             second =>
             {
+                Assert.Equal(firstExerciseId(session), second.ExerciseId);
                 Assert.Equal(1, second.ExerciseOrder);
                 Assert.Equal(2, second.SetIndex);
                 Assert.Equal("Bench press", second.ExerciseName);
@@ -583,6 +587,11 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         return [new WorkoutSetRowRequest(1, 1, "Bench press", "repsWeight", 6, 40m, null)];
     }
 
+    private static Guid? firstExerciseId(SharedSessionResponse session)
+    {
+        return session.Values.First().ExerciseId;
+    }
+
     private static WorkoutSetRowRequest[] AllWorkoutSetRows()
     {
         return
@@ -631,7 +640,9 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         string ExerciseType,
         int? Reps,
         decimal? Weight,
-        int? Seconds);
+        int? Seconds,
+        Guid? Id = null,
+        Guid? ExerciseId = null);
 
     private sealed record AssignWorkoutSetRequest(IReadOnlyList<string> TraineeUserIds);
 
@@ -644,6 +655,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         string TrainerEmail,
         string TraineeEmail,
         Guid? WorkoutSetId,
+        string WorkoutSetName,
         string StartedByUserId,
         string StartedByRole,
         string Status,
@@ -655,6 +667,8 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
 
     private sealed record SharedSessionValueResponse(
         Guid Id,
+        Guid? ExerciseId,
+        Guid? WorkoutSetRowId,
         string ExerciseName,
         string ExerciseType,
         int ExerciseOrder,
@@ -677,6 +691,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
 
     private sealed record WorkoutSetRowResponse(
         Guid Id,
+        Guid ExerciseId,
         int ExerciseOrder,
         int SetIndex,
         string ExerciseName,

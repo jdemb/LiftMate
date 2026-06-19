@@ -118,6 +118,7 @@ public static class SharedSessionEndpoints
             StartedByUserId = trainerUserId,
             StartedByUser = trainer,
             StartedByRole = UserRole.Trainer,
+            WorkoutSetName = "Trening",
             Status = SharedSessionStatus.Active,
             Version = 1,
             CreatedAt = now,
@@ -263,6 +264,7 @@ public static class SharedSessionEndpoints
             TraineeUser = trainee,
             WorkoutSetId = workoutSet.Id,
             WorkoutSet = workoutSet,
+            WorkoutSetName = workoutSet.Name,
             StartedByUserId = currentUserId,
             StartedByRole = startedByRole,
             Status = SharedSessionStatus.Active,
@@ -276,6 +278,8 @@ public static class SharedSessionEndpoints
             session.Values.Add(new SharedSessionValue
             {
                 Id = Guid.NewGuid(),
+                ExerciseId = row.ExerciseId,
+                WorkoutSetRowId = row.Id,
                 ExerciseOrder = row.ExerciseOrder,
                 ExerciseName = row.ExerciseName,
                 ExerciseType = row.ExerciseType,

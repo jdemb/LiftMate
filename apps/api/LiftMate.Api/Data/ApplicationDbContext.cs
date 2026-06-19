@@ -124,6 +124,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .HasMaxLength(32)
                 .IsRequired();
 
+            entity.Property(session => session.WorkoutSetName)
+                .HasMaxLength(200)
+                .IsRequired();
+
             entity.HasIndex(session => session.WorkoutSetId);
             entity.HasIndex(session => session.StartedByUserId);
             entity.HasIndex(session => session.TrainerUserId);
@@ -192,6 +196,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
             entity.HasIndex(value => value.SharedSessionId);
             entity.HasIndex(value => new { value.SharedSessionId, value.ExerciseOrder, value.SetIndex });
+            entity.HasIndex(value => value.ExerciseId);
+            entity.HasIndex(value => value.WorkoutSetRowId);
             entity.HasIndex(value => value.ExerciseType);
 
             entity.HasOne(value => value.UpdatedByUser)
@@ -251,6 +257,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
             entity.HasIndex(row => row.WorkoutSetId);
             entity.HasIndex(row => new { row.WorkoutSetId, row.ExerciseOrder, row.SetIndex });
+            entity.HasIndex(row => new { row.WorkoutSetId, row.ExerciseId, row.SetIndex });
             entity.HasIndex(row => row.ExerciseType);
 
             entity.ToTable(table => table.HasCheckConstraint(

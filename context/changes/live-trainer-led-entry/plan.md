@@ -344,10 +344,10 @@ Brak migracji danych i zmian kontraktów. Zmiana jest kompatybilna z istniejący
 
 #### Manual
 
-- [ ] 1.11 Przy krótkiej utracie sieci ekran aktywnego treningu pozostaje otwarty
-- [ ] 1.12 Banner błędu synchronizacji nie blokuje odczytu ani wyjścia z treningu
-- [ ] 1.13 Po odzyskaniu sieci banner znika i kolejne zmiany pojawiają się bez ręcznego odświeżenia
-- [ ] 1.14 Trener świadomie wychodzi z sesji A i dopiero z UI dołącza do dostępnej sesji B
+- [x] 1.11 Przy krótkiej utracie sieci ekran aktywnego treningu pozostaje otwarty — 45ca862
+- [x] 1.12 Banner błędu synchronizacji nie blokuje odczytu ani wyjścia z treningu — 45ca862
+- [x] 1.13 Po odzyskaniu sieci banner znika i kolejne zmiany pojawiają się bez ręcznego odświeżenia — 45ca862
+- [x] 1.14 Trener świadomie wychodzi z sesji A i dopiero z UI dołącza do dostępnej sesji B — 45ca862
 
 ### Phase 2: Trainee Read-Only Realtime Integration Coverage
 
@@ -363,7 +363,7 @@ Brak migracji danych i zmian kontraktów. Zmiana jest kompatybilna z istniejący
 
 #### Manual
 
-- [ ] 2.8 Na dwóch klientach zmiany trenera aktualizują ekran podopiecznego bez odświeżenia
+- [x] 2.8 Na dwóch klientach zmiany trenera aktualizują ekran podopiecznego bez odświeżenia — 45ca862
 
 ### Phase 3: Full Verification And Roadmap Closure
 
@@ -376,7 +376,7 @@ Brak migracji danych i zmian kontraktów. Zmiana jest kompatybilna z istniejący
 
 #### Manual
 
-- [ ] 3.5 Dwa klienty widzą tę samą trainer-led session
-- [ ] 3.6 Wartości i done-state aktualizują się bez odświeżenia
-- [ ] 3.7 Synchronizacja działa po utracie i odzyskaniu sieci
-- [ ] 3.8 Po potwierdzeniu QA S-04 zostaje oznaczone jako `done`
+- [x] 3.5 Dwa klienty widzą tę samą trainer-led session — 45ca862
+- [x] 3.6 Wartości i done-state aktualizują się bez odświeżenia — 45ca862
+- [x] 3.7 Synchronizacja działa po utracie i odzyskaniu sieci — 45ca862
+- [x] 3.8 Po potwierdzeniu QA S-04 zostaje oznaczone jako `done` — 45ca862

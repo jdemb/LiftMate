@@ -10,6 +10,7 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
     required this.onBack,
     required this.onLogout,
     required this.onOpenWorkoutSets,
+    this.onOpenHistory,
     this.assignedSets = const [],
     this.onStartSession,
     this.onJoinActiveSession,
@@ -21,6 +22,7 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
   final VoidCallback onBack;
   final Future<void> Function() onLogout;
   final VoidCallback onOpenWorkoutSets;
+  final VoidCallback? onOpenHistory;
   final List<AssignedWorkoutSetSummary> assignedSets;
   final void Function(AssignedWorkoutSetSummary set)? onStartSession;
   final VoidCallback? onJoinActiveSession;
@@ -47,6 +49,13 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
                   ),
                   const Spacer(),
+                  if (onOpenHistory != null)
+                    IconButton(
+                      key: const ValueKey('trainer-open-trainee-history'),
+                      tooltip: 'Historia',
+                      onPressed: onOpenHistory,
+                      icon: const Icon(Icons.history_rounded),
+                    ),
                   IconButton(
                     tooltip: 'Wyloguj',
                     onPressed: onLogout,

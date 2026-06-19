@@ -840,14 +840,14 @@ Implement the design-contract screens, connect both role entry points, verify th
 
 #### Automated
 
-- [x] 4.1 Models parse all three response levels and reject invalid JSON.
-- [x] 4.2 Formatters cover all exercise types, decimals, negative/equal deltas, and Polish counts.
-- [x] 4.3 API client sends correct cursor and trainee parameters.
-- [x] 4.4 Controller covers initial, empty, retry, pagination, pagination failure, detail, progress, and back states.
-- [x] 4.5 Existing dependency wiring tests remain compatible.
-- [x] 4.6 Targeted training-history Flutter tests pass.
-- [x] 4.7 Full `flutter test` passes.
-- [x] 4.8 `flutter analyze` passes.
+- [x] 4.1 Models parse all three response levels and reject invalid JSON. — cdb8842
+- [x] 4.2 Formatters cover all exercise types, decimals, negative/equal deltas, and Polish counts. — cdb8842
+- [x] 4.3 API client sends correct cursor and trainee parameters. — cdb8842
+- [x] 4.4 Controller covers initial, empty, retry, pagination, pagination failure, detail, progress, and back states. — cdb8842
+- [x] 4.5 Existing dependency wiring tests remain compatible. — cdb8842
+- [x] 4.6 Targeted training-history Flutter tests pass. — cdb8842
+- [x] 4.7 Full `flutter test` passes. — cdb8842
+- [x] 4.8 `flutter analyze` passes. — cdb8842
 
 #### Manual
 
@@ -858,19 +858,19 @@ Implement the design-contract screens, connect both role entry points, verify th
 
 #### Automated
 
-- [ ] 5.1 Level 1 matches required data, states, and pagination behavior.
-- [ ] 5.2 Level 2 renders all exercises and ordered series values.
-- [ ] 5.3 Level 3 renders correct bars and deltas without overflow.
-- [ ] 5.4 Trainee navigation covers all three levels and back behavior.
-- [ ] 5.5 Trainer history targets only the selected currently linked trainee.
-- [ ] 5.6 Completion feedback appears after successful save.
-- [ ] 5.7 Cross-stack tests prove saved values become the next session's starting values.
-- [ ] 5.8 `dotnet restore LiftMate.slnx` succeeds.
-- [ ] 5.9 `dotnet build LiftMate.slnx --no-restore` passes.
-- [ ] 5.10 Full `dotnet test LiftMate.slnx --no-build` passes.
-- [ ] 5.11 Full `flutter test` passes.
-- [ ] 5.12 `flutter analyze` passes.
-- [ ] 5.13 Roadmap remains non-done before manual confirmation.
+- [x] 5.1 Level 1 matches required data, states, and pagination behavior.
+- [x] 5.2 Level 2 renders all exercises and ordered series values.
+- [x] 5.3 Level 3 renders correct bars and deltas without overflow.
+- [x] 5.4 Trainee navigation covers all three levels and back behavior.
+- [x] 5.5 Trainer history targets only the selected currently linked trainee.
+- [x] 5.6 Completion feedback appears after successful save.
+- [x] 5.7 Cross-stack tests prove saved values become the next session's starting values.
+- [x] 5.8 `dotnet restore LiftMate.slnx` succeeds.
+- [x] 5.9 `dotnet build LiftMate.slnx --no-restore` passes.
+- [x] 5.10 Full `dotnet test LiftMate.slnx --no-build` passes.
+- [x] 5.11 Full `flutter test` passes.
+- [x] 5.12 `flutter analyze` passes.
+- [x] 5.13 Roadmap remains non-done before manual confirmation.
 
 #### Manual
 

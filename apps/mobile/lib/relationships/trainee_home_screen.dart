@@ -21,6 +21,7 @@ class TraineeHomeScreen extends StatefulWidget {
     this.sharedSessionController,
     this.onStartWorkout,
     this.onJoinActiveWorkout,
+    this.onOpenHistory,
     super.key,
   });
 
@@ -33,6 +34,7 @@ class TraineeHomeScreen extends StatefulWidget {
   final SharedSessionController? sharedSessionController;
   final ValueChanged<TraineeAssignedWorkoutSet>? onStartWorkout;
   final VoidCallback? onJoinActiveWorkout;
+  final VoidCallback? onOpenHistory;
 
   @override
   State<TraineeHomeScreen> createState() => _TraineeHomeScreenState();
@@ -104,9 +106,10 @@ class _TraineeHomeScreenState extends State<TraineeHomeScreen> {
               label: 'Dziś',
               active: true,
             ),
-            const RelationshipBottomNavItem(
+            RelationshipBottomNavItem(
               icon: Icons.history_rounded,
               label: 'Historia',
+              onTap: widget.onOpenHistory,
             ),
             RelationshipBottomNavItem(
               icon: Icons.logout_rounded,

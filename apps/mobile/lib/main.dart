@@ -8,6 +8,7 @@ import 'auth/token_store.dart';
 import 'relationships/relationship_api_client.dart';
 import 'shared_sessions/shared_session_api_client.dart';
 import 'shared_sessions/shared_session_realtime_client.dart';
+import 'training_history/training_history_api_client.dart';
 import 'workout_sets/workout_set_api_client.dart';
 
 Future<void> main() async {
@@ -15,9 +16,16 @@ Future<void> main() async {
 
   final config = await AppConfig.load();
   final authApiClient = AuthApiClient(baseUrl: config.apiBaseUrl);
-  final relationshipApiClient = RelationshipApiClient(baseUrl: config.apiBaseUrl);
+  final relationshipApiClient = RelationshipApiClient(
+    baseUrl: config.apiBaseUrl,
+  );
   final workoutSetApiClient = WorkoutSetApiClient(baseUrl: config.apiBaseUrl);
-  final sharedSessionApiClient = SharedSessionApiClient(baseUrl: config.apiBaseUrl);
+  final sharedSessionApiClient = SharedSessionApiClient(
+    baseUrl: config.apiBaseUrl,
+  );
+  final trainingHistoryApiClient = TrainingHistoryApiClient(
+    baseUrl: config.apiBaseUrl,
+  );
   runApp(
     MainApp(
       authController: AuthController(
@@ -27,6 +35,7 @@ Future<void> main() async {
       relationshipApiClient: relationshipApiClient,
       workoutSetApiClient: workoutSetApiClient,
       sharedSessionApiClient: sharedSessionApiClient,
+      trainingHistoryApiClient: trainingHistoryApiClient,
       sharedSessionRealtimeClientFactory: () {
         return SignalRSharedSessionRealtimeClient(baseUrl: config.apiBaseUrl);
       },
@@ -40,6 +49,7 @@ class MainApp extends StatelessWidget {
     required this.relationshipApiClient,
     required this.workoutSetApiClient,
     required this.sharedSessionApiClient,
+    required this.trainingHistoryApiClient,
     required this.sharedSessionRealtimeClientFactory,
     super.key,
   });
@@ -48,6 +58,7 @@ class MainApp extends StatelessWidget {
   final RelationshipApiClient relationshipApiClient;
   final WorkoutSetApiClient workoutSetApiClient;
   final SharedSessionApiClient sharedSessionApiClient;
+  final TrainingHistoryApiClient trainingHistoryApiClient;
   final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
 
   @override
@@ -59,6 +70,7 @@ class MainApp extends StatelessWidget {
         relationshipApiClient: relationshipApiClient,
         workoutSetApiClient: workoutSetApiClient,
         sharedSessionApiClient: sharedSessionApiClient,
+        trainingHistoryApiClient: trainingHistoryApiClient,
         sharedSessionRealtimeClientFactory: sharedSessionRealtimeClientFactory,
       ),
     );
@@ -79,10 +91,10 @@ ThemeData _liftMateTheme() {
     scaffoldBackgroundColor: const Color(0xFF101216),
     fontFamily: 'Manrope',
     textTheme: ThemeData.dark().textTheme.apply(
-          fontFamily: 'Manrope',
-          bodyColor: const Color(0xFFF3F4F6),
-          displayColor: const Color(0xFFF3F4F6),
-        ),
+      fontFamily: 'Manrope',
+      bodyColor: const Color(0xFFF3F4F6),
+      displayColor: const Color(0xFFF3F4F6),
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: const Color(0xFF191C22),

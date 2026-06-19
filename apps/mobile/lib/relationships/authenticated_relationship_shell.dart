@@ -6,6 +6,8 @@ import '../shared_sessions/shared_session_api_client.dart';
 import '../shared_sessions/shared_session_controller.dart';
 import '../shared_sessions/live_session_screen.dart';
 import '../shared_sessions/shared_session_realtime_client.dart';
+import '../training_history/training_history_api_client.dart';
+import '../training_history/training_history_controller.dart';
 import '../workout_sets/assign_workout_set_screen.dart';
 import '../workout_sets/workout_set_api_client.dart';
 import '../workout_sets/workout_set_builder_screen.dart';
@@ -26,6 +28,7 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
     required this.relationshipApiClient,
     required this.workoutSetApiClient,
     required this.sharedSessionApiClient,
+    required this.trainingHistoryApiClient,
     required this.sharedSessionRealtimeClientFactory,
     required this.onLogout,
     super.key,
@@ -36,6 +39,7 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
   final RelationshipApiClient relationshipApiClient;
   final WorkoutSetApiClient workoutSetApiClient;
   final SharedSessionApiClient sharedSessionApiClient;
+  final TrainingHistoryApiClient trainingHistoryApiClient;
   final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
   final Future<void> Function() onLogout;
 
@@ -49,6 +53,7 @@ class _AuthenticatedRelationshipShellState
   late final RelationshipController _relationshipController;
   late final WorkoutSetController _workoutSetController;
   late final SharedSessionController _sharedSessionController;
+  late final TrainingHistoryController _selfHistoryController;
   TrainerTraineeSummary? _selectedTrainee;
   String? _openingTraineeId;
   _TrainerView _trainerView = _TrainerView.dashboard;
@@ -74,6 +79,10 @@ class _AuthenticatedRelationshipShellState
       realtimeClientFactory: widget.sharedSessionRealtimeClientFactory,
       onTrainerSessionInvalidated: _relationshipController.reload,
     );
+    _selfHistoryController = TrainingHistoryController(
+      apiClient: widget.trainingHistoryApiClient,
+      accessTokenProvider: () => widget.authController.tokens?.accessToken,
+    );
     _relationshipController.loadForUser(widget.user);
   }
 
@@ -98,6 +107,7 @@ class _AuthenticatedRelationshipShellState
     _relationshipController.dispose();
     _workoutSetController.dispose();
     _sharedSessionController.dispose();
+    _selfHistoryController.dispose();
     super.dispose();
   }
 

@@ -819,17 +819,17 @@ Implement the design-contract screens, connect both role entry points, verify th
 
 #### Automated
 
-- [x] 3.1 List returns only completed sessions and exactly 20 items before a cursor.
-- [x] 3.2 Cursor traversal has no duplicates or omissions for equal completion timestamps.
-- [x] 3.3 Malformed cursors return `400`.
-- [x] 3.4 Detail grouping, ordering, counts, duration, and maximum values are correct.
-- [x] 3.5 Progress point selection and deltas are correct for all three exercise types.
-- [x] 3.6 Trainee self-access works.
-- [x] 3.7 Current trainer access works.
-- [x] 3.8 Former and unrelated trainer access fails for all endpoints.
-- [x] 3.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainingHistory"` passes.
-- [x] 3.10 Full API tests pass.
-- [x] 3.11 `dotnet build LiftMate.slnx --no-restore` passes.
+- [x] 3.1 List returns only completed sessions and exactly 20 items before a cursor. — 23a549f
+- [x] 3.2 Cursor traversal has no duplicates or omissions for equal completion timestamps. — 23a549f
+- [x] 3.3 Malformed cursors return `400`. — 23a549f
+- [x] 3.4 Detail grouping, ordering, counts, duration, and maximum values are correct. — 23a549f
+- [x] 3.5 Progress point selection and deltas are correct for all three exercise types. — 23a549f
+- [x] 3.6 Trainee self-access works. — 23a549f
+- [x] 3.7 Current trainer access works. — 23a549f
+- [x] 3.8 Former and unrelated trainer access fails for all endpoints. — 23a549f
+- [x] 3.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainingHistory"` passes. — 23a549f
+- [x] 3.10 Full API tests pass. — 23a549f
+- [x] 3.11 `dotnet build LiftMate.slnx --no-restore` passes. — 23a549f
 
 #### Manual
 
@@ -840,14 +840,14 @@ Implement the design-contract screens, connect both role entry points, verify th
 
 #### Automated
 
-- [ ] 4.1 Models parse all three response levels and reject invalid JSON.
-- [ ] 4.2 Formatters cover all exercise types, decimals, negative/equal deltas, and Polish counts.
-- [ ] 4.3 API client sends correct cursor and trainee parameters.
-- [ ] 4.4 Controller covers initial, empty, retry, pagination, pagination failure, detail, progress, and back states.
-- [ ] 4.5 Existing dependency wiring tests remain compatible.
-- [ ] 4.6 Targeted training-history Flutter tests pass.
-- [ ] 4.7 Full `flutter test` passes.
-- [ ] 4.8 `flutter analyze` passes.
+- [x] 4.1 Models parse all three response levels and reject invalid JSON.
+- [x] 4.2 Formatters cover all exercise types, decimals, negative/equal deltas, and Polish counts.
+- [x] 4.3 API client sends correct cursor and trainee parameters.
+- [x] 4.4 Controller covers initial, empty, retry, pagination, pagination failure, detail, progress, and back states.
+- [x] 4.5 Existing dependency wiring tests remain compatible.
+- [x] 4.6 Targeted training-history Flutter tests pass.
+- [x] 4.7 Full `flutter test` passes.
+- [x] 4.8 `flutter analyze` passes.
 
 #### Manual
 

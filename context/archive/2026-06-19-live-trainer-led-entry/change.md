@@ -1,10 +1,10 @@
 ---
 change_id: live-trainer-led-entry
 title: Domknięcie synchronizacji treningu prowadzonego przez trenera
-status: implemented
+status: archived
 created: 2026-06-19
 updated: 2026-06-19
-archived_at: null
+archived_at: 2026-06-19T14:44:05Z
 ---
 
 ## Notes

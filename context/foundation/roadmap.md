@@ -3,7 +3,7 @@ project: "Aplikacja mobilna treningowa dla trenera i podopiecznego"
 version: 1
 status: proposed
 created: 2026-06-01
-updated: 2026-06-18
+updated: 2026-06-19
 prd_version: 2
 main_goal: market-feedback
 top_blocker: time
@@ -27,7 +27,7 @@ North star means the first end-to-end workflow that proves the product is useful
 | S-01 | trainer-trainee-pairing | Trainer and trainee can create accounts, choose roles, and form the allowed relationship. | F-02 | FR-001, FR-002, FR-003, FR-004, FR-005 | done |
 | S-02 | assign-global-workout-set | Trainer can define exercises in a global set and assign that set to a trainee. | S-01 | FR-007, FR-008, FR-010, US-01 | done |
 | S-03 | start-shared-workout-session | Trainer can start one active workout session for a trainee and assigned set. | S-01, S-02 | FR-004, FR-010, FR-012, US-03 | done |
-| S-04 | live-trainer-led-entry | Trainer enters exercise values and trainee sees the same active session without manual refresh. | F-03, S-03 | FR-004, FR-011, FR-012, US-03 | proposed |
+| S-04 | live-trainer-led-entry | Trainer enters exercise values and trainee sees the same active session without manual refresh. | F-03, S-03 | FR-004, FR-011, FR-012, US-03 | done |
 | S-05 | save-progress-next-session | Values from a completed workout become the starting point for the next session. | S-04 | FR-011, US-02 | proposed |
 | S-06 | trainee-self-edit-training-values | Trainee can view and edit own training values when completing a workout without trainer input. | S-02, S-05 | FR-005, FR-011, US-02 | proposed |
 
@@ -131,7 +131,7 @@ North star means the first end-to-end workflow that proves the product is useful
 - Unknowns:
   - Decide whether the first MVP accepts light polling before paid realtime infrastructure. Block: no. Owner: product/engineering.
 - Risk: This is the product's highest-feedback slice and the main place where free-tier infrastructure can constrain UX.
-- Status: proposed
+- Status: done
 
 ### S-05: Save progress for the next session
 
@@ -191,3 +191,4 @@ North star means the first end-to-end workflow that proves the product is useful
 - **S-01: Trainer and trainee can create accounts, choose roles, and form the allowed relationship.** — Archived 2026-06-18 → `context/archive/2026-06-15-trainer-trainee-pairing/`. Lesson: —.
 - **S-02: Trainer can define exercises in a global set and assign that set to a trainee.** — Archived 2026-06-18 → `context/archive/2026-06-16-assign-global-workout-set/`. Lesson: —.
 - **S-03: Trainer can start one active workout session for a trainee and assigned set.** — Archived 2026-06-18 → `context/archive/2026-06-17-start-shared-workout-session/`. Lesson: —.
+- **S-04: Trainer enters exercise values and trainee sees the same active session without manual refresh.** — Archived 2026-06-19 → `context/archive/2026-06-19-live-trainer-led-entry/`. Lesson: —.

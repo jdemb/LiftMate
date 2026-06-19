@@ -796,18 +796,18 @@ Implement the design-contract screens, connect both role entry points, verify th
 
 #### Automated
 
-- [x] 2.1 Completion persists every series into the projection.
-- [x] 2.2 Repeating completion does not duplicate or rewrite progress.
-- [x] 2.3 A completion with an older timestamp cannot replace newer progress.
-- [x] 2.4 Cancellation and ad-hoc completion leave progress unchanged.
-- [x] 2.5 Unassignment does not delete progress.
-- [x] 2.6 Reassignment restores projected starting values.
-- [x] 2.7 Both trainer-led and trainee-self-started sessions merge projected values.
-- [x] 2.8 New template rows use defaults and removed rows do not reappear.
-- [x] 2.9 Targeted progress/shared-session API tests pass.
-- [x] 2.10 Targeted Flutter completion tests pass.
-- [x] 2.11 `dotnet build LiftMate.slnx --no-restore` passes.
-- [x] 2.12 `flutter analyze` passes.
+- [x] 2.1 Completion persists every series into the projection. — 0cd4098
+- [x] 2.2 Repeating completion does not duplicate or rewrite progress. — 0cd4098
+- [x] 2.3 A completion with an older timestamp cannot replace newer progress. — 0cd4098
+- [x] 2.4 Cancellation and ad-hoc completion leave progress unchanged. — 0cd4098
+- [x] 2.5 Unassignment does not delete progress. — 0cd4098
+- [x] 2.6 Reassignment restores projected starting values. — 0cd4098
+- [x] 2.7 Both trainer-led and trainee-self-started sessions merge projected values. — 0cd4098
+- [x] 2.8 New template rows use defaults and removed rows do not reappear. — 0cd4098
+- [x] 2.9 Targeted progress/shared-session API tests pass. — 0cd4098
+- [x] 2.10 Targeted Flutter completion tests pass. — 0cd4098
+- [x] 2.11 `dotnet build LiftMate.slnx --no-restore` passes. — 0cd4098
+- [x] 2.12 `flutter analyze` passes. — 0cd4098
 
 #### Manual
 
@@ -819,17 +819,17 @@ Implement the design-contract screens, connect both role entry points, verify th
 
 #### Automated
 
-- [ ] 3.1 List returns only completed sessions and exactly 20 items before a cursor.
-- [ ] 3.2 Cursor traversal has no duplicates or omissions for equal completion timestamps.
-- [ ] 3.3 Malformed cursors return `400`.
-- [ ] 3.4 Detail grouping, ordering, counts, duration, and maximum values are correct.
-- [ ] 3.5 Progress point selection and deltas are correct for all three exercise types.
-- [ ] 3.6 Trainee self-access works.
-- [ ] 3.7 Current trainer access works.
-- [ ] 3.8 Former and unrelated trainer access fails for all endpoints.
-- [ ] 3.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainingHistory"` passes.
-- [ ] 3.10 Full API tests pass.
-- [ ] 3.11 `dotnet build LiftMate.slnx --no-restore` passes.
+- [x] 3.1 List returns only completed sessions and exactly 20 items before a cursor.
+- [x] 3.2 Cursor traversal has no duplicates or omissions for equal completion timestamps.
+- [x] 3.3 Malformed cursors return `400`.
+- [x] 3.4 Detail grouping, ordering, counts, duration, and maximum values are correct.
+- [x] 3.5 Progress point selection and deltas are correct for all three exercise types.
+- [x] 3.6 Trainee self-access works.
+- [x] 3.7 Current trainer access works.
+- [x] 3.8 Former and unrelated trainer access fails for all endpoints.
+- [x] 3.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainingHistory"` passes.
+- [x] 3.10 Full API tests pass.
+- [x] 3.11 `dotnet build LiftMate.slnx --no-restore` passes.
 
 #### Manual
 

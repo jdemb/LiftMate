@@ -858,19 +858,19 @@ Implement the design-contract screens, connect both role entry points, verify th
 
 #### Automated
 
-- [x] 5.1 Level 1 matches required data, states, and pagination behavior.
-- [x] 5.2 Level 2 renders all exercises and ordered series values.
-- [x] 5.3 Level 3 renders correct bars and deltas without overflow.
-- [x] 5.4 Trainee navigation covers all three levels and back behavior.
-- [x] 5.5 Trainer history targets only the selected currently linked trainee.
-- [x] 5.6 Completion feedback appears after successful save.
-- [x] 5.7 Cross-stack tests prove saved values become the next session's starting values.
-- [x] 5.8 `dotnet restore LiftMate.slnx` succeeds.
-- [x] 5.9 `dotnet build LiftMate.slnx --no-restore` passes.
-- [x] 5.10 Full `dotnet test LiftMate.slnx --no-build` passes.
-- [x] 5.11 Full `flutter test` passes.
-- [x] 5.12 `flutter analyze` passes.
-- [x] 5.13 Roadmap remains non-done before manual confirmation.
+- [x] 5.1 Level 1 matches required data, states, and pagination behavior. — 9f28ecc
+- [x] 5.2 Level 2 renders all exercises and ordered series values. — 9f28ecc
+- [x] 5.3 Level 3 renders correct bars and deltas without overflow. — 9f28ecc
+- [x] 5.4 Trainee navigation covers all three levels and back behavior. — 9f28ecc
+- [x] 5.5 Trainer history targets only the selected currently linked trainee. — 9f28ecc
+- [x] 5.6 Completion feedback appears after successful save. — 9f28ecc
+- [x] 5.7 Cross-stack tests prove saved values become the next session's starting values. — 9f28ecc
+- [x] 5.8 `dotnet restore LiftMate.slnx` succeeds. — 9f28ecc
+- [x] 5.9 `dotnet build LiftMate.slnx --no-restore` passes. — 9f28ecc
+- [x] 5.10 Full `dotnet test LiftMate.slnx --no-build` passes. — 9f28ecc
+- [x] 5.11 Full `flutter test` passes. — 9f28ecc
+- [x] 5.12 `flutter analyze` passes. — 9f28ecc
+- [x] 5.13 Roadmap remains non-done before manual confirmation. — 9f28ecc
 
 #### Manual
 

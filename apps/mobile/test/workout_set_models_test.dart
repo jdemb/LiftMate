@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:liftmate/shared_sessions/shared_session_models.dart';
+import 'package:liftmate/workout_sets/workout_set_draft.dart';
 import 'package:liftmate/workout_sets/workout_set_models.dart';
 
 void main() {
@@ -8,6 +9,7 @@ void main() {
       final detail = WorkoutSetDetail.fromJson(_detailJson());
 
       expect(detail.id, 'set-1');
+      expect(detail.rows.first.exerciseId, 'exercise-1');
       expect(detail.rows.map((row) => row.exerciseType), [
         ExerciseValueType.repsWeight,
         ExerciseValueType.repsOnly,
@@ -30,6 +32,8 @@ void main() {
 
     test('request JSON uses shared exercise type wire names', () {
       const row = WorkoutSetRowRequest(
+        id: 'row-1',
+        exerciseId: 'exercise-1',
         exerciseOrder: 1,
         setIndex: 1,
         exerciseName: 'Bench press',
@@ -46,6 +50,8 @@ void main() {
         'name': 'Push A',
         'rows': [
           {
+            'id': 'row-1',
+            'exerciseId': 'exercise-1',
             'exerciseOrder': 1,
             'setIndex': 1,
             'exerciseName': 'Bench press',
@@ -59,7 +65,9 @@ void main() {
     });
 
     test('parses trainee assigned workout set response', () {
-      final assigned = TraineeAssignedWorkoutSet.fromJson(_traineeAssignedJson());
+      final assigned = TraineeAssignedWorkoutSet.fromJson(
+        _traineeAssignedJson(),
+      );
 
       expect(assigned.id, 'set-1');
       expect(assigned.trainerDisplayName, 'Test Trainer');
@@ -69,6 +77,34 @@ void main() {
         'Plank',
       ]);
     });
+
+    test(
+      'existing draft preserves exercise and row identifiers while added series omits row id',
+      () {
+        final rows = _rowsJson()
+            .take(1)
+            .map(WorkoutSetRow.fromJson)
+            .toList(growable: false);
+        final draft = WorkoutSetDraftExercise.fromRows(1, rows);
+        final expanded = WorkoutSetDraftExercise(
+          draftId: draft.draftId,
+          exerciseId: draft.exerciseId,
+          rowIds: draft.rowIds,
+          name: draft.name,
+          exerciseType: draft.exerciseType,
+          sets: 2,
+          reps: draft.reps,
+          weight: draft.weight,
+        );
+
+        final requests = expanded.toRows(1);
+
+        expect(requests[0].id, 'row-1');
+        expect(requests[0].exerciseId, 'exercise-1');
+        expect(requests[1].id, isNull);
+        expect(requests[1].exerciseId, 'exercise-1');
+      },
+    );
   });
 }
 
@@ -105,6 +141,7 @@ List<Map<String, Object?>> _rowsJson() {
   return [
     {
       'id': 'row-1',
+      'exerciseId': 'exercise-1',
       'exerciseOrder': 1,
       'setIndex': 1,
       'exerciseName': 'Bench press',
@@ -115,6 +152,7 @@ List<Map<String, Object?>> _rowsJson() {
     },
     {
       'id': 'row-2',
+      'exerciseId': 'exercise-2',
       'exerciseOrder': 2,
       'setIndex': 1,
       'exerciseName': 'Pull up',
@@ -125,6 +163,7 @@ List<Map<String, Object?>> _rowsJson() {
     },
     {
       'id': 'row-3',
+      'exerciseId': 'exercise-3',
       'exerciseOrder': 3,
       'setIndex': 1,
       'exerciseName': 'Plank',

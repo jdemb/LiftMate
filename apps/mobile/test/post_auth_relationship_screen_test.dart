@@ -13,6 +13,7 @@ import 'package:liftmate/relationships/relationship_api_client.dart';
 import 'package:liftmate/shared_sessions/shared_session_api_client.dart';
 import 'package:liftmate/shared_sessions/shared_session_models.dart';
 import 'package:liftmate/shared_sessions/shared_session_realtime_client.dart';
+import 'package:liftmate/training_history/training_history_api_client.dart';
 import 'package:liftmate/workout_sets/workout_set_api_client.dart';
 
 void main() {
@@ -79,6 +80,107 @@ void main() {
       expect(find.text('Anna Nowak'), findsWidgets);
       expect(find.text('trainee@example.test'), findsOneWidget);
       expect(find.text('Aktywna relacja'), findsOneWidget);
+    });
+
+    testWidgets('trainer history targets the selected linked trainee', (
+      tester,
+    ) async {
+      Uri? historyRequest;
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(
+                jsonEncode(_userResponse(role: 'trainer')),
+                200,
+              );
+            }
+            if (request.url.path == '/trainer/relationship') {
+              return http.Response(
+                jsonEncode({
+                  'inviteCode': '7F2K9D',
+                  'trainees': [
+                    {
+                      'id': 'trainee-1',
+                      'email': 'trainee@example.test',
+                      'displayName': 'Anna Nowak',
+                    },
+                  ],
+                }),
+                200,
+              );
+            }
+            if (request.url.path == '/training-history/sessions') {
+              historyRequest = request.url;
+              return http.Response(
+                '{"items":[],"nextCursor":null}',
+                200,
+              );
+            }
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.tap(find.text('Anna Nowak'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('trainer-open-trainee-history')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(historyRequest?.queryParameters['traineeUserId'], 'trainee-1');
+      expect(find.text('Brak ukończonych treningów.'), findsOneWidget);
+    });
+
+    testWidgets('trainee history opens from bottom navigation', (tester) async {
+      Uri? historyRequest;
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(
+                jsonEncode(
+                  _userResponse(
+                    role: 'trainee',
+                    trainerUserId: 'trainer-1',
+                  ),
+                ),
+                200,
+              );
+            }
+            if (request.url.path == '/trainee/relationship') {
+              return http.Response(
+                jsonEncode({'trainer': _trainer('Test Trainer')}),
+                200,
+              );
+            }
+            if (request.url.path == '/trainee/workout-sets') {
+              return http.Response('[]', 200);
+            }
+            if (request.url.path == '/shared-sessions/active') {
+              return http.Response('', 404);
+            }
+            if (request.url.path == '/training-history/sessions') {
+              historyRequest = request.url;
+              return http.Response(
+                '{"items":[],"nextCursor":null}',
+                200,
+              );
+            }
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+          includeSharedSessionClient: true,
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.tap(find.text('Historia'));
+      await tester.pumpAndSettle();
+
+      expect(historyRequest?.queryParameters['traineeUserId'], isNull);
+      expect(find.text('Brak ukończonych treningów.'), findsOneWidget);
     });
 
     testWidgets('trainer detail renders assigned sets from relationship summary',
@@ -880,6 +982,10 @@ Widget _testApp({
               httpClient: httpClient,
             )
           : null,
+      trainingHistoryApiClient: TrainingHistoryApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: httpClient,
+      ),
       sharedSessionRealtimeClientFactory:
           includeSharedSessionClient
           ? sharedSessionRealtimeClientFactory ?? _FakeRealtimeClient.new

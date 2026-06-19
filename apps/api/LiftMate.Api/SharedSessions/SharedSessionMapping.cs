@@ -11,6 +11,7 @@ public static class SharedSessionMapping
             session.TrainerUser?.Email ?? string.Empty,
             session.TraineeUser?.Email ?? string.Empty,
             session.WorkoutSetId,
+            session.WorkoutSetName,
             session.StartedByUserId,
             session.StartedByRole,
             session.Status,
@@ -30,6 +31,8 @@ public static class SharedSessionMapping
     {
         return new SharedSessionValueResponse(
             value.Id,
+            value.ExerciseId,
+            value.WorkoutSetRowId,
             value.ExerciseName,
             value.ExerciseType,
             value.ExerciseOrder,

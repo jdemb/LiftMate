@@ -4,6 +4,7 @@ import '../relationships/authenticated_relationship_shell.dart';
 import '../relationships/relationship_api_client.dart';
 import '../shared_sessions/shared_session_api_client.dart';
 import '../shared_sessions/shared_session_realtime_client.dart';
+import '../training_history/training_history_api_client.dart';
 import '../workout_sets/workout_set_api_client.dart';
 import 'auth_controller.dart';
 import 'auth_models.dart';
@@ -17,12 +18,7 @@ const _lmMuted = Color(0xFF969BA3);
 const _lmDim = Color(0xFF686D75);
 const _lmSuccess = Color(0xFF21C97A);
 
-enum _AuthStep {
-  welcome,
-  role,
-  login,
-  signup,
-}
+enum _AuthStep { welcome, role, login, signup }
 
 class AuthScreen extends StatefulWidget {
   AuthScreen({
@@ -30,16 +26,22 @@ class AuthScreen extends StatefulWidget {
     required this.relationshipApiClient,
     required this.workoutSetApiClient,
     SharedSessionApiClient? sharedSessionApiClient,
+    TrainingHistoryApiClient? trainingHistoryApiClient,
     SharedSessionRealtimeClientFactory? sharedSessionRealtimeClientFactory,
     super.key,
-  })  : sharedSessionApiClient = sharedSessionApiClient ?? SharedSessionApiClient(),
-        sharedSessionRealtimeClientFactory =
-            sharedSessionRealtimeClientFactory ?? _defaultSharedSessionRealtimeClientFactory;
+  }) : sharedSessionApiClient =
+           sharedSessionApiClient ?? SharedSessionApiClient(),
+       trainingHistoryApiClient =
+           trainingHistoryApiClient ?? TrainingHistoryApiClient(),
+       sharedSessionRealtimeClientFactory =
+           sharedSessionRealtimeClientFactory ??
+           _defaultSharedSessionRealtimeClientFactory;
 
   final AuthController authController;
   final RelationshipApiClient relationshipApiClient;
   final WorkoutSetApiClient workoutSetApiClient;
   final SharedSessionApiClient sharedSessionApiClient;
+  final TrainingHistoryApiClient trainingHistoryApiClient;
   final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
 
   @override
@@ -158,7 +160,9 @@ class _AuthScreenState extends State<AuthScreen> {
       _pairingError = null;
     });
 
-    final result = await widget.authController.claimTrainerInviteCode(code: code);
+    final result = await widget.authController.claimTrainerInviteCode(
+      code: code,
+    );
     if (!mounted) {
       return;
     }
@@ -221,8 +225,9 @@ class _AuthScreenState extends State<AuthScreen> {
     final state = widget.authController.state;
     final user = state.user;
     final isLoading = state.status == AuthControllerStatus.loading;
-    final errorMessage =
-        state.status == AuthControllerStatus.error ? state.message : null;
+    final errorMessage = state.status == AuthControllerStatus.error
+        ? state.message
+        : null;
     final isAuthenticated =
         state.status == AuthControllerStatus.authenticated && user != null;
 
@@ -240,6 +245,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   relationshipApiClient: widget.relationshipApiClient,
                   workoutSetApiClient: widget.workoutSetApiClient,
                   sharedSessionApiClient: widget.sharedSessionApiClient,
+                  trainingHistoryApiClient: widget.trainingHistoryApiClient,
                   sharedSessionRealtimeClientFactory:
                       widget.sharedSessionRealtimeClientFactory,
                   onLogout: _logout,
@@ -284,8 +290,10 @@ class _AuthScreenState extends State<AuthScreen> {
                       emailController: _emailController,
                       passwordController: _passwordController,
                       displayNameController: _displayNameController,
-                      onShowLogin: () => setState(() => _step = _AuthStep.login),
-                      onShowRoleSelection: () => setState(() => _step = _AuthStep.role),
+                      onShowLogin: () =>
+                          setState(() => _step = _AuthStep.login),
+                      onShowRoleSelection: () =>
+                          setState(() => _step = _AuthStep.role),
                       onBack: _backToWelcome,
                       onRoleSelected: _selectRole,
                       onContinueRole: _continueToSignup,
@@ -307,9 +315,7 @@ SharedSessionRealtimeClient _defaultSharedSessionRealtimeClientFactory() {
 }
 
 class _GradientScaffold extends StatelessWidget {
-  const _GradientScaffold({
-    required this.child,
-  });
+  const _GradientScaffold({required this.child});
 
   final Widget child;
 
@@ -320,10 +326,7 @@ class _GradientScaffold extends StatelessWidget {
         gradient: RadialGradient(
           center: Alignment(0.55, -0.92),
           radius: 0.92,
-          colors: [
-            Color(0x383A82F6),
-            _lmBg,
-          ],
+          colors: [Color(0x383A82F6), _lmBg],
           stops: [0, 0.72],
         ),
       ),
@@ -373,36 +376,36 @@ class _OnboardingPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (step) {
       _AuthStep.welcome => _WelcomeStep(
-          isLoading: isLoading,
-          onCreateAccount: onShowRoleSelection,
-          onLogin: onShowLogin,
-        ),
+        isLoading: isLoading,
+        onCreateAccount: onShowRoleSelection,
+        onLogin: onShowLogin,
+      ),
       _AuthStep.role => _RoleStep(
-          selectedRole: selectedRole,
-          onBack: onBack,
-          onRoleSelected: onRoleSelected,
-          onContinue: onContinueRole,
-        ),
+        selectedRole: selectedRole,
+        onBack: onBack,
+        onRoleSelected: onRoleSelected,
+        onContinue: onContinueRole,
+      ),
       _AuthStep.login => _LoginForm(
-          formKey: loginFormKey,
-          isLoading: isLoading,
-          emailController: emailController,
-          passwordController: passwordController,
-          errorMessage: errorMessage,
-          onBack: onBack,
-          onLogin: onLogin,
-        ),
+        formKey: loginFormKey,
+        isLoading: isLoading,
+        emailController: emailController,
+        passwordController: passwordController,
+        errorMessage: errorMessage,
+        onBack: onBack,
+        onLogin: onLogin,
+      ),
       _AuthStep.signup => _SignupForm(
-          formKey: signupFormKey,
-          role: selectedRole,
-          isLoading: isLoading,
-          emailController: emailController,
-          passwordController: passwordController,
-          displayNameController: displayNameController,
-          errorMessage: errorMessage,
-          onBack: onBack,
-          onRegister: onRegister,
-        ),
+        formKey: signupFormKey,
+        role: selectedRole,
+        isLoading: isLoading,
+        emailController: emailController,
+        passwordController: passwordController,
+        displayNameController: displayNameController,
+        errorMessage: errorMessage,
+        onBack: onBack,
+        onRegister: onRegister,
+      ),
     };
   }
 }
@@ -796,9 +799,7 @@ class _TraineePairPanel extends StatelessWidget {
 }
 
 class _LiftMateLogo extends StatelessWidget {
-  const _LiftMateLogo({
-    this.size = 46,
-  });
+  const _LiftMateLogo({this.size = 46});
 
   final double size;
 
@@ -842,10 +843,7 @@ class _LiftMateLogo extends StatelessWidget {
 }
 
 class _LogoBar extends StatelessWidget {
-  const _LogoBar({
-    required this.width,
-    required this.height,
-  });
+  const _LogoBar({required this.width, required this.height});
 
   final double width;
   final double height;
@@ -864,10 +862,7 @@ class _LogoBar extends StatelessWidget {
 }
 
 class _ScreenTitle extends StatelessWidget {
-  const _ScreenTitle(
-    this.title, {
-    this.subtitle,
-  });
+  const _ScreenTitle(this.title, {this.subtitle});
 
   final String title;
   final String? subtitle;
@@ -978,7 +973,9 @@ class _RoleCard extends StatelessWidget {
                 color: selected ? _lmBlue : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: selected ? _lmBlue : Colors.white.withValues(alpha: 0.22),
+                  color: selected
+                      ? _lmBlue
+                      : Colors.white.withValues(alpha: 0.22),
                   width: 2,
                 ),
               ),
@@ -1046,10 +1043,7 @@ class _DesignedField extends StatelessWidget {
 }
 
 class _TrainerCodeInput extends StatelessWidget {
-  const _TrainerCodeInput({
-    required this.controller,
-    required this.onChanged,
-  });
+  const _TrainerCodeInput({required this.controller, required this.onChanged});
 
   final TextEditingController controller;
   final VoidCallback onChanged;
@@ -1108,9 +1102,7 @@ class _TrainerCodeInput extends StatelessWidget {
 }
 
 class _CodeBox extends StatelessWidget {
-  const _CodeBox({
-    required this.ch,
-  });
+  const _CodeBox({required this.ch});
 
   final String ch;
 
@@ -1140,10 +1132,7 @@ class _CodeBox extends StatelessWidget {
 }
 
 class _InviteCodeCard extends StatelessWidget {
-  const _InviteCodeCard({
-    required this.isLoading,
-    this.code,
-  });
+  const _InviteCodeCard({required this.isLoading, this.code});
 
   final bool isLoading;
   final String? code;
@@ -1197,9 +1186,7 @@ class _InviteCodeCard extends StatelessWidget {
 }
 
 class _InfoPanel extends StatelessWidget {
-  const _InfoPanel({
-    required this.children,
-  });
+  const _InfoPanel({required this.children});
 
   final List<Widget> children;
 
@@ -1222,9 +1209,7 @@ class _InfoPanel extends StatelessWidget {
 
 // ignore: unused_element
 class _HeaderRow extends StatelessWidget {
-  const _HeaderRow({
-    required this.user,
-  });
+  const _HeaderRow({required this.user});
 
   final AuthUser user;
 
@@ -1304,36 +1289,25 @@ class _PrimaryActionButton extends StatelessWidget {
               ]
             : null,
       ),
-      child: FilledButton(
-        onPressed: onPressed,
-        child: Text(label),
-      ),
+      child: FilledButton(onPressed: onPressed, child: Text(label)),
     );
   }
 }
 
 class _SecondaryActionButton extends StatelessWidget {
-  const _SecondaryActionButton({
-    required this.label,
-    required this.onPressed,
-  });
+  const _SecondaryActionButton({required this.label, required this.onPressed});
 
   final String label;
   final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: onPressed,
-      child: Text(label),
-    );
+    return OutlinedButton(onPressed: onPressed, child: Text(label));
   }
 }
 
 class _BackButton extends StatelessWidget {
-  const _BackButton({
-    required this.onPressed,
-  });
+  const _BackButton({required this.onPressed});
 
   final VoidCallback onPressed;
 
@@ -1350,10 +1324,7 @@ class _BackButton extends StatelessWidget {
 }
 
 class _SuccessHint extends StatelessWidget {
-  const _SuccessHint({
-    required this.visible,
-    required this.text,
-  });
+  const _SuccessHint({required this.visible, required this.text});
 
   final bool visible;
   final String text;
@@ -1382,9 +1353,7 @@ class _SuccessHint extends StatelessWidget {
 }
 
 class _ErrorText extends StatelessWidget {
-  const _ErrorText({
-    required this.message,
-  });
+  const _ErrorText({required this.message});
 
   final String? message;
 

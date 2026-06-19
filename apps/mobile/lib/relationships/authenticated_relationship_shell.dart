@@ -6,6 +6,9 @@ import '../shared_sessions/shared_session_api_client.dart';
 import '../shared_sessions/shared_session_controller.dart';
 import '../shared_sessions/live_session_screen.dart';
 import '../shared_sessions/shared_session_realtime_client.dart';
+import '../training_history/training_history_api_client.dart';
+import '../training_history/training_history_controller.dart';
+import '../training_history/training_history_flow.dart';
 import '../workout_sets/assign_workout_set_screen.dart';
 import '../workout_sets/workout_set_api_client.dart';
 import '../workout_sets/workout_set_builder_screen.dart';
@@ -26,6 +29,7 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
     required this.relationshipApiClient,
     required this.workoutSetApiClient,
     required this.sharedSessionApiClient,
+    required this.trainingHistoryApiClient,
     required this.sharedSessionRealtimeClientFactory,
     required this.onLogout,
     super.key,
@@ -36,6 +40,7 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
   final RelationshipApiClient relationshipApiClient;
   final WorkoutSetApiClient workoutSetApiClient;
   final SharedSessionApiClient sharedSessionApiClient;
+  final TrainingHistoryApiClient trainingHistoryApiClient;
   final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
   final Future<void> Function() onLogout;
 
@@ -48,14 +53,17 @@ class _AuthenticatedRelationshipShellState
     extends State<AuthenticatedRelationshipShell> {
   late final RelationshipController _relationshipController;
   late final WorkoutSetController _workoutSetController;
-late final SharedSessionController _sharedSessionController;
-TrainerTraineeSummary? _selectedTrainee;
-String? _openingTraineeId;
-_TrainerView _trainerView = _TrainerView.dashboard;
+  late final SharedSessionController _sharedSessionController;
+  late final TrainingHistoryController _selfHistoryController;
+  TrainingHistoryController? _trainerHistoryController;
+  TrainerTraineeSummary? _selectedTrainee;
+  String? _openingTraineeId;
+  _TrainerView _trainerView = _TrainerView.dashboard;
   WorkoutSetDetail? _builderDetail;
   String? _loadedTraineeWorkoutSetsForUserId;
   String? _loadedTraineeActiveSessionForUserId;
   bool _showTraineeLive = false;
+  bool _showTraineeHistory = false;
 
   @override
   void initState() {
@@ -74,6 +82,10 @@ _TrainerView _trainerView = _TrainerView.dashboard;
       realtimeClientFactory: widget.sharedSessionRealtimeClientFactory,
       onTrainerSessionInvalidated: _relationshipController.reload,
     );
+    _selfHistoryController = TrainingHistoryController(
+      apiClient: widget.trainingHistoryApiClient,
+      accessTokenProvider: () => widget.authController.tokens?.accessToken,
+    );
     _relationshipController.loadForUser(widget.user);
   }
 
@@ -82,13 +94,16 @@ _TrainerView _trainerView = _TrainerView.dashboard;
     super.didUpdateWidget(oldWidget);
     if (oldWidget.user.id != widget.user.id ||
         oldWidget.user.trainerUserId != widget.user.trainerUserId) {
-_selectedTrainee = null;
-_openingTraineeId = null;
-_trainerView = _TrainerView.dashboard;
+      _selectedTrainee = null;
+      _openingTraineeId = null;
+      _trainerView = _TrainerView.dashboard;
       _builderDetail = null;
       _loadedTraineeWorkoutSetsForUserId = null;
       _loadedTraineeActiveSessionForUserId = null;
       _showTraineeLive = false;
+      _showTraineeHistory = false;
+      _trainerHistoryController?.dispose();
+      _trainerHistoryController = null;
       _relationshipController.loadForUser(widget.user);
     }
   }
@@ -98,6 +113,8 @@ _trainerView = _TrainerView.dashboard;
     _relationshipController.dispose();
     _workoutSetController.dispose();
     _sharedSessionController.dispose();
+    _selfHistoryController.dispose();
+    _trainerHistoryController?.dispose();
     super.dispose();
   }
 
@@ -122,18 +139,33 @@ _trainerView = _TrainerView.dashboard;
             );
           }
 
+          if (_trainerView == _TrainerView.history &&
+              _trainerHistoryController != null) {
+            return TrainingHistoryFlow(
+              controller: _trainerHistoryController!,
+              onClose: () {
+                _trainerHistoryController?.dispose();
+                _trainerHistoryController = null;
+                setState(() => _trainerView = _TrainerView.dashboard);
+              },
+            );
+          }
+
           if (selected != null) {
             return TrainerTraineeDetailScreen(
               trainee: selected,
               onBack: () => setState(() => _selectedTrainee = null),
               onLogout: widget.onLogout,
               onOpenWorkoutSets: _openWorkoutSetsFromDetail,
+              onOpenHistory: () => _openTrainerHistory(selected),
               assignedSets: selected.assignedWorkoutSets,
               onStartSession: (set) => _startTrainerSession(selected, set),
               onJoinActiveSession: selected.activeSession == null
                   ? null
-                  : () => _joinTrainerSession(selected.activeSession!.sessionId),
-              sessionErrorMessage: _sharedSessionController.state.status ==
+                  : () =>
+                        _joinTrainerSession(selected.activeSession!.sessionId),
+              sessionErrorMessage:
+                  _sharedSessionController.state.status ==
                       SharedSessionControllerStatus.error
                   ? _sharedSessionController.state.message
                   : null,
@@ -144,7 +176,8 @@ _trainerView = _TrainerView.dashboard;
             return TrainerWorkoutSetsScreen(
               controller: _workoutSetController,
               onReload: _loadWorkoutSets,
-              onOpenDashboard: () => setState(() => _trainerView = _TrainerView.dashboard),
+              onOpenDashboard: () =>
+                  setState(() => _trainerView = _TrainerView.dashboard),
               onCreateSet: () => setState(() {
                 _builderDetail = null;
                 _trainerView = _TrainerView.builder;
@@ -183,12 +216,12 @@ _trainerView = _TrainerView.dashboard;
             );
           }
 
-return TrainerDashboardScreen(
-user: widget.user,
-state: state,
-openingTraineeId: _openingTraineeId,
-onOpenTrainee: _openTraineeDetail,
-onOpenWorkoutSets: () {
+          return TrainerDashboardScreen(
+            user: widget.user,
+            state: state,
+            openingTraineeId: _openingTraineeId,
+            onOpenTrainee: _openTraineeDetail,
+            onOpenWorkoutSets: () {
               setState(() => _trainerView = _TrainerView.sets);
               _loadWorkoutSets();
             },
@@ -198,6 +231,12 @@ onOpenWorkoutSets: () {
         }
 
         final traineeTrainer = state.traineeSummary?.trainer;
+        if (_showTraineeHistory) {
+          return TrainingHistoryFlow(
+            controller: _selfHistoryController,
+            onClose: () => setState(() => _showTraineeHistory = false),
+          );
+        }
         if (_showTraineeLive) {
           final session = _sharedSessionController.state.session;
           return LiveSessionScreen(
@@ -238,64 +277,86 @@ onOpenWorkoutSets: () {
           onClaimCode: _relationshipController.claimTrainerCode,
           onReload: _relationshipController.reload,
           onLogout: widget.onLogout,
-          workoutSetController: traineeTrainer == null ? null : _workoutSetController,
-          sharedSessionController:
-              traineeTrainer == null ? null : _sharedSessionController,
+          workoutSetController: traineeTrainer == null
+              ? null
+              : _workoutSetController,
+          sharedSessionController: traineeTrainer == null
+              ? null
+              : _sharedSessionController,
           onStartWorkout: _startTraineeSession,
           onJoinActiveWorkout: _joinTraineeActiveSession,
+          onOpenHistory: _openSelfHistory,
         );
       },
     );
   }
 
-Future<void> _loadWorkoutSets() {
-return _workoutSetController.loadForUser(
-widget.user,
-trainerSummary: _relationshipController.state.trainerSummary,
-);
-}
+  Future<void> _loadWorkoutSets() {
+    return _workoutSetController.loadForUser(
+      widget.user,
+      trainerSummary: _relationshipController.state.trainerSummary,
+    );
+  }
 
-Future<void> _openTraineeDetail(TrainerTraineeSummary trainee) async {
-if (_openingTraineeId != null) {
-return;
-}
+  Future<void> _openTraineeDetail(TrainerTraineeSummary trainee) async {
+    if (_openingTraineeId != null) {
+      return;
+    }
 
-setState(() => _openingTraineeId = trainee.id);
-await _relationshipController.reload();
-if (!mounted) {
-return;
-}
+    setState(() => _openingTraineeId = trainee.id);
+    await _relationshipController.reload();
+    if (!mounted) {
+      return;
+    }
 
-if (_relationshipController.state.status != RelationshipControllerStatus.loaded) {
-setState(() => _openingTraineeId = null);
-return;
-}
+    if (_relationshipController.state.status !=
+        RelationshipControllerStatus.loaded) {
+      setState(() => _openingTraineeId = null);
+      return;
+    }
 
-final refreshedTrainees =
-_relationshipController.state.trainerSummary?.trainees ??
-const <TrainerTraineeSummary>[];
-TrainerTraineeSummary? refreshed;
-for (final candidate in refreshedTrainees) {
-if (candidate.id == trainee.id) {
-refreshed = candidate;
-break;
-}
-}
+    final refreshedTrainees =
+        _relationshipController.state.trainerSummary?.trainees ??
+        const <TrainerTraineeSummary>[];
+    TrainerTraineeSummary? refreshed;
+    for (final candidate in refreshedTrainees) {
+      if (candidate.id == trainee.id) {
+        refreshed = candidate;
+        break;
+      }
+    }
 
-setState(() {
-_openingTraineeId = null;
-if (refreshed != null) {
-_selectedTrainee = refreshed;
-}
-});
-}
+    setState(() {
+      _openingTraineeId = null;
+      if (refreshed != null) {
+        _selectedTrainee = refreshed;
+      }
+    });
+  }
 
-void _openWorkoutSetsFromDetail() {
+  void _openWorkoutSetsFromDetail() {
     setState(() {
       _selectedTrainee = null;
       _trainerView = _TrainerView.sets;
     });
     _loadWorkoutSets();
+  }
+
+  void _openSelfHistory() {
+    setState(() => _showTraineeHistory = true);
+    _selfHistoryController.loadInitial();
+  }
+
+  void _openTrainerHistory(TrainerTraineeSummary trainee) {
+    _trainerHistoryController?.dispose();
+    final controller = TrainingHistoryController(
+      apiClient: widget.trainingHistoryApiClient,
+      accessTokenProvider: () => widget.authController.tokens?.accessToken,
+      traineeUserId: trainee.id,
+    );
+    _trainerHistoryController = controller;
+    setState(() => _trainerView = _TrainerView.history);
+    controller.loadInitial();
   }
 
   Future<void> _openBuilder(WorkoutSetSummary summary) async {
@@ -393,6 +454,9 @@ void _openWorkoutSetsFromDetail() {
   }
 
   Future<void> _handleTrainerSessionClosed() async {
+    final saved =
+        _sharedSessionController.state.completionOutcome ==
+        SharedSessionCompletionOutcome.savedForNextSession;
     _sharedSessionController.clearSession();
     await _relationshipController.reload();
     if (!mounted) {
@@ -403,9 +467,15 @@ void _openWorkoutSetsFromDetail() {
       _selectedTrainee = null;
       _trainerView = _TrainerView.dashboard;
     });
+    if (saved) {
+      _showProgressSavedConfirmation();
+    }
   }
 
   Future<void> _handleTraineeSessionClosed() async {
+    final saved =
+        _sharedSessionController.state.completionOutcome ==
+        SharedSessionCompletionOutcome.savedForNextSession;
     _sharedSessionController.clearSession();
     await _relationshipController.reload();
     if (!mounted) {
@@ -413,13 +483,16 @@ void _openWorkoutSetsFromDetail() {
     }
 
     setState(() => _showTraineeLive = false);
+    if (saved) {
+      _showProgressSavedConfirmation();
+    }
+  }
+
+  void _showProgressSavedConfirmation() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Zapisano wartości na następny trening.')),
+    );
   }
 }
 
-enum _TrainerView {
-  dashboard,
-  sets,
-  builder,
-  assign,
-  live,
-}
+enum _TrainerView { dashboard, sets, builder, assign, live, history }

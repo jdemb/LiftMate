@@ -83,6 +83,7 @@ class SharedSession {
     required this.values,
     this.closedAt,
     this.workoutSetId,
+    this.workoutSetName = 'Trening',
     this.startedByUserId = '',
     this.startedByRole = SharedSessionStartRole.trainer,
   });
@@ -93,6 +94,7 @@ class SharedSession {
   final String trainerEmail;
   final String traineeEmail;
   final String? workoutSetId;
+  final String workoutSetName;
   final String startedByUserId;
   final SharedSessionStartRole startedByRole;
   final SharedSessionStatus status;
@@ -104,7 +106,8 @@ class SharedSession {
 
   bool get isTrainerLed => startedByRole == SharedSessionStartRole.trainer;
 
-  bool get isTraineeSelfStarted => startedByRole == SharedSessionStartRole.trainee;
+  bool get isTraineeSelfStarted =>
+      startedByRole == SharedSessionStartRole.trainee;
 
   factory SharedSession.fromJson(Map<String, dynamic> json) {
     final id = json['id'];
@@ -113,8 +116,11 @@ class SharedSession {
     final trainerEmail = json['trainerEmail'];
     final traineeEmail = json['traineeEmail'];
     final workoutSetId = json['workoutSetId'];
+    final workoutSetName = json['workoutSetName'] ?? 'Trening';
     final startedByUserId = json['startedByUserId'];
-    final startedByRole = SharedSessionStartRole.tryParse(json['startedByRole']);
+    final startedByRole = SharedSessionStartRole.tryParse(
+      json['startedByRole'],
+    );
     final status = SharedSessionStatus.tryParse(json['status']);
     final version = json['version'];
     final createdAt = json['createdAt'];
@@ -128,6 +134,7 @@ class SharedSession {
         trainerEmail is! String ||
         traineeEmail is! String ||
         (workoutSetId != null && workoutSetId is! String) ||
+        workoutSetName is! String ||
         startedByUserId is! String ||
         startedByRole == null ||
         status == null ||
@@ -146,6 +153,7 @@ class SharedSession {
       trainerEmail: trainerEmail,
       traineeEmail: traineeEmail,
       workoutSetId: workoutSetId,
+      workoutSetName: workoutSetName,
       startedByUserId: startedByUserId,
       startedByRole: startedByRole,
       status: status,
@@ -168,6 +176,8 @@ class SharedSession {
 class SharedSessionValue {
   const SharedSessionValue({
     required this.id,
+    this.exerciseId,
+    this.workoutSetRowId,
     required this.exerciseName,
     required this.exerciseType,
     required this.setIndex,
@@ -182,6 +192,8 @@ class SharedSessionValue {
   });
 
   final String id;
+  final String? exerciseId;
+  final String? workoutSetRowId;
   final String exerciseName;
   final ExerciseValueType exerciseType;
   final int exerciseOrder;
@@ -196,6 +208,8 @@ class SharedSessionValue {
 
   factory SharedSessionValue.fromJson(Map<String, dynamic> json) {
     final id = json['id'];
+    final exerciseId = json['exerciseId'];
+    final workoutSetRowId = json['workoutSetRowId'];
     final exerciseName = json['exerciseName'];
     final exerciseType = ExerciseValueType.tryParse(json['exerciseType']);
     final exerciseOrder = json['exerciseOrder'];
@@ -209,6 +223,8 @@ class SharedSessionValue {
     final updatedAt = json['updatedAt'];
 
     if (id is! String ||
+        (exerciseId != null && exerciseId is! String) ||
+        (workoutSetRowId != null && workoutSetRowId is! String) ||
         exerciseName is! String ||
         exerciseType == null ||
         exerciseOrder is! int ||
@@ -220,11 +236,15 @@ class SharedSessionValue {
         (completedAt != null && completedAt is! String) ||
         (updatedByUserId != null && updatedByUserId is! String) ||
         (updatedAt != null && updatedAt is! String)) {
-      throw const FormatException('Invalid shared session value response body.');
+      throw const FormatException(
+        'Invalid shared session value response body.',
+      );
     }
 
     return SharedSessionValue(
       id: id,
+      exerciseId: exerciseId,
+      workoutSetRowId: workoutSetRowId,
       exerciseName: exerciseName,
       exerciseType: exerciseType,
       exerciseOrder: exerciseOrder,
@@ -233,7 +253,9 @@ class SharedSessionValue {
       weight: weight?.toDouble(),
       seconds: seconds,
       isDone: isDone,
-      completedAt: completedAt == null ? null : DateTime.parse(completedAt).toUtc(),
+      completedAt: completedAt == null
+          ? null
+          : DateTime.parse(completedAt).toUtc(),
       updatedByUserId: updatedByUserId,
       updatedAt: updatedAt == null ? null : DateTime.parse(updatedAt).toUtc(),
     );

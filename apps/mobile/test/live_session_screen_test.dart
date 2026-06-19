@@ -15,8 +15,9 @@ import 'package:liftmate/shared_sessions/shared_session_models.dart';
 import 'package:liftmate/shared_sessions/shared_session_realtime_client.dart';
 
 void main() {
-  testWidgets('trainer live screen renders editable rows and sends updates',
-      (tester) async {
+  testWidgets('trainer live screen renders editable rows and sends updates', (
+    tester,
+  ) async {
     final authController = await _authController();
     final apiClient = _FakeSharedSessionApiClient();
     final controller = SharedSessionController(
@@ -30,15 +31,17 @@ void main() {
       sessionId: 'session-1',
     );
 
-    await tester.pumpWidget(MaterialApp(
-      theme: _liveTestTheme(),
-      home: LiveSessionScreen(
-        user: authController.state.user!,
-        controller: controller,
-        editable: true,
-        onBack: () {},
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _liveTestTheme(),
+        home: LiveSessionScreen(
+          user: authController.state.user!,
+          controller: controller,
+          editable: true,
+          onBack: () {},
+        ),
       ),
-    ));
+    );
 
     expect(find.text('trainee@example.test'), findsOneWidget);
     expect(find.text('Bench press'), findsOneWidget);
@@ -56,7 +59,9 @@ void main() {
     expect(apiClient.updatedValue?.reps, 7);
   });
 
-  testWidgets('finish button closes session and notifies shell', (tester) async {
+  testWidgets('finish button closes session and notifies shell', (
+    tester,
+  ) async {
     final authController = await _authController();
     final apiClient = _FakeSharedSessionApiClient();
     final controller = SharedSessionController(
@@ -71,16 +76,18 @@ void main() {
     );
     var closed = false;
 
-    await tester.pumpWidget(MaterialApp(
-      theme: _liveTestTheme(),
-      home: LiveSessionScreen(
-        user: authController.state.user!,
-        controller: controller,
-        editable: true,
-        onBack: () {},
-        onSessionClosed: () async => closed = true,
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _liveTestTheme(),
+        home: LiveSessionScreen(
+          user: authController.state.user!,
+          controller: controller,
+          editable: true,
+          onBack: () {},
+          onSessionClosed: () async => closed = true,
+        ),
       ),
-    ));
+    );
 
     await tester.tap(find.text('Zakończ i zapisz trening'));
     await tester.pumpAndSettle();
@@ -89,8 +96,9 @@ void main() {
     expect(closed, isTrue);
   });
 
-  testWidgets('editable live hierarchy is available at design phone size',
-      (tester) async {
+  testWidgets('editable live hierarchy is available at design phone size', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(412, 892);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -111,15 +119,17 @@ void main() {
       sessionId: 'session-1',
     );
 
-    await tester.pumpWidget(MaterialApp(
-      theme: _liveTestTheme(),
-      home: LiveSessionScreen(
-        user: authController.state.user!,
-        controller: controller,
-        editable: true,
-        onBack: () {},
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _liveTestTheme(),
+        home: LiveSessionScreen(
+          user: authController.state.user!,
+          controller: controller,
+          editable: true,
+          onBack: () {},
+        ),
       ),
-    ));
+    );
 
     expect(find.textContaining('Ćwiczenie 1 / 2'), findsOneWidget);
     expect(find.text('Bench press'), findsOneWidget);
@@ -144,6 +154,60 @@ void main() {
     expect(find.text('Plank'), findsOneWidget);
     expect(find.text('Zakończ i zapisz trening'), findsOneWidget);
   });
+
+  testWidgets(
+    'read-only session keeps content visible while rejoin banner retries',
+    (tester) async {
+      final authController = await _authController(role: 'trainee');
+      final realtimeClient = _FakeRealtimeClient();
+      final controller = SharedSessionController(
+        apiClient: _FakeSharedSessionApiClient(),
+        authController: authController,
+        realtimeClientFactory: () => realtimeClient,
+      );
+      addTearDown(controller.dispose);
+      await controller.loadById(
+        user: authController.state.user!,
+        sessionId: 'session-1',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: _liveTestTheme(),
+          home: LiveSessionScreen(
+            user: authController.state.user!,
+            controller: controller,
+            editable: false,
+            trainerDisplayName: 'Test Trainer',
+            onBack: () {},
+          ),
+        ),
+      );
+
+      realtimeClient.joinError = StateError('group unavailable');
+      realtimeClient.emitStatus(SharedSessionConnectionStatus.reconnecting);
+      realtimeClient.emitStatus(SharedSessionConnectionStatus.connected);
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Bench press'), findsOneWidget);
+      expect(find.text('40 kg'), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('realtime-error-banner')),
+        findsOneWidget,
+      );
+
+      realtimeClient.joinError = null;
+      realtimeClient.emitStatus(SharedSessionConnectionStatus.reconnecting);
+      realtimeClient.emitStatus(SharedSessionConnectionStatus.connected);
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Bench press'), findsOneWidget);
+      expect(find.byKey(const ValueKey('realtime-error-banner')), findsNothing);
+    },
+  );
 }
 
 ThemeData _liveTestTheme() {
@@ -151,41 +215,42 @@ ThemeData _liveTestTheme() {
     useMaterial3: true,
     brightness: Brightness.dark,
     filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(54),
-      ),
+      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54)),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(54),
-      ),
+      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(54)),
     ),
   );
 }
 
-Future<AuthController> _authController() async {
+Future<AuthController> _authController({String role = 'trainer'}) async {
   final authController = AuthController(
     authApiClient: AuthApiClient(
       baseUrl: 'https://api.example.test',
       httpClient: MockClient((request) async {
-        return http.Response(jsonEncode({
-          'accessToken': 'access-token',
-          'refreshToken': 'refresh-token',
-          'expiresAt': '2026-06-17T12:00:00Z',
-          'user': {
-            'id': 'trainer-1',
-            'email': 'trainer@example.test',
-            'role': 'trainer',
-            'displayName': 'Test Trainer',
-            'trainerUserId': null,
-          },
-        }), 200);
+        return http.Response(
+          jsonEncode({
+            'accessToken': 'access-token',
+            'refreshToken': 'refresh-token',
+            'expiresAt': '2026-06-17T12:00:00Z',
+            'user': {
+              'id': '$role-1',
+              'email': '$role@example.test',
+              'role': role,
+              'displayName': role == 'trainer'
+                  ? 'Test Trainer'
+                  : 'Test Trainee',
+              'trainerUserId': role == 'trainee' ? 'trainer-1' : null,
+            },
+          }),
+          200,
+        );
       }),
     ),
     tokenStore: _InMemoryTokenStore(),
   );
   await authController.login(
-    email: 'trainer@example.test',
+    email: '$role@example.test',
     password: 'Password123!',
   );
   return authController;
@@ -262,8 +327,8 @@ SharedSession _multiExerciseSession() {
 
 class _FakeSharedSessionApiClient extends SharedSessionApiClient {
   _FakeSharedSessionApiClient({SharedSession? session})
-      : _currentSession = session ?? _session(),
-        super(baseUrl: 'https://api.example.test');
+    : _currentSession = session ?? _session(),
+      super(baseUrl: 'https://api.example.test');
 
   SharedSession _currentSession;
   UpdateSharedSessionValue? updatedValue;
@@ -313,14 +378,17 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
 
 class _FakeRealtimeClient implements SharedSessionRealtimeClient {
   final _updatesController = StreamController<SharedSession>.broadcast();
-  final _statusController = StreamController<SharedSessionConnectionStatus>.broadcast();
+  final _statusController =
+      StreamController<SharedSessionConnectionStatus>.broadcast();
   final _errorsController = StreamController<String>.broadcast();
+  Object? joinError;
 
   @override
   Stream<SharedSession> get updates => _updatesController.stream;
 
   @override
-  Stream<SharedSessionConnectionStatus> get connectionStatus => _statusController.stream;
+  Stream<SharedSessionConnectionStatus> get connectionStatus =>
+      _statusController.stream;
 
   @override
   Stream<String> get errors => _errorsController.stream;
@@ -329,7 +397,17 @@ class _FakeRealtimeClient implements SharedSessionRealtimeClient {
   Future<void> connect({required String accessToken}) async {}
 
   @override
-  Future<void> joinSession({required String sessionId}) async {}
+  Future<void> joinSession({required String sessionId}) async {
+    final error = joinError;
+    if (error != null) {
+      _errorsController.add('Realtime join failed: $error');
+      throw error;
+    }
+  }
+
+  void emitStatus(SharedSessionConnectionStatus status) {
+    _statusController.add(status);
+  }
 
   @override
   Future<void> disconnect() async {}

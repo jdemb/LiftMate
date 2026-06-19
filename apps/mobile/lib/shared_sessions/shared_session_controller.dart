@@ -8,13 +8,7 @@ import 'shared_session_api_client.dart';
 import 'shared_session_models.dart';
 import 'shared_session_realtime_client.dart';
 
-enum SharedSessionControllerStatus {
-  idle,
-  loading,
-  loaded,
-  saving,
-  error,
-}
+enum SharedSessionControllerStatus { idle, loading, loaded, saving, error }
 
 class SharedSessionControllerState {
   const SharedSessionControllerState({
@@ -26,7 +20,7 @@ class SharedSessionControllerState {
   });
 
   const SharedSessionControllerState.idle()
-      : this(status: SharedSessionControllerStatus.idle);
+    : this(status: SharedSessionControllerStatus.idle);
 
   final SharedSessionControllerStatus status;
   final AuthUser? user;
@@ -60,9 +54,12 @@ class SharedSessionController extends ChangeNotifier {
     required SharedSessionRealtimeClientFactory realtimeClientFactory,
     this.onTrainerSessionInvalidated,
   }) : _realtimeClient = realtimeClientFactory() {
-    _updatesSubscription = _realtimeClient.updates.listen(_handleRealtimeSession);
-    _connectionSubscription =
-        _realtimeClient.connectionStatus.listen(_handleConnectionStatus);
+    _updatesSubscription = _realtimeClient.updates.listen(
+      _handleRealtimeSession,
+    );
+    _connectionSubscription = _realtimeClient.connectionStatus.listen(
+      _handleConnectionStatus,
+    );
     _errorsSubscription = _realtimeClient.errors.listen(_handleRealtimeError);
   }
 
@@ -72,10 +69,13 @@ class SharedSessionController extends ChangeNotifier {
   final VoidCallback? onTrainerSessionInvalidated;
 
   late final StreamSubscription<SharedSession> _updatesSubscription;
-  late final StreamSubscription<SharedSessionConnectionStatus> _connectionSubscription;
+  late final StreamSubscription<SharedSessionConnectionStatus>
+  _connectionSubscription;
   late final StreamSubscription<String> _errorsSubscription;
 
-  SharedSessionControllerState _state = const SharedSessionControllerState.idle();
+  SharedSessionControllerState _state =
+      const SharedSessionControllerState.idle();
+  bool _wasReconnecting = false;
 
   SharedSessionControllerState get state => _state;
 
@@ -87,12 +87,14 @@ class SharedSessionController extends ChangeNotifier {
 
   Future<void> loadActive(AuthUser user) async {
     final accessToken = authController.tokens?.accessToken;
-    _setState(SharedSessionControllerState(
-      status: SharedSessionControllerStatus.loading,
-      user: user,
-      session: _state.session,
-      connectionStatus: _state.connectionStatus,
-    ));
+    _setState(
+      SharedSessionControllerState(
+        status: SharedSessionControllerStatus.loading,
+        user: user,
+        session: _state.session,
+        connectionStatus: _state.connectionStatus,
+      ),
+    );
 
     if (accessToken == null) {
       _setError(user, 'User is not authenticated.');
@@ -101,11 +103,13 @@ class SharedSessionController extends ChangeNotifier {
 
     final result = await apiClient.getActive(accessToken: accessToken);
     if (result.status == SharedSessionApiStatus.notFound) {
-      _setState(SharedSessionControllerState(
-        status: SharedSessionControllerStatus.loaded,
-        user: user,
-        connectionStatus: _state.connectionStatus,
-      ));
+      _setState(
+        SharedSessionControllerState(
+          status: SharedSessionControllerStatus.loaded,
+          user: user,
+          connectionStatus: _state.connectionStatus,
+        ),
+      );
       await _connect(accessToken);
       return;
     }
@@ -118,12 +122,14 @@ class SharedSessionController extends ChangeNotifier {
     required String sessionId,
   }) async {
     final accessToken = authController.tokens?.accessToken;
-    _setState(_state.copyWith(
-      status: SharedSessionControllerStatus.loading,
-      user: user,
-      clearMessage: true,
-      clearSession: true,
-    ));
+    _setState(
+      _state.copyWith(
+        status: SharedSessionControllerStatus.loading,
+        user: user,
+        clearMessage: true,
+        clearSession: true,
+      ),
+    );
 
     if (accessToken == null) {
       _setError(user, 'User is not authenticated.');
@@ -222,11 +228,13 @@ class SharedSessionController extends ChangeNotifier {
   }
 
   void clearSession() {
-    _setState(SharedSessionControllerState(
-      status: SharedSessionControllerStatus.loaded,
-      user: _state.user,
-      connectionStatus: _state.connectionStatus,
-    ));
+    _setState(
+      SharedSessionControllerState(
+        status: SharedSessionControllerStatus.loaded,
+        user: _state.user,
+        connectionStatus: _state.connectionStatus,
+      ),
+    );
   }
 
   @override
@@ -240,16 +248,20 @@ class SharedSessionController extends ChangeNotifier {
 
   Future<SharedSessionApiResult<SharedSession>> _start({
     required AuthUser user,
-    required Future<SharedSessionApiResult<SharedSession>> Function(String accessToken)
-        request,
+    required Future<SharedSessionApiResult<SharedSession>> Function(
+      String accessToken,
+    )
+    request,
   }) async {
     final accessToken = authController.tokens?.accessToken;
-    _setState(_state.copyWith(
-      status: SharedSessionControllerStatus.loading,
-      user: user,
-      clearMessage: true,
-      clearSession: true,
-    ));
+    _setState(
+      _state.copyWith(
+        status: SharedSessionControllerStatus.loading,
+        user: user,
+        clearMessage: true,
+        clearSession: true,
+      ),
+    );
 
     if (accessToken == null) {
       const result = SharedSessionApiResult<SharedSession>(
@@ -270,7 +282,8 @@ class SharedSessionController extends ChangeNotifier {
     Future<SharedSessionApiResult<SharedSession>> Function(
       String accessToken,
       String sessionId,
-    ) request,
+    )
+    request,
   ) async {
     final session = _state.session;
     final accessToken = authController.tokens?.accessToken;
@@ -301,31 +314,37 @@ class SharedSessionController extends ChangeNotifier {
     }
 
     if (joinLoadedSession && session.status != SharedSessionStatus.active) {
-      _setState(SharedSessionControllerState(
-        status: SharedSessionControllerStatus.error,
-        user: user,
-        message: 'Shared session is not active.',
-        connectionStatus: _state.connectionStatus,
-      ));
+      _setState(
+        SharedSessionControllerState(
+          status: SharedSessionControllerStatus.error,
+          user: user,
+          message: 'Shared session is not active.',
+          connectionStatus: _state.connectionStatus,
+        ),
+      );
       return;
     }
 
     if (joinLoadedSession && session.values.isEmpty) {
-      _setState(SharedSessionControllerState(
-        status: SharedSessionControllerStatus.error,
-        user: user,
-        message: 'Aktywna sesja nie zawiera żadnych serii.',
-        connectionStatus: _state.connectionStatus,
-      ));
+      _setState(
+        SharedSessionControllerState(
+          status: SharedSessionControllerStatus.error,
+          user: user,
+          message: 'Aktywna sesja nie zawiera żadnych serii.',
+          connectionStatus: _state.connectionStatus,
+        ),
+      );
       return;
     }
 
-    _setState(SharedSessionControllerState(
-      status: SharedSessionControllerStatus.loaded,
-      user: user,
-      session: session,
-      connectionStatus: _state.connectionStatus,
-    ));
+    _setState(
+      SharedSessionControllerState(
+        status: SharedSessionControllerStatus.loaded,
+        user: user,
+        session: session,
+        connectionStatus: _state.connectionStatus,
+      ),
+    );
 
     final accessToken = authController.tokens?.accessToken;
     if (accessToken == null) {
@@ -351,22 +370,67 @@ class SharedSessionController extends ChangeNotifier {
     }
   }
 
-  Future<void> _handleConnectionStatus(SharedSessionConnectionStatus status) async {
+  Future<void> _handleConnectionStatus(
+    SharedSessionConnectionStatus status,
+  ) async {
     _setState(_state.copyWith(connectionStatus: status));
+    if (status == SharedSessionConnectionStatus.reconnecting) {
+      _wasReconnecting = true;
+      return;
+    }
+
     final user = _state.user ?? authController.state.user;
-    if (status == SharedSessionConnectionStatus.connected &&
-        _state.session == null &&
-        user != null) {
-      await loadActive(user);
+    if (status != SharedSessionConnectionStatus.connected || user == null) {
+      return;
+    }
+
+    final returnedFromReconnect = _wasReconnecting;
+    _wasReconnecting = false;
+
+    try {
+      final session = _state.session;
+      if (returnedFromReconnect &&
+          session?.status == SharedSessionStatus.active) {
+        await _realtimeClient.joinSession(sessionId: session!.id);
+        _setState(
+          _state.copyWith(
+            status: SharedSessionControllerStatus.loaded,
+            clearMessage: true,
+          ),
+        );
+        return;
+      }
+
+      if (session == null) {
+        await loadActive(user);
+      }
+    } on Object catch (error) {
+      _handleRealtimeError('Realtime join failed: $error');
     }
   }
 
   void _handleRealtimeSession(SharedSession session) {
-    _setState(_state.copyWith(
-      status: SharedSessionControllerStatus.loaded,
-      session: session,
-      clearMessage: true,
-    ));
+    final currentSession = _state.session;
+    if (currentSession != null) {
+      if (session.id != currentSession.id) {
+        if (_state.user?.role == UserRole.trainer) {
+          onTrainerSessionInvalidated?.call();
+        }
+        return;
+      }
+
+      if (session.version < currentSession.version) {
+        return;
+      }
+    }
+
+    _setState(
+      _state.copyWith(
+        status: SharedSessionControllerStatus.loaded,
+        session: session,
+        clearMessage: true,
+      ),
+    );
 
     final user = _state.user;
     if (user?.role == UserRole.trainer) {
@@ -375,20 +439,24 @@ class SharedSessionController extends ChangeNotifier {
   }
 
   void _handleRealtimeError(String message) {
-    _setState(_state.copyWith(
-      status: SharedSessionControllerStatus.error,
-      message: message,
-    ));
+    _setState(
+      _state.copyWith(
+        status: SharedSessionControllerStatus.error,
+        message: message,
+      ),
+    );
   }
 
   void _setError(AuthUser user, String message) {
-    _setState(SharedSessionControllerState(
-      status: SharedSessionControllerStatus.error,
-      user: user,
-      session: _state.session,
-      message: message,
-      connectionStatus: _state.connectionStatus,
-    ));
+    _setState(
+      SharedSessionControllerState(
+        status: SharedSessionControllerStatus.error,
+        user: user,
+        session: _state.session,
+        message: message,
+        connectionStatus: _state.connectionStatus,
+      ),
+    );
   }
 
   void _setState(SharedSessionControllerState state) {

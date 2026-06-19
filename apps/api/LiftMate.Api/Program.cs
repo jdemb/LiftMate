@@ -3,6 +3,8 @@ using System.Text;
 using LiftMate.Api.Auth;
 using LiftMate.Api.Data;
 using LiftMate.Api.SharedSessions;
+using LiftMate.Api.TrainingProgress;
+using LiftMate.Api.TrainingHistory;
 using LiftMate.Api.WorkoutSets;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -31,6 +33,7 @@ builder.Services
 
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<SharedSessionBroadcaster>();
+builder.Services.AddScoped<WorkoutProgressProjector>();
 builder.Services.AddSignalR();
 
 builder.Services
@@ -99,6 +102,7 @@ app.MapProbeEndpoints();
 app.MapPairingEndpoints();
 app.MapSharedSessionEndpoints();
 app.MapWorkoutSetEndpoints();
+app.MapTrainingHistoryEndpoints();
 app.MapHub<SharedSessionHub>("/hubs/shared-sessions").RequireAuthorization();
 
 var summaries = new[]
@@ -108,7 +112,7 @@ var summaries = new[]
 
 app.MapGet("/weatherforecast", () =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
+    var forecast = Enumerable.Range(1, 5).Select(index =>
         new WeatherForecast
         (
             DateOnly.FromDateTime(DateTime.Now.AddDays(index)),

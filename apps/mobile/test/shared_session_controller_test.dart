@@ -162,6 +162,32 @@ void main() {
     });
 
     test(
+      'successful completion exposes saved-for-next-session outcome',
+      () async {
+        final authController = await _authController(role: UserRole.trainee);
+        final apiClient = _FakeSharedSessionApiClient();
+        final controller = SharedSessionController(
+          apiClient: apiClient,
+          authController: authController,
+          realtimeClientFactory: _FakeSharedSessionRealtimeClient.new,
+        );
+        addTearDown(controller.dispose);
+        await controller.startTraineeSession(
+          user: authController.state.user!,
+          workoutSetId: 'set-1',
+        );
+
+        final result = await controller.complete(authController.state.user!);
+
+        expect(result.isSuccess, isTrue);
+        expect(
+          controller.state.completionOutcome,
+          SharedSessionCompletionOutcome.savedForNextSession,
+        );
+      },
+    );
+
+    test(
       'connected realtime with empty state recovers active session',
       () async {
         final authController = await _authController(role: UserRole.trainee);
@@ -471,6 +497,19 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
       startedByRole: _currentSession.startedByRole,
       isDone: value.isDone ?? false,
     );
+    return SharedSessionApiResult(
+      status: SharedSessionApiStatus.success,
+      message: 'Request succeeded.',
+      data: _currentSession,
+    );
+  }
+
+  @override
+  Future<SharedSessionApiResult<SharedSession>> complete({
+    required String accessToken,
+    required String sessionId,
+  }) async {
+    _currentSession = _session(status: SharedSessionStatus.completed);
     return SharedSessionApiResult(
       status: SharedSessionApiStatus.success,
       message: 'Request succeeded.',

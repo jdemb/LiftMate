@@ -10,6 +10,10 @@ public sealed class SharedSessionValue
 
     public SharedSession? SharedSession { get; set; }
 
+    public Guid? ExerciseId { get; set; }
+
+    public Guid? WorkoutSetRowId { get; set; }
+
     public string ExerciseName { get; set; } = string.Empty;
 
     public string ExerciseType { get; set; } = string.Empty;

@@ -63,6 +63,7 @@ public static class WorkoutSetMapping
     {
         return new WorkoutSetRowResponse(
             row.Id,
+            row.ExerciseId,
             row.ExerciseOrder,
             row.SetIndex,
             row.ExerciseName,

@@ -12,6 +12,7 @@ void main() {
       expect(session.trainerEmail, 'trainer@example.test');
       expect(session.traineeEmail, 'trainee@example.test');
       expect(session.workoutSetId, 'set-1');
+      expect(session.workoutSetName, 'Full body');
       expect(session.startedByUserId, 'trainee-1');
       expect(session.startedByRole, SharedSessionStartRole.trainee);
       expect(session.isTraineeSelfStarted, isTrue);
@@ -20,6 +21,8 @@ void main() {
       expect(session.closedAt, isNull);
       expect(session.values, hasLength(1));
       expect(session.values.single.exerciseType, ExerciseValueType.repsWeight);
+      expect(session.values.single.exerciseId, 'exercise-1');
+      expect(session.values.single.workoutSetRowId, 'row-1');
       expect(session.values.single.exerciseOrder, 1);
       expect(session.values.single.reps, 8);
       expect(session.values.single.weight, 42.5);
@@ -30,10 +33,7 @@ void main() {
 
     test('rejects invalid status and exercise type', () {
       expect(
-        () => SharedSession.fromJson({
-          ..._sessionJson(),
-          'status': 'paused',
-        }),
+        () => SharedSession.fromJson({..._sessionJson(), 'status': 'paused'}),
         throwsFormatException,
       );
 
@@ -42,7 +42,8 @@ void main() {
           ..._sessionJson(),
           'values': [
             {
-              ...(_sessionJson()['values'] as List<Map<String, Object?>>).single,
+              ...(_sessionJson()['values'] as List<Map<String, Object?>>)
+                  .single,
               'exerciseType': 'distance',
             },
           ],
@@ -59,6 +60,8 @@ void main() {
         'values': [
           {
             'id': 'value-2',
+            'exerciseId': null,
+            'workoutSetRowId': null,
             'exerciseName': 'Plank',
             'exerciseType': 'time',
             'exerciseOrder': 2,
@@ -92,6 +95,7 @@ Map<String, Object?> _sessionJson() {
     'trainerEmail': 'trainer@example.test',
     'traineeEmail': 'trainee@example.test',
     'workoutSetId': 'set-1',
+    'workoutSetName': 'Full body',
     'startedByUserId': 'trainee-1',
     'startedByRole': 'trainee',
     'status': 'active',
@@ -102,6 +106,8 @@ Map<String, Object?> _sessionJson() {
     'values': [
       {
         'id': 'value-1',
+        'exerciseId': 'exercise-1',
+        'workoutSetRowId': 'row-1',
         'exerciseName': 'Bench press',
         'exerciseType': 'repsWeight',
         'exerciseOrder': 1,

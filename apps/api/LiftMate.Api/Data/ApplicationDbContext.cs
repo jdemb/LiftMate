@@ -1,5 +1,6 @@
 using LiftMate.Api.Auth;
 using LiftMate.Api.SharedSessions;
+using LiftMate.Api.TrainingProgress;
 using LiftMate.Api.WorkoutSets;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<WorkoutSetRow> WorkoutSetRows => Set<WorkoutSetRow>();
 
     public DbSet<WorkoutSetAssignment> WorkoutSetAssignments => Set<WorkoutSetAssignment>();
+
+    public DbSet<WorkoutProgress> WorkoutProgresses => Set<WorkoutProgress>();
+
+    public DbSet<WorkoutProgressValue> WorkoutProgressValues => Set<WorkoutProgressValue>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -124,6 +129,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .HasMaxLength(32)
                 .IsRequired();
 
+            entity.Property(session => session.WorkoutSetName)
+                .HasMaxLength(200)
+                .IsRequired();
+
             entity.HasIndex(session => session.WorkoutSetId);
             entity.HasIndex(session => session.StartedByUserId);
             entity.HasIndex(session => session.TrainerUserId);
@@ -192,6 +201,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
             entity.HasIndex(value => value.SharedSessionId);
             entity.HasIndex(value => new { value.SharedSessionId, value.ExerciseOrder, value.SetIndex });
+            entity.HasIndex(value => value.ExerciseId);
+            entity.HasIndex(value => value.WorkoutSetRowId);
             entity.HasIndex(value => value.ExerciseType);
 
             entity.HasOne(value => value.UpdatedByUser)
@@ -251,6 +262,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
             entity.HasIndex(row => row.WorkoutSetId);
             entity.HasIndex(row => new { row.WorkoutSetId, row.ExerciseOrder, row.SetIndex });
+            entity.HasIndex(row => new { row.WorkoutSetId, row.ExerciseId, row.SetIndex });
             entity.HasIndex(row => row.ExerciseType);
 
             entity.ToTable(table => table.HasCheckConstraint(
@@ -279,6 +291,50 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .WithMany()
                 .HasForeignKey(assignment => assignment.TraineeUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<WorkoutProgress>(entity =>
+        {
+            entity.HasKey(progress => progress.Id);
+
+            entity.Property(progress => progress.TraineeUserId)
+                .HasMaxLength(450)
+                .IsRequired();
+
+            entity.HasIndex(progress => new { progress.TraineeUserId, progress.WorkoutSetId })
+                .IsUnique();
+            entity.HasIndex(progress => progress.SourceSessionId)
+                .IsUnique();
+
+            entity.HasOne(progress => progress.WorkoutSet)
+                .WithMany()
+                .HasForeignKey(progress => progress.WorkoutSetId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(progress => progress.Values)
+                .WithOne(value => value.WorkoutProgress)
+                .HasForeignKey(value => value.WorkoutProgressId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<WorkoutProgressValue>(entity =>
+        {
+            entity.HasKey(value => value.Id);
+
+            entity.Property(value => value.ExerciseType)
+                .HasMaxLength(32)
+                .IsRequired();
+
+            entity.Property(value => value.Weight)
+                .HasPrecision(8, 2);
+
+            entity.HasIndex(value => new { value.WorkoutProgressId, value.WorkoutSetRowId })
+                .IsUnique();
+            entity.HasIndex(value => value.ExerciseId);
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_WorkoutProgressValues_ExerciseType",
+                "[ExerciseType] IN ('repsWeight', 'repsOnly', 'time')"));
         });
     }
 }

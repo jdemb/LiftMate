@@ -224,6 +224,11 @@ namespace LiftMate.Api.Migrations
                     b.Property<Guid?>("WorkoutSetId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("WorkoutSetName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("StartedByUserId");
@@ -254,6 +259,9 @@ namespace LiftMate.Api.Migrations
 
                     b.Property<DateTimeOffset?>("CompletedAt")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("ExerciseId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ExerciseName")
                         .IsRequired()
@@ -294,7 +302,12 @@ namespace LiftMate.Api.Migrations
                         .HasPrecision(8, 2)
                         .HasColumnType("decimal(8,2)");
 
+                    b.Property<Guid?>("WorkoutSetRowId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ExerciseId");
 
                     b.HasIndex("ExerciseType");
 
@@ -302,11 +315,92 @@ namespace LiftMate.Api.Migrations
 
                     b.HasIndex("UpdatedByUserId");
 
+                    b.HasIndex("WorkoutSetRowId");
+
                     b.HasIndex("SharedSessionId", "ExerciseOrder", "SetIndex");
 
                     b.ToTable("SharedSessionValues", t =>
                         {
                             t.HasCheckConstraint("CK_SharedSessionValues_ExerciseType", "[ExerciseType] IN ('repsWeight', 'repsOnly', 'time')");
+                        });
+                });
+
+            modelBuilder.Entity("LiftMate.Api.TrainingProgress.WorkoutProgress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("SourceCompletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("SourceSessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TraineeUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("WorkoutSetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceSessionId")
+                        .IsUnique();
+
+                    b.HasIndex("WorkoutSetId");
+
+                    b.HasIndex("TraineeUserId", "WorkoutSetId")
+                        .IsUnique();
+
+                    b.ToTable("WorkoutProgresses");
+                });
+
+            modelBuilder.Entity("LiftMate.Api.TrainingProgress.WorkoutProgressValue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ExerciseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ExerciseType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<int?>("Reps")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Seconds")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("Weight")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("decimal(8,2)");
+
+                    b.Property<Guid>("WorkoutProgressId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("WorkoutSetRowId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExerciseId");
+
+                    b.HasIndex("WorkoutProgressId", "WorkoutSetRowId")
+                        .IsUnique();
+
+                    b.ToTable("WorkoutProgressValues", t =>
+                        {
+                            t.HasCheckConstraint("CK_WorkoutProgressValues_ExerciseType", "[ExerciseType] IN ('repsWeight', 'repsOnly', 'time')");
                         });
                 });
 
@@ -379,6 +473,9 @@ namespace LiftMate.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid>("ExerciseId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("ExerciseName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -413,6 +510,8 @@ namespace LiftMate.Api.Migrations
                     b.HasIndex("ExerciseType");
 
                     b.HasIndex("WorkoutSetId");
+
+                    b.HasIndex("WorkoutSetId", "ExerciseId", "SetIndex");
 
                     b.HasIndex("WorkoutSetId", "ExerciseOrder", "SetIndex");
 
@@ -572,6 +671,28 @@ namespace LiftMate.Api.Migrations
                     b.Navigation("UpdatedByUser");
                 });
 
+            modelBuilder.Entity("LiftMate.Api.TrainingProgress.WorkoutProgress", b =>
+                {
+                    b.HasOne("LiftMate.Api.WorkoutSets.WorkoutSet", "WorkoutSet")
+                        .WithMany()
+                        .HasForeignKey("WorkoutSetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("WorkoutSet");
+                });
+
+            modelBuilder.Entity("LiftMate.Api.TrainingProgress.WorkoutProgressValue", b =>
+                {
+                    b.HasOne("LiftMate.Api.TrainingProgress.WorkoutProgress", "WorkoutProgress")
+                        .WithMany("Values")
+                        .HasForeignKey("WorkoutProgressId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WorkoutProgress");
+                });
+
             modelBuilder.Entity("LiftMate.Api.WorkoutSets.WorkoutSet", b =>
                 {
                     b.HasOne("LiftMate.Api.Auth.ApplicationUser", "TrainerUser")
@@ -648,6 +769,11 @@ namespace LiftMate.Api.Migrations
                 });
 
             modelBuilder.Entity("LiftMate.Api.SharedSessions.SharedSession", b =>
+                {
+                    b.Navigation("Values");
+                });
+
+            modelBuilder.Entity("LiftMate.Api.TrainingProgress.WorkoutProgress", b =>
                 {
                     b.Navigation("Values");
                 });

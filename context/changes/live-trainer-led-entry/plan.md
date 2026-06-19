@@ -369,10 +369,10 @@ Brak migracji danych i zmian kontraktów. Zmiana jest kompatybilna z istniejący
 
 #### Automated
 
-- [x] 3.1 `dotnet test LiftMate.slnx --no-restore` przechodzi
-- [x] 3.2 Pełne `flutter test` przechodzi
-- [x] 3.3 `flutter analyze` przechodzi
-- [x] 3.4 Roadmapa pozostaje `proposed` przed manualnym potwierdzeniem
+- [x] 3.1 `dotnet test LiftMate.slnx --no-restore` przechodzi — 5ea8b49
+- [x] 3.2 Pełne `flutter test` przechodzi — 5ea8b49
+- [x] 3.3 `flutter analyze` przechodzi — 5ea8b49
+- [x] 3.4 Roadmapa pozostaje `proposed` przed manualnym potwierdzeniem — 5ea8b49
 
 #### Manual
 

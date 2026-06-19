@@ -48,10 +48,10 @@ class _AuthenticatedRelationshipShellState
     extends State<AuthenticatedRelationshipShell> {
   late final RelationshipController _relationshipController;
   late final WorkoutSetController _workoutSetController;
-late final SharedSessionController _sharedSessionController;
-TrainerTraineeSummary? _selectedTrainee;
-String? _openingTraineeId;
-_TrainerView _trainerView = _TrainerView.dashboard;
+  late final SharedSessionController _sharedSessionController;
+  TrainerTraineeSummary? _selectedTrainee;
+  String? _openingTraineeId;
+  _TrainerView _trainerView = _TrainerView.dashboard;
   WorkoutSetDetail? _builderDetail;
   String? _loadedTraineeWorkoutSetsForUserId;
   String? _loadedTraineeActiveSessionForUserId;
@@ -82,9 +82,9 @@ _TrainerView _trainerView = _TrainerView.dashboard;
     super.didUpdateWidget(oldWidget);
     if (oldWidget.user.id != widget.user.id ||
         oldWidget.user.trainerUserId != widget.user.trainerUserId) {
-_selectedTrainee = null;
-_openingTraineeId = null;
-_trainerView = _TrainerView.dashboard;
+      _selectedTrainee = null;
+      _openingTraineeId = null;
+      _trainerView = _TrainerView.dashboard;
       _builderDetail = null;
       _loadedTraineeWorkoutSetsForUserId = null;
       _loadedTraineeActiveSessionForUserId = null;
@@ -132,8 +132,10 @@ _trainerView = _TrainerView.dashboard;
               onStartSession: (set) => _startTrainerSession(selected, set),
               onJoinActiveSession: selected.activeSession == null
                   ? null
-                  : () => _joinTrainerSession(selected.activeSession!.sessionId),
-              sessionErrorMessage: _sharedSessionController.state.status ==
+                  : () =>
+                        _joinTrainerSession(selected.activeSession!.sessionId),
+              sessionErrorMessage:
+                  _sharedSessionController.state.status ==
                       SharedSessionControllerStatus.error
                   ? _sharedSessionController.state.message
                   : null,
@@ -144,7 +146,8 @@ _trainerView = _TrainerView.dashboard;
             return TrainerWorkoutSetsScreen(
               controller: _workoutSetController,
               onReload: _loadWorkoutSets,
-              onOpenDashboard: () => setState(() => _trainerView = _TrainerView.dashboard),
+              onOpenDashboard: () =>
+                  setState(() => _trainerView = _TrainerView.dashboard),
               onCreateSet: () => setState(() {
                 _builderDetail = null;
                 _trainerView = _TrainerView.builder;
@@ -183,12 +186,12 @@ _trainerView = _TrainerView.dashboard;
             );
           }
 
-return TrainerDashboardScreen(
-user: widget.user,
-state: state,
-openingTraineeId: _openingTraineeId,
-onOpenTrainee: _openTraineeDetail,
-onOpenWorkoutSets: () {
+          return TrainerDashboardScreen(
+            user: widget.user,
+            state: state,
+            openingTraineeId: _openingTraineeId,
+            onOpenTrainee: _openTraineeDetail,
+            onOpenWorkoutSets: () {
               setState(() => _trainerView = _TrainerView.sets);
               _loadWorkoutSets();
             },
@@ -238,9 +241,12 @@ onOpenWorkoutSets: () {
           onClaimCode: _relationshipController.claimTrainerCode,
           onReload: _relationshipController.reload,
           onLogout: widget.onLogout,
-          workoutSetController: traineeTrainer == null ? null : _workoutSetController,
-          sharedSessionController:
-              traineeTrainer == null ? null : _sharedSessionController,
+          workoutSetController: traineeTrainer == null
+              ? null
+              : _workoutSetController,
+          sharedSessionController: traineeTrainer == null
+              ? null
+              : _sharedSessionController,
           onStartWorkout: _startTraineeSession,
           onJoinActiveWorkout: _joinTraineeActiveSession,
         );
@@ -248,49 +254,50 @@ onOpenWorkoutSets: () {
     );
   }
 
-Future<void> _loadWorkoutSets() {
-return _workoutSetController.loadForUser(
-widget.user,
-trainerSummary: _relationshipController.state.trainerSummary,
-);
-}
+  Future<void> _loadWorkoutSets() {
+    return _workoutSetController.loadForUser(
+      widget.user,
+      trainerSummary: _relationshipController.state.trainerSummary,
+    );
+  }
 
-Future<void> _openTraineeDetail(TrainerTraineeSummary trainee) async {
-if (_openingTraineeId != null) {
-return;
-}
+  Future<void> _openTraineeDetail(TrainerTraineeSummary trainee) async {
+    if (_openingTraineeId != null) {
+      return;
+    }
 
-setState(() => _openingTraineeId = trainee.id);
-await _relationshipController.reload();
-if (!mounted) {
-return;
-}
+    setState(() => _openingTraineeId = trainee.id);
+    await _relationshipController.reload();
+    if (!mounted) {
+      return;
+    }
 
-if (_relationshipController.state.status != RelationshipControllerStatus.loaded) {
-setState(() => _openingTraineeId = null);
-return;
-}
+    if (_relationshipController.state.status !=
+        RelationshipControllerStatus.loaded) {
+      setState(() => _openingTraineeId = null);
+      return;
+    }
 
-final refreshedTrainees =
-_relationshipController.state.trainerSummary?.trainees ??
-const <TrainerTraineeSummary>[];
-TrainerTraineeSummary? refreshed;
-for (final candidate in refreshedTrainees) {
-if (candidate.id == trainee.id) {
-refreshed = candidate;
-break;
-}
-}
+    final refreshedTrainees =
+        _relationshipController.state.trainerSummary?.trainees ??
+        const <TrainerTraineeSummary>[];
+    TrainerTraineeSummary? refreshed;
+    for (final candidate in refreshedTrainees) {
+      if (candidate.id == trainee.id) {
+        refreshed = candidate;
+        break;
+      }
+    }
 
-setState(() {
-_openingTraineeId = null;
-if (refreshed != null) {
-_selectedTrainee = refreshed;
-}
-});
-}
+    setState(() {
+      _openingTraineeId = null;
+      if (refreshed != null) {
+        _selectedTrainee = refreshed;
+      }
+    });
+  }
 
-void _openWorkoutSetsFromDetail() {
+  void _openWorkoutSetsFromDetail() {
     setState(() {
       _selectedTrainee = null;
       _trainerView = _TrainerView.sets;
@@ -393,6 +400,9 @@ void _openWorkoutSetsFromDetail() {
   }
 
   Future<void> _handleTrainerSessionClosed() async {
+    final saved =
+        _sharedSessionController.state.completionOutcome ==
+        SharedSessionCompletionOutcome.savedForNextSession;
     _sharedSessionController.clearSession();
     await _relationshipController.reload();
     if (!mounted) {
@@ -403,9 +413,15 @@ void _openWorkoutSetsFromDetail() {
       _selectedTrainee = null;
       _trainerView = _TrainerView.dashboard;
     });
+    if (saved) {
+      _showProgressSavedConfirmation();
+    }
   }
 
   Future<void> _handleTraineeSessionClosed() async {
+    final saved =
+        _sharedSessionController.state.completionOutcome ==
+        SharedSessionCompletionOutcome.savedForNextSession;
     _sharedSessionController.clearSession();
     await _relationshipController.reload();
     if (!mounted) {
@@ -413,13 +429,16 @@ void _openWorkoutSetsFromDetail() {
     }
 
     setState(() => _showTraineeLive = false);
+    if (saved) {
+      _showProgressSavedConfirmation();
+    }
+  }
+
+  void _showProgressSavedConfirmation() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Zapisano wartości na następny trening.')),
+    );
   }
 }
 
-enum _TrainerView {
-  dashboard,
-  sets,
-  builder,
-  assign,
-  live,
-}
+enum _TrainerView { dashboard, sets, builder, assign, live }

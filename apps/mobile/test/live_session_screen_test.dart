@@ -96,6 +96,45 @@ void main() {
     expect(closed, isTrue);
   });
 
+  testWidgets(
+    'failed completion keeps live session visible with actionable error',
+    (tester) async {
+      final authController = await _authController();
+      final apiClient = _FakeSharedSessionApiClient(failComplete: true);
+      final controller = SharedSessionController(
+        apiClient: apiClient,
+        authController: authController,
+        realtimeClientFactory: _FakeRealtimeClient.new,
+      );
+      addTearDown(controller.dispose);
+      await controller.loadById(
+        user: authController.state.user!,
+        sessionId: 'session-1',
+      );
+      var closed = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: _liveTestTheme(),
+          home: LiveSessionScreen(
+            user: authController.state.user!,
+            controller: controller,
+            editable: true,
+            onBack: () {},
+            onSessionClosed: () async => closed = true,
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Zakończ i zapisz trening'));
+      await tester.pumpAndSettle();
+
+      expect(closed, isFalse);
+      expect(find.text('Bench press'), findsOneWidget);
+      expect(find.textContaining('spróbuj ponownie'), findsOneWidget);
+    },
+  );
+
   testWidgets('editable live hierarchy is available at design phone size', (
     tester,
   ) async {
@@ -326,11 +365,14 @@ SharedSession _multiExerciseSession() {
 }
 
 class _FakeSharedSessionApiClient extends SharedSessionApiClient {
-  _FakeSharedSessionApiClient({SharedSession? session})
-    : _currentSession = session ?? _session(),
-      super(baseUrl: 'https://api.example.test');
+  _FakeSharedSessionApiClient({
+    SharedSession? session,
+    this.failComplete = false,
+  }) : _currentSession = session ?? _session(),
+       super(baseUrl: 'https://api.example.test');
 
   SharedSession _currentSession;
+  final bool failComplete;
   UpdateSharedSessionValue? updatedValue;
   bool completed = false;
 
@@ -368,6 +410,12 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
     required String sessionId,
   }) async {
     completed = true;
+    if (failComplete) {
+      return const SharedSessionApiResult(
+        status: SharedSessionApiStatus.error,
+        message: 'Nie udało się zapisać, spróbuj ponownie.',
+      );
+    }
     return SharedSessionApiResult(
       status: SharedSessionApiStatus.success,
       message: 'Request succeeded.',

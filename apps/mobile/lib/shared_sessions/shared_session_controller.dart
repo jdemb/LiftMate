@@ -10,12 +10,15 @@ import 'shared_session_realtime_client.dart';
 
 enum SharedSessionControllerStatus { idle, loading, loaded, saving, error }
 
+enum SharedSessionCompletionOutcome { savedForNextSession }
+
 class SharedSessionControllerState {
   const SharedSessionControllerState({
     required this.status,
     this.user,
     this.session,
     this.message,
+    this.completionOutcome,
     this.connectionStatus = SharedSessionConnectionStatus.disconnected,
   });
 
@@ -26,6 +29,7 @@ class SharedSessionControllerState {
   final AuthUser? user;
   final SharedSession? session;
   final String? message;
+  final SharedSessionCompletionOutcome? completionOutcome;
   final SharedSessionConnectionStatus connectionStatus;
 
   SharedSessionControllerState copyWith({
@@ -33,8 +37,10 @@ class SharedSessionControllerState {
     AuthUser? user,
     SharedSession? session,
     String? message,
+    SharedSessionCompletionOutcome? completionOutcome,
     bool clearMessage = false,
     bool clearSession = false,
+    bool clearCompletionOutcome = false,
     SharedSessionConnectionStatus? connectionStatus,
   }) {
     return SharedSessionControllerState(
@@ -42,6 +48,9 @@ class SharedSessionControllerState {
       user: user ?? this.user,
       session: clearSession ? null : session ?? this.session,
       message: clearMessage ? null : message ?? this.message,
+      completionOutcome: clearCompletionOutcome
+          ? null
+          : completionOutcome ?? this.completionOutcome,
       connectionStatus: connectionStatus ?? this.connectionStatus,
     );
   }
@@ -215,16 +224,28 @@ class SharedSessionController extends ChangeNotifier {
     );
   }
 
-  Future<SharedSessionApiResult<SharedSession>> complete(AuthUser user) {
-    return _close(user, (accessToken, sessionId) {
+  Future<SharedSessionApiResult<SharedSession>> complete(AuthUser user) async {
+    final result = await _close(user, (accessToken, sessionId) {
       return apiClient.complete(accessToken: accessToken, sessionId: sessionId);
     });
+    if (result.isSuccess) {
+      _setState(
+        _state.copyWith(
+          completionOutcome: SharedSessionCompletionOutcome.savedForNextSession,
+        ),
+      );
+    }
+    return result;
   }
 
-  Future<SharedSessionApiResult<SharedSession>> cancel(AuthUser user) {
-    return _close(user, (accessToken, sessionId) {
+  Future<SharedSessionApiResult<SharedSession>> cancel(AuthUser user) async {
+    final result = await _close(user, (accessToken, sessionId) {
       return apiClient.cancel(accessToken: accessToken, sessionId: sessionId);
     });
+    if (result.isSuccess) {
+      _setState(_state.copyWith(clearCompletionOutcome: true));
+    }
+    return result;
   }
 
   void clearSession() {
@@ -232,6 +253,7 @@ class SharedSessionController extends ChangeNotifier {
       SharedSessionControllerState(
         status: SharedSessionControllerStatus.loaded,
         user: _state.user,
+        completionOutcome: _state.completionOutcome,
         connectionStatus: _state.connectionStatus,
       ),
     );
@@ -260,6 +282,7 @@ class SharedSessionController extends ChangeNotifier {
         user: user,
         clearMessage: true,
         clearSession: true,
+        clearCompletionOutcome: true,
       ),
     );
 

@@ -1,5 +1,6 @@
 using LiftMate.Api.Auth;
 using LiftMate.Api.SharedSessions;
+using LiftMate.Api.TrainingProgress;
 using LiftMate.Api.WorkoutSets;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<WorkoutSetRow> WorkoutSetRows => Set<WorkoutSetRow>();
 
     public DbSet<WorkoutSetAssignment> WorkoutSetAssignments => Set<WorkoutSetAssignment>();
+
+    public DbSet<WorkoutProgress> WorkoutProgresses => Set<WorkoutProgress>();
+
+    public DbSet<WorkoutProgressValue> WorkoutProgressValues => Set<WorkoutProgressValue>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -286,6 +291,50 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .WithMany()
                 .HasForeignKey(assignment => assignment.TraineeUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<WorkoutProgress>(entity =>
+        {
+            entity.HasKey(progress => progress.Id);
+
+            entity.Property(progress => progress.TraineeUserId)
+                .HasMaxLength(450)
+                .IsRequired();
+
+            entity.HasIndex(progress => new { progress.TraineeUserId, progress.WorkoutSetId })
+                .IsUnique();
+            entity.HasIndex(progress => progress.SourceSessionId)
+                .IsUnique();
+
+            entity.HasOne(progress => progress.WorkoutSet)
+                .WithMany()
+                .HasForeignKey(progress => progress.WorkoutSetId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(progress => progress.Values)
+                .WithOne(value => value.WorkoutProgress)
+                .HasForeignKey(value => value.WorkoutProgressId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<WorkoutProgressValue>(entity =>
+        {
+            entity.HasKey(value => value.Id);
+
+            entity.Property(value => value.ExerciseType)
+                .HasMaxLength(32)
+                .IsRequired();
+
+            entity.Property(value => value.Weight)
+                .HasPrecision(8, 2);
+
+            entity.HasIndex(value => new { value.WorkoutProgressId, value.WorkoutSetRowId })
+                .IsUnique();
+            entity.HasIndex(value => value.ExerciseId);
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_WorkoutProgressValues_ExerciseType",
+                "[ExerciseType] IN ('repsWeight', 'repsOnly', 'time')"));
         });
     }
 }

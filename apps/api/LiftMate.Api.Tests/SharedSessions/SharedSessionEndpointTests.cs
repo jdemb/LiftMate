@@ -1,7 +1,11 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using LiftMate.Api.Data;
 using LiftMate.Api.Tests.Auth;
+using LiftMate.Api.TrainingProgress;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LiftMate.Api.Tests.SharedSessions;
 
@@ -438,6 +442,222 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task CompletionProjectsEverySeriesAndNextSessionUsesSavedValues()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(client, trainer, "Progress plan", AllWorkoutSetRows());
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+        var firstSession = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+        var firstValue = firstSession.Values.First();
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var update = await client.PatchAsJsonAsync(
+            $"/shared-sessions/{firstSession.Id}/values/{firstValue.Id}",
+            new UpdateSharedSessionValueRequest(9, 55m, null, false));
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+
+        var complete = await client.PostAsync($"/shared-sessions/{firstSession.Id}/complete", null);
+        var repeated = await client.PostAsync($"/shared-sessions/{firstSession.Id}/complete", null);
+
+        Assert.Equal(HttpStatusCode.OK, complete.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, repeated.StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var progress = await dbContext.WorkoutProgresses
+                .Include(item => item.Values)
+                .SingleAsync(item =>
+                    item.TraineeUserId == trainee.User.Id &&
+                    item.WorkoutSetId == workoutSet.Id);
+
+            Assert.Equal(firstSession.Id, progress.SourceSessionId);
+            Assert.Equal(firstSession.Values.Count, progress.Values.Count);
+            Assert.Contains(progress.Values, value =>
+                value.WorkoutSetRowId == firstValue.WorkoutSetRowId &&
+                value.Reps == 9 &&
+                value.Weight == 55m);
+            Assert.Contains(progress.Values, value =>
+                value.WorkoutSetRowId != firstValue.WorkoutSetRowId &&
+                value.Reps == 6);
+        }
+
+        var nextSession = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+        var projected = Assert.Single(
+            nextSession.Values,
+            value => value.WorkoutSetRowId == firstValue.WorkoutSetRowId);
+
+        Assert.Equal(9, projected.Reps);
+        Assert.Equal(55m, projected.Weight);
+    }
+
+    [Fact]
+    public async Task UnassignmentKeepsProgressAndReassignmentRestoresIt()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(client, trainer, "Persistent plan", DefaultWorkoutSetRows());
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+        var session = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+        var value = Assert.Single(session.Values);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        await client.PatchAsJsonAsync(
+            $"/shared-sessions/{session.Id}/values/{value.Id}",
+            new UpdateSharedSessionValueRequest(10, 60m, null, false));
+        await client.PostAsync($"/shared-sessions/{session.Id}/complete", null);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var unassign = await client.DeleteAsync(
+            $"/workout-sets/{workoutSet.Id}/assignments/{trainee.User.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, unassign.StatusCode);
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+
+        var restored = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+        var restoredValue = Assert.Single(restored.Values);
+
+        Assert.Equal(10, restoredValue.Reps);
+        Assert.Equal(60m, restoredValue.Weight);
+    }
+
+    [Fact]
+    public async Task CancellationAndAdHocCompletionDoNotCreateProgress()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(client, trainer, "No progress", DefaultWorkoutSetRows());
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+        var cancelled = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        await client.PostAsync($"/shared-sessions/{cancelled.Id}/cancel", null);
+        var adHoc = await CreateSession(client, trainer, trainee);
+        await client.PostAsync($"/shared-sessions/{adHoc.Id}/complete", null);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.False(await dbContext.WorkoutProgresses.AnyAsync(item =>
+            item.TraineeUserId == trainee.User.Id));
+    }
+
+    [Fact]
+    public async Task OlderCompletionCannotReplaceNewerProjection()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(client, trainer, "Ordering", DefaultWorkoutSetRows());
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+        var first = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        await client.PostAsync($"/shared-sessions/{first.Id}/complete", null);
+
+        Guid sourceSessionId;
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var progress = await dbContext.WorkoutProgresses
+                .Include(item => item.Values)
+                .SingleAsync(item => item.TraineeUserId == trainee.User.Id);
+            sourceSessionId = progress.SourceSessionId;
+            progress.SourceCompletedAt = DateTimeOffset.UtcNow.AddHours(1);
+            Assert.Single(progress.Values).Weight = 99m;
+            await dbContext.SaveChangesAsync();
+        }
+
+        var older = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+        var olderValue = Assert.Single(older.Values);
+        await client.PatchAsJsonAsync(
+            $"/shared-sessions/{older.Id}/values/{olderValue.Id}",
+            new UpdateSharedSessionValueRequest(8, 45m, null, false));
+        await client.PostAsync($"/shared-sessions/{older.Id}/complete", null);
+
+        await using var verificationScope = factory.Services.CreateAsyncScope();
+        var verificationContext = verificationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var unchanged = await verificationContext.WorkoutProgresses
+            .Include(item => item.Values)
+            .SingleAsync(item => item.TraineeUserId == trainee.User.Id);
+
+        Assert.Equal(sourceSessionId, unchanged.SourceSessionId);
+        Assert.Equal(99m, Assert.Single(unchanged.Values).Weight);
+    }
+
+    [Fact]
+    public async Task NextSessionUsesCurrentTemplateWithProjectedMatchesAndNewDefaults()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(client, trainer, "Template merge", DefaultWorkoutSetRows());
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+        var originalRow = Assert.Single(workoutSet.Rows);
+        var first = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+        var firstValue = Assert.Single(first.Values);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        await client.PatchAsJsonAsync(
+            $"/shared-sessions/{first.Id}/values/{firstValue.Id}",
+            new UpdateSharedSessionValueRequest(10, 60m, null, false));
+        await client.PostAsync($"/shared-sessions/{first.Id}/complete", null);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var updateResponse = await client.PutAsJsonAsync(
+            $"/workout-sets/{workoutSet.Id}",
+            new UpdateWorkoutSetRequest(
+                workoutSet.Name,
+                [
+                    new WorkoutSetRowRequest(
+                        1,
+                        1,
+                        "Renamed bench",
+                        "repsWeight",
+                        6,
+                        40m,
+                        null,
+                        originalRow.Id,
+                        originalRow.ExerciseId),
+                    new WorkoutSetRowRequest(
+                        1,
+                        2,
+                        "Renamed bench",
+                        "repsWeight",
+                        5,
+                        35m,
+                        null,
+                        null,
+                        originalRow.ExerciseId),
+                ]));
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+        var next = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+
+        Assert.Collection(
+            next.Values,
+            projected =>
+            {
+                Assert.Equal("Renamed bench", projected.ExerciseName);
+                Assert.Equal(10, projected.Reps);
+                Assert.Equal(60m, projected.Weight);
+            },
+            added =>
+            {
+                Assert.Equal("Renamed bench", added.ExerciseName);
+                Assert.Equal(5, added.Reps);
+                Assert.Equal(35m, added.Weight);
+            });
+    }
+
+    [Fact]
     public async Task OldTrainerCannotAccessSessionAfterTraineeRePairs()
     {
         using var client = factory.CreateClient();
@@ -630,6 +850,10 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         string? TraineeUserId);
 
     private sealed record CreateWorkoutSetRequest(
+        string Name,
+        IReadOnlyList<WorkoutSetRowRequest> Rows);
+
+    private sealed record UpdateWorkoutSetRequest(
         string Name,
         IReadOnlyList<WorkoutSetRowRequest> Rows);
 

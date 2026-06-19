@@ -76,6 +76,99 @@ public sealed class WorkoutSetEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task CreateAllocatesStableExerciseAndRowIdsAndUpdatePreservesThem()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var created = await CreateWorkoutSet(
+            client,
+            trainer,
+            "Stable plan",
+            [
+                new WorkoutSetRowRequest(1, 1, "Bench press", "repsWeight", 6, 40m, null),
+                new WorkoutSetRowRequest(1, 2, "Bench press", "repsWeight", 6, 42.5m, null),
+            ]);
+
+        Assert.All(created.Rows, row => Assert.NotEqual(Guid.Empty, row.Id));
+        var exerciseId = Assert.Single(created.Rows.Select(row => row.ExerciseId).Distinct());
+        Assert.NotEqual(Guid.Empty, exerciseId);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var updateResponse = await client.PutAsJsonAsync(
+            $"/workout-sets/{created.Id}",
+            new UpdateWorkoutSetRequest(
+                "Stable plan renamed",
+                created.Rows
+                    .Reverse()
+                    .Select((row, index) => new WorkoutSetRowRequest(
+                        1,
+                        index + 1,
+                        "Barbell bench press",
+                        row.ExerciseType,
+                        row.Reps,
+                        row.Weight,
+                        row.Seconds,
+                        row.Id,
+                        row.ExerciseId))
+                    .ToArray()));
+        var updated = await updateResponse.Content.ReadFromJsonAsync<WorkoutSetDetailResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        Assert.NotNull(updated);
+        Assert.Equal(created.Rows.Select(row => row.Id).Order(), updated.Rows.Select(row => row.Id).Order());
+        Assert.All(updated.Rows, row => Assert.Equal(exerciseId, row.ExerciseId));
+        Assert.All(updated.Rows, row => Assert.Equal("Barbell bench press", row.ExerciseName));
+    }
+
+    [Fact]
+    public async Task UpdateRejectsForeignAndInconsistentStableIdentifiers()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var first = await CreateWorkoutSet(client, trainer, "First", DefaultRows());
+        var second = await CreateWorkoutSet(client, trainer, "Second", DefaultRows());
+        var firstRow = Assert.Single(first.Rows);
+        var secondRow = Assert.Single(second.Rows);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var foreignRow = await client.PutAsJsonAsync(
+            $"/workout-sets/{first.Id}",
+            new UpdateWorkoutSetRequest(
+                first.Name,
+                [new WorkoutSetRowRequest(1, 1, "Bench press", "repsWeight", 6, 40m, null, secondRow.Id, secondRow.ExerciseId)]));
+        var inconsistentExercise = await client.PutAsJsonAsync(
+            $"/workout-sets/{first.Id}",
+            new UpdateWorkoutSetRequest(
+                first.Name,
+                [new WorkoutSetRowRequest(1, 1, "Bench press", "repsWeight", 6, 40m, null, firstRow.Id, Guid.NewGuid())]));
+
+        Assert.Equal(HttpStatusCode.BadRequest, foreignRow.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, inconsistentExercise.StatusCode);
+    }
+
+    [Fact]
+    public async Task OmittingIdentifiersForTypeChangeAllocatesNewIdentity()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var created = await CreateWorkoutSet(client, trainer, "Timed", DefaultRows());
+        var oldRow = Assert.Single(created.Rows);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.PutAsJsonAsync(
+            $"/workout-sets/{created.Id}",
+            new UpdateWorkoutSetRequest(
+                created.Name,
+                [new WorkoutSetRowRequest(1, 1, "Bench hold", "time", null, null, 45)]));
+        var updated = await response.Content.ReadFromJsonAsync<WorkoutSetDetailResponse>();
+        var newRow = Assert.Single(updated?.Rows ?? []);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotEqual(oldRow.Id, newRow.Id);
+        Assert.NotEqual(oldRow.ExerciseId, newRow.ExerciseId);
+    }
+
+    [Fact]
     public async Task UnrelatedUsersCannotReadOrMutateWorkoutSets()
     {
         using var client = factory.CreateClient();
@@ -301,7 +394,9 @@ public sealed class WorkoutSetEndpointTests(TestApplicationFactory factory)
         string ExerciseType,
         int? Reps,
         decimal? Weight,
-        int? Seconds);
+        int? Seconds,
+        Guid? Id = null,
+        Guid? ExerciseId = null);
 
     private sealed record AssignWorkoutSetRequest(IReadOnlyList<string> TraineeUserIds);
 
@@ -326,6 +421,7 @@ public sealed class WorkoutSetEndpointTests(TestApplicationFactory factory)
 
     private sealed record WorkoutSetRowResponse(
         Guid Id,
+        Guid ExerciseId,
         int ExerciseOrder,
         int SetIndex,
         string ExerciseName,

@@ -17,10 +17,12 @@ class AddWorkoutSetExerciseScreen extends StatefulWidget {
   final WorkoutSetDraftExercise? initialExercise;
 
   @override
-  State<AddWorkoutSetExerciseScreen> createState() => _AddWorkoutSetExerciseScreenState();
+  State<AddWorkoutSetExerciseScreen> createState() =>
+      _AddWorkoutSetExerciseScreenState();
 }
 
-class _AddWorkoutSetExerciseScreenState extends State<AddWorkoutSetExerciseScreen> {
+class _AddWorkoutSetExerciseScreenState
+    extends State<AddWorkoutSetExerciseScreen> {
   late final TextEditingController _nameController;
   late ExerciseValueType _type;
   late int _sets;
@@ -32,7 +34,9 @@ class _AddWorkoutSetExerciseScreenState extends State<AddWorkoutSetExerciseScree
   void initState() {
     super.initState();
     final initial = widget.initialExercise;
-    _nameController = TextEditingController(text: initial?.name ?? 'Wyciskanie sztangi');
+    _nameController = TextEditingController(
+      text: initial?.name ?? 'Wyciskanie sztangi',
+    );
     _type = initial?.exerciseType ?? ExerciseValueType.repsWeight;
     _sets = initial?.sets ?? 3;
     _reps = initial?.reps ?? 8;
@@ -76,7 +80,8 @@ class _AddWorkoutSetExerciseScreenState extends State<AddWorkoutSetExerciseScree
                     child: _TypeButton(
                       label: 'Powt. + waga',
                       active: isWeight,
-                      onTap: () => setState(() => _type = ExerciseValueType.repsWeight),
+                      onTap: () =>
+                          setState(() => _type = ExerciseValueType.repsWeight),
                     ),
                   ),
                   const SizedBox(width: 9),
@@ -84,7 +89,8 @@ class _AddWorkoutSetExerciseScreenState extends State<AddWorkoutSetExerciseScree
                     child: _TypeButton(
                       label: 'Powtórzenia',
                       active: isReps,
-                      onTap: () => setState(() => _type = ExerciseValueType.repsOnly),
+                      onTap: () =>
+                          setState(() => _type = ExerciseValueType.repsOnly),
                     ),
                   ),
                   const SizedBox(width: 9),
@@ -92,7 +98,8 @@ class _AddWorkoutSetExerciseScreenState extends State<AddWorkoutSetExerciseScree
                     child: _TypeButton(
                       label: 'Czas',
                       active: isTime,
-                      onTap: () => setState(() => _type = ExerciseValueType.time),
+                      onTap: () =>
+                          setState(() => _type = ExerciseValueType.time),
                     ),
                   ),
                 ],
@@ -102,31 +109,43 @@ class _AddWorkoutSetExerciseScreenState extends State<AddWorkoutSetExerciseScree
               _StepperRow(
                 label: 'Serie',
                 value: _sets.toString(),
-                onDec: () => setState(() => _sets = (_sets - 1).clamp(1, 9).toInt()),
-                onInc: () => setState(() => _sets = (_sets + 1).clamp(1, 9).toInt()),
+                onDec: () =>
+                    setState(() => _sets = (_sets - 1).clamp(1, 9).toInt()),
+                onInc: () =>
+                    setState(() => _sets = (_sets + 1).clamp(1, 9).toInt()),
               ),
               if (isWeight || isReps)
                 _StepperRow(
                   label: 'Powtórzenia',
                   value: _reps.toString(),
-                  onDec: () => setState(() => _reps = (_reps - 1).clamp(1, 99).toInt()),
-                  onInc: () => setState(() => _reps = (_reps + 1).clamp(1, 99).toInt()),
+                  onDec: () =>
+                      setState(() => _reps = (_reps - 1).clamp(1, 99).toInt()),
+                  onInc: () =>
+                      setState(() => _reps = (_reps + 1).clamp(1, 99).toInt()),
                 ),
               if (isWeight)
                 _StepperRow(
                   label: 'Ciężar',
                   suffix: 'kg',
                   value: _weight.toStringAsFixed(0),
-                  onDec: () => setState(() => _weight = (_weight - 2.5).clamp(0, 500).toDouble()),
-                  onInc: () => setState(() => _weight = (_weight + 2.5).clamp(0, 500).toDouble()),
+                  onDec: () => setState(
+                    () => _weight = (_weight - 2.5).clamp(0, 500).toDouble(),
+                  ),
+                  onInc: () => setState(
+                    () => _weight = (_weight + 2.5).clamp(0, 500).toDouble(),
+                  ),
                 ),
               if (isTime)
                 _StepperRow(
                   label: 'Czas',
                   suffix: 'sek.',
                   value: _seconds.toString(),
-                  onDec: () => setState(() => _seconds = (_seconds - 5).clamp(5, 600).toInt()),
-                  onInc: () => setState(() => _seconds = (_seconds + 5).clamp(5, 600).toInt()),
+                  onDec: () => setState(
+                    () => _seconds = (_seconds - 5).clamp(5, 600).toInt(),
+                  ),
+                  onInc: () => setState(
+                    () => _seconds = (_seconds + 5).clamp(5, 600).toInt(),
+                  ),
                 ),
             ],
           ),
@@ -140,7 +159,8 @@ class _AddWorkoutSetExerciseScreenState extends State<AddWorkoutSetExerciseScree
               return;
             }
 
-            final draftId = widget.initialExercise?.draftId ??
+            final draftId =
+                widget.initialExercise?.draftId ??
                 WorkoutSetDraftExercise.create(
                   name: name,
                   exerciseType: _type,
@@ -150,15 +170,22 @@ class _AddWorkoutSetExerciseScreenState extends State<AddWorkoutSetExerciseScree
                   seconds: isTime ? _seconds : null,
                 ).draftId;
 
-            widget.onAddExercise(WorkoutSetDraftExercise(
-              draftId: draftId,
-              name: name,
-              exerciseType: _type,
-              sets: _sets,
-              reps: isTime ? null : _reps,
-              weight: isWeight ? _weight : null,
-              seconds: isTime ? _seconds : null,
-            ));
+            final initial = widget.initialExercise;
+            final preservesIdentity =
+                initial != null && initial.exerciseType == _type;
+            widget.onAddExercise(
+              WorkoutSetDraftExercise(
+                draftId: draftId,
+                name: name,
+                exerciseType: _type,
+                sets: _sets,
+                exerciseId: preservesIdentity ? initial.exerciseId : null,
+                rowIds: preservesIdentity ? initial.rowIds : const [],
+                reps: isTime ? null : _reps,
+                weight: isWeight ? _weight : null,
+                seconds: isTime ? _seconds : null,
+              ),
+            );
           },
         ),
       ],
@@ -181,10 +208,17 @@ class _Header extends StatelessWidget {
           IconButton(
             tooltip: 'Wróć',
             onPressed: onBack,
-            icon: const Icon(Icons.chevron_left_rounded, color: lmMuted, size: 30),
+            icon: const Icon(
+              Icons.chevron_left_rounded,
+              color: lmMuted,
+              size: 30,
+            ),
           ),
           const SizedBox(width: 4),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+          ),
         ],
       ),
     );
@@ -202,7 +236,11 @@ class _FieldLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         label,
-        style: const TextStyle(color: lmMuted, fontSize: 13, fontWeight: FontWeight.w700),
+        style: const TextStyle(
+          color: lmMuted,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -228,7 +266,9 @@ class _TypeButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 4),
         foregroundColor: active ? Colors.white : lmMuted,
         backgroundColor: active ? lmBlue.withValues(alpha: 0.18) : lmSurface,
-        side: BorderSide(color: active ? lmBlue : Colors.white.withValues(alpha: 0.08)),
+        side: BorderSide(
+          color: active ? lmBlue : Colors.white.withValues(alpha: 0.08),
+        ),
       ),
       child: FittedBox(
         fit: BoxFit.scaleDown,
@@ -274,7 +314,10 @@ class _StepperRow extends StatelessWidget {
                   if (suffix != null)
                     TextSpan(
                       text: ' ($suffix)',
-                      style: const TextStyle(color: lmMutedDark, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        color: lmMutedDark,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                 ],
               ),
@@ -294,7 +337,11 @@ class _StepperRow extends StatelessWidget {
               ),
             ),
           ),
-          _SmallStepButton(icon: Icons.add_rounded, onPressed: onInc, primary: true),
+          _SmallStepButton(
+            icon: Icons.add_rounded,
+            onPressed: onInc,
+            primary: true,
+          ),
         ],
       ),
     );
@@ -342,7 +389,9 @@ class _BottomAction extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(22, 12, 22, 16),
       decoration: BoxDecoration(
         color: const Color(0xFF13151A),
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.07))),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
+        ),
       ),
       child: FilledButton(onPressed: onPressed, child: Text(label)),
     );

@@ -30,7 +30,8 @@ Workout-set create and update contracts carry optional identifiers:
 
 - a newly created exercise omits `ExerciseId` and receives one from the API;
 - a newly created series omits its row ID and receives one from the API;
-- editing values, names, ordering, or type preserves supplied IDs;
+- editing values, names, or ordering preserves supplied IDs;
+- changing an exercise type creates a new exercise ID and new series row IDs so incompatible units never share one progress series;
 - adding a series creates a new row ID under the existing exercise ID;
 - deleting an exercise or series removes it from the active template without rewriting surviving IDs.
 
@@ -43,7 +44,7 @@ Sessions started from a workout set copy the following stable references into ev
 - `ExerciseId`;
 - `WorkoutSetRowId`.
 
-The value still snapshots exercise name, type, order, set index, reps, weight, and seconds. `SharedSession` also snapshots the workout-set name so renaming the template does not rewrite historical display.
+The value still snapshots exercise name, type, order, set index, reps, weight, and seconds. `SharedSession` also snapshots the workout-set name so renaming the template does not rewrite historical display. `WorkoutSetRowId` and `ExerciseId` are snapshot identifiers, not foreign keys to mutable template rows.
 
 Legacy or ad-hoc session values may have null stable references. They remain readable, but they cannot contribute to per-set progress or cross-session exercise charts.
 
@@ -60,13 +61,13 @@ The root stores:
 - `SourceCompletedAt`;
 - projection update timestamp.
 
-Projection rows are keyed by `WorkoutSetRowId` and also carry `ExerciseId`, exercise type, reps, weight, and seconds. They do not store assignment IDs, so removing an assignment does not cascade progress.
+Projection rows are keyed by `WorkoutSetRowId` and also carry `ExerciseId`, exercise type, reps, weight, and seconds. The projection root keeps a restricted reference to its workout set, while row identifiers remain scalar snapshot keys without foreign keys to mutable template rows. Projection rows do not store assignment IDs, so removing an assignment does not cascade progress.
 
 The source session ID is unique for projection application. Together with the completion-time guard, this makes retries safe and prevents an older session from replacing newer values.
 
 ## Completing a Session
 
-The complete endpoint performs the session transition and projection update in one database transaction.
+The complete endpoint performs the session transition and projection update in one database transaction. Because SQL Server retries are enabled, the transaction runs through EF Core's execution strategy. Every retry opens a serializable transaction, reloads the session and current projection inside that transaction, and commits before broadcasting.
 
 1. Load and authorize the session with its values.
 2. If already completed, return its existing representation without applying progress again.
@@ -93,7 +94,13 @@ The same merge applies to trainer-led and trainee-self-started sessions.
 
 ## History API
 
-History endpoints live under a dedicated authenticated history route group and return read-only DTOs rather than active-session mutation contracts.
+History endpoints live under a dedicated authenticated history route group and return read-only DTOs rather than active-session mutation contracts:
+
+- `GET /training-history/sessions?traineeUserId={optional}&cursor={optional}`;
+- `GET /training-history/sessions/{sessionId}`;
+- `GET /training-history/exercises/{exerciseId}?traineeUserId={optional}`.
+
+The detail endpoint derives the trainee target from the session instead of accepting a target override.
 
 ### Level 1: completed-session list
 
@@ -185,7 +192,8 @@ After a successful **Zakończ i zapisz trening** action, the existing live flow 
 ### API
 
 - migration and model constraints for stable IDs and projections;
-- update-set behavior preserves supplied exercise and series IDs;
+- update-set behavior preserves supplied exercise and series IDs across rename, reorder, and value edits;
+- changing an exercise type creates new exercise and series identities;
 - session creation merges projected values with current template structure;
 - all series are projected regardless of done state;
 - cancellation and ad-hoc completion do not update progress;
@@ -210,7 +218,7 @@ After a successful **Zakończ i zapisz trening** action, the existing live flow 
 
 ## Migration and Compatibility
 
-The migration backfills stable exercise IDs for existing workout-set rows by grouping rows within a set by their current exercise order. Existing row IDs remain stable series IDs.
+The migration backfills stable exercise IDs for existing workout-set rows by grouping rows within a set by their current exercise order. Existing row IDs remain stable series IDs. Automated verification generates an idempotent SQL Server migration script and checks the required schema and backfill statements; a disposable SQL Server database seeded with representative pre-S-05 rows is the deployment smoke test.
 
 Existing sessions with a workout-set reference receive a one-time workout-set-name snapshot from the current set name during migration; ad-hoc sessions use a neutral fallback label. Existing shared-session values predate stable source references. They remain valid historical session snapshots and may appear in the completed-session list and details, but cross-session exercise progress and starting-value projection begin with sessions created after stable references are available.
 

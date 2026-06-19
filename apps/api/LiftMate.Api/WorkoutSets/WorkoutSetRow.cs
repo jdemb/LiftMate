@@ -8,6 +8,8 @@ public sealed class WorkoutSetRow
 
     public WorkoutSet? WorkoutSet { get; set; }
 
+    public Guid ExerciseId { get; set; }
+
     public int ExerciseOrder { get; set; }
 
     public int SetIndex { get; set; }

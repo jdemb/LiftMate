@@ -7,6 +7,8 @@ class WorkoutSetDraftExercise {
     required this.name,
     required this.exerciseType,
     required this.sets,
+    this.exerciseId,
+    this.rowIds = const [],
     this.reps,
     this.weight,
     this.seconds,
@@ -27,6 +29,7 @@ class WorkoutSetDraftExercise {
       name: name,
       exerciseType: exerciseType,
       sets: sets,
+      rowIds: const [],
       reps: reps,
       weight: weight,
       seconds: seconds,
@@ -37,10 +40,13 @@ class WorkoutSetDraftExercise {
     int exerciseOrder,
     List<WorkoutSetRow> rows,
   ) {
-    final sortedRows = [...rows]..sort((a, b) => a.setIndex.compareTo(b.setIndex));
+    final sortedRows = [...rows]
+      ..sort((a, b) => a.setIndex.compareTo(b.setIndex));
     final first = sortedRows.first;
     return WorkoutSetDraftExercise(
       draftId: 'existing-$exerciseOrder',
+      exerciseId: first.exerciseId,
+      rowIds: sortedRows.map((row) => row.id).toList(growable: false),
       name: first.exerciseName,
       exerciseType: first.exerciseType,
       sets: sortedRows.length,
@@ -53,6 +59,8 @@ class WorkoutSetDraftExercise {
   static int _nextDraftId = 1;
 
   final String draftId;
+  final String? exerciseId;
+  final List<String?> rowIds;
   final String name;
   final ExerciseValueType exerciseType;
   final int sets;
@@ -70,7 +78,8 @@ class WorkoutSetDraftExercise {
 
   String get params {
     return switch (exerciseType) {
-      ExerciseValueType.repsWeight => '$sets serie · $reps powt. · ${weight?.toStringAsFixed(0)} kg',
+      ExerciseValueType.repsWeight =>
+        '$sets serie · $reps powt. · ${weight?.toStringAsFixed(0)} kg',
       ExerciseValueType.repsOnly => '$sets serie · $reps powt.',
       ExerciseValueType.time => '$sets serie · $seconds sek.',
     };
@@ -79,6 +88,8 @@ class WorkoutSetDraftExercise {
   List<WorkoutSetRowRequest> toRows(int exerciseOrder) {
     return List.generate(sets, (index) {
       return WorkoutSetRowRequest(
+        id: index < rowIds.length ? rowIds[index] : null,
+        exerciseId: exerciseId,
         exerciseOrder: exerciseOrder,
         setIndex: index + 1,
         exerciseName: name,

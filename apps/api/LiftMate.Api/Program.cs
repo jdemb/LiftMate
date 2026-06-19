@@ -4,6 +4,7 @@ using LiftMate.Api.Auth;
 using LiftMate.Api.Data;
 using LiftMate.Api.SharedSessions;
 using LiftMate.Api.TrainingProgress;
+using LiftMate.Api.TrainingHistory;
 using LiftMate.Api.WorkoutSets;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -101,6 +102,7 @@ app.MapProbeEndpoints();
 app.MapPairingEndpoints();
 app.MapSharedSessionEndpoints();
 app.MapWorkoutSetEndpoints();
+app.MapTrainingHistoryEndpoints();
 app.MapHub<SharedSessionHub>("/hubs/shared-sessions").RequireAuthorization();
 
 var summaries = new[]

@@ -11,6 +11,7 @@ import 'package:liftmate/auth/auth_screen.dart';
 import 'package:liftmate/auth/token_store.dart';
 import 'package:liftmate/relationships/relationship_api_client.dart';
 import 'package:liftmate/shared_sessions/shared_session_api_client.dart';
+import 'package:liftmate/shared_sessions/shared_session_models.dart';
 import 'package:liftmate/shared_sessions/shared_session_realtime_client.dart';
 import 'package:liftmate/workout_sets/workout_set_api_client.dart';
 
@@ -570,6 +571,82 @@ void main() {
     },
   );
 
+  testWidgets(
+    'trainee read-only live updates from realtime without another session request',
+    (tester) async {
+      final seen = <String>[];
+      final realtimeClient = _FakeRealtimeClient();
+      addTearDown(realtimeClient.dispose);
+      await tester.pumpWidget(
+        _testApp(
+          includeSharedSessionClient: true,
+          sharedSessionRealtimeClientFactory: () => realtimeClient,
+          httpClient: MockClient((request) async {
+            seen.add('${request.method} ${request.url.path}');
+            if (request.url.path == '/auth/me') {
+              return http.Response(
+                jsonEncode(
+                  _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
+                ),
+                200,
+              );
+            }
+            if (request.url.path == '/trainee/relationship') {
+              return http.Response(
+                jsonEncode({'trainer': _trainer('Test Trainer')}),
+                200,
+              );
+            }
+            if (request.url.path == '/trainee/workout-sets') {
+              return http.Response(jsonEncode([_assignedSet()]), 200);
+            }
+            if (request.url.path == '/shared-sessions/active' ||
+                request.url.path == '/shared-sessions/session-1') {
+              return http.Response(
+                jsonEncode(_sessionResponse(startedByRole: 'trainer')),
+                200,
+              );
+            }
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.pumpAndSettle();
+      await _tapButton(tester, 'aktywnego treningu');
+
+      expect(find.text('40 kg'), findsOneWidget);
+      expect(find.text('x 6 powt.'), findsOneWidget);
+      expect(find.text('Ukończone serie: 0'), findsOneWidget);
+      final sessionRequestCount = seen
+          .where((request) => request.contains('/shared-sessions/'))
+          .length;
+
+      realtimeClient.emit(
+        SharedSession.fromJson(
+          _sessionResponse(
+            startedByRole: 'trainer',
+            version: 2,
+            firstReps: 8,
+            firstWeight: 47.5,
+            completedValueIds: const {'value-2'},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('47.5 kg'), findsOneWidget);
+      expect(find.text('x 8 powt.'), findsOneWidget);
+      expect(find.text('Ukończone serie: 1'), findsOneWidget);
+      expect(find.byIcon(Icons.add_rounded), findsNothing);
+      expect(
+        seen.where((request) => request.contains('/shared-sessions/')).length,
+        sessionRequestCount,
+      );
+    },
+  );
+
   testWidgets('trainee trainer-led read-only live falls back to trainer email', (
     tester,
   ) async {
@@ -770,6 +847,7 @@ Future<void> _tapButton(WidgetTester tester, String label) async {
 Widget _testApp({
   required http.Client httpClient,
   bool includeSharedSessionClient = false,
+  SharedSessionRealtimeClientFactory? sharedSessionRealtimeClientFactory,
 }) {
   final authApiClient = AuthApiClient(
     baseUrl: 'https://api.example.test',
@@ -803,7 +881,9 @@ Widget _testApp({
             )
           : null,
       sharedSessionRealtimeClientFactory:
-          includeSharedSessionClient ? _FakeRealtimeClient.new : null,
+          includeSharedSessionClient
+          ? sharedSessionRealtimeClientFactory ?? _FakeRealtimeClient.new
+          : null,
     ),
   );
 }
@@ -926,6 +1006,10 @@ Future<void> _expectEditableLiveHierarchy(WidgetTester tester) async {
 Map<String, Object?> _sessionResponse({
   String startedByRole = 'trainer',
   bool includeValues = true,
+  int version = 1,
+  int firstReps = 6,
+  double firstWeight = 40,
+  Set<String> completedValueIds = const {},
 }) {
   return {
     'id': 'session-1',
@@ -937,7 +1021,7 @@ Map<String, Object?> _sessionResponse({
     'startedByUserId': startedByRole == 'trainer' ? 'trainer-1' : 'trainee-1',
     'startedByRole': startedByRole,
     'status': 'active',
-    'version': 1,
+    'version': version,
     'createdAt': '2026-06-17T12:00:00Z',
     'updatedAt': '2026-06-17T12:00:00Z',
     'closedAt': null,
@@ -949,10 +1033,10 @@ Map<String, Object?> _sessionResponse({
               'exerciseType': 'repsWeight',
               'exerciseOrder': 1,
               'setIndex': 1,
-              'reps': 6,
-              'weight': 40.0,
+              'reps': firstReps,
+              'weight': firstWeight,
               'seconds': null,
-              'isDone': false,
+              'isDone': completedValueIds.contains('value-1'),
               'completedAt': null,
               'updatedByUserId': null,
               'updatedAt': null,
@@ -966,7 +1050,7 @@ Map<String, Object?> _sessionResponse({
               'reps': 6,
               'weight': 42.5,
               'seconds': null,
-              'isDone': false,
+              'isDone': completedValueIds.contains('value-2'),
               'completedAt': null,
               'updatedByUserId': null,
               'updatedAt': null,
@@ -980,7 +1064,7 @@ Map<String, Object?> _sessionResponse({
               'reps': null,
               'weight': null,
               'seconds': 60,
-              'isDone': false,
+              'isDone': completedValueIds.contains('value-3'),
               'completedAt': null,
               'updatedByUserId': null,
               'updatedAt': null,
@@ -991,14 +1075,21 @@ Map<String, Object?> _sessionResponse({
 }
 
 class _FakeRealtimeClient implements SharedSessionRealtimeClient {
-  @override
-  Stream<Never> get errors => const Stream.empty();
+  final _updatesController = StreamController<SharedSession>.broadcast();
+  final _statusController =
+      StreamController<SharedSessionConnectionStatus>.broadcast();
+  final _errorsController = StreamController<String>.broadcast();
+  final joinedSessionIds = <String>[];
 
   @override
-  Stream<SharedSessionConnectionStatus> get connectionStatus => const Stream.empty();
+  Stream<String> get errors => _errorsController.stream;
 
   @override
-  Stream<Never> get updates => const Stream.empty();
+  Stream<SharedSessionConnectionStatus> get connectionStatus =>
+      _statusController.stream;
+
+  @override
+  Stream<SharedSession> get updates => _updatesController.stream;
 
   @override
   Future<void> connect({required String accessToken}) async {}
@@ -1007,7 +1098,19 @@ class _FakeRealtimeClient implements SharedSessionRealtimeClient {
   Future<void> disconnect() async {}
 
   @override
-  Future<void> joinSession({required String sessionId}) async {}
+  Future<void> joinSession({required String sessionId}) async {
+    joinedSessionIds.add(sessionId);
+  }
+
+  void emit(SharedSession session) {
+    _updatesController.add(session);
+  }
+
+  Future<void> dispose() async {
+    await _updatesController.close();
+    await _statusController.close();
+    await _errorsController.close();
+  }
 }
 
 class _InMemoryTokenStore implements TokenStore {

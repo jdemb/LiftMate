@@ -353,13 +353,13 @@ Brak migracji danych i zmian kontraktów. Zmiana jest kompatybilna z istniejący
 
 #### Automated
 
-- [x] 2.1 Test przekrojowy potwierdza aktualizację read-only UI po `sessionUpdated`
-- [x] 2.2 Test potwierdza brak ręcznego odświeżenia i dodatkowego żądania sesji
-- [x] 2.3 Test potwierdza zachowanie granicy read-only
-- [x] 2.4 Istniejące testy read-only nadal przechodzą
-- [x] 2.5 `flutter test test/post_auth_relationship_screen_test.dart` przechodzi
-- [x] 2.6 Pełne `flutter test` przechodzi
-- [x] 2.7 `flutter analyze` przechodzi
+- [x] 2.1 Test przekrojowy potwierdza aktualizację read-only UI po `sessionUpdated` — 315a7cf
+- [x] 2.2 Test potwierdza brak ręcznego odświeżenia i dodatkowego żądania sesji — 315a7cf
+- [x] 2.3 Test potwierdza zachowanie granicy read-only — 315a7cf
+- [x] 2.4 Istniejące testy read-only nadal przechodzą — 315a7cf
+- [x] 2.5 `flutter test test/post_auth_relationship_screen_test.dart` przechodzi — 315a7cf
+- [x] 2.6 Pełne `flutter test` przechodzi — 315a7cf
+- [x] 2.7 `flutter analyze` przechodzi — 315a7cf
 
 #### Manual
 
@@ -369,10 +369,10 @@ Brak migracji danych i zmian kontraktów. Zmiana jest kompatybilna z istniejący
 
 #### Automated
 
-- [ ] 3.1 `dotnet test LiftMate.slnx --no-restore` przechodzi
-- [ ] 3.2 Pełne `flutter test` przechodzi
-- [ ] 3.3 `flutter analyze` przechodzi
-- [ ] 3.4 Roadmapa pozostaje `proposed` przed manualnym potwierdzeniem
+- [x] 3.1 `dotnet test LiftMate.slnx --no-restore` przechodzi
+- [x] 3.2 Pełne `flutter test` przechodzi
+- [x] 3.3 `flutter analyze` przechodzi
+- [x] 3.4 Roadmapa pozostaje `proposed` przed manualnym potwierdzeniem
 
 #### Manual
 

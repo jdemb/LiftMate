@@ -773,18 +773,18 @@ Implement the design-contract screens, connect both role entry points, verify th
 
 #### Automated
 
-- [x] 1.1 SQLite test model creates successfully with the new schema.
-- [x] 1.2 Idempotent SQL Server migration script contains the required backfills and avoids history-to-template-row foreign keys.
-- [x] 1.3 Workout-set create returns stable exercise and row IDs.
-- [x] 1.4 Workout-set update preserves surviving IDs across rename, reorder, and value edits.
-- [x] 1.5 Update rejects foreign and inconsistent identifiers.
-- [x] 1.6 Type changes allocate new exercise and row IDs instead of extending the old progress series.
-- [x] 1.7 Flutter builder requests preserve identifiers for existing exercises and omit them for new ones.
-- [x] 1.8 New set-backed sessions snapshot name, exercise IDs, and row IDs.
-- [x] 1.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~WorkoutSet"` passes.
-- [x] 1.10 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~SharedSessionEndpointTests"` passes.
-- [x] 1.11 Targeted Flutter workout-set/model tests pass.
-- [x] 1.12 `flutter analyze` passes.
+- [x] 1.1 SQLite test model creates successfully with the new schema. — d6a38ca
+- [x] 1.2 Idempotent SQL Server migration script contains the required backfills and avoids history-to-template-row foreign keys. — d6a38ca
+- [x] 1.3 Workout-set create returns stable exercise and row IDs. — d6a38ca
+- [x] 1.4 Workout-set update preserves surviving IDs across rename, reorder, and value edits. — d6a38ca
+- [x] 1.5 Update rejects foreign and inconsistent identifiers. — d6a38ca
+- [x] 1.6 Type changes allocate new exercise and row IDs instead of extending the old progress series. — d6a38ca
+- [x] 1.7 Flutter builder requests preserve identifiers for existing exercises and omit them for new ones. — d6a38ca
+- [x] 1.8 New set-backed sessions snapshot name, exercise IDs, and row IDs. — d6a38ca
+- [x] 1.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~WorkoutSet"` passes. — d6a38ca
+- [x] 1.10 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~SharedSessionEndpointTests"` passes. — d6a38ca
+- [x] 1.11 Targeted Flutter workout-set/model tests pass. — d6a38ca
+- [x] 1.12 `flutter analyze` passes. — d6a38ca
 
 #### Manual
 
@@ -796,18 +796,18 @@ Implement the design-contract screens, connect both role entry points, verify th
 
 #### Automated
 
-- [ ] 2.1 Completion persists every series into the projection.
-- [ ] 2.2 Repeating completion does not duplicate or rewrite progress.
-- [ ] 2.3 A completion with an older timestamp cannot replace newer progress.
-- [ ] 2.4 Cancellation and ad-hoc completion leave progress unchanged.
-- [ ] 2.5 Unassignment does not delete progress.
-- [ ] 2.6 Reassignment restores projected starting values.
-- [ ] 2.7 Both trainer-led and trainee-self-started sessions merge projected values.
-- [ ] 2.8 New template rows use defaults and removed rows do not reappear.
-- [ ] 2.9 Targeted progress/shared-session API tests pass.
-- [ ] 2.10 Targeted Flutter completion tests pass.
-- [ ] 2.11 `dotnet build LiftMate.slnx --no-restore` passes.
-- [ ] 2.12 `flutter analyze` passes.
+- [x] 2.1 Completion persists every series into the projection.
+- [x] 2.2 Repeating completion does not duplicate or rewrite progress.
+- [x] 2.3 A completion with an older timestamp cannot replace newer progress.
+- [x] 2.4 Cancellation and ad-hoc completion leave progress unchanged.
+- [x] 2.5 Unassignment does not delete progress.
+- [x] 2.6 Reassignment restores projected starting values.
+- [x] 2.7 Both trainer-led and trainee-self-started sessions merge projected values.
+- [x] 2.8 New template rows use defaults and removed rows do not reappear.
+- [x] 2.9 Targeted progress/shared-session API tests pass.
+- [x] 2.10 Targeted Flutter completion tests pass.
+- [x] 2.11 `dotnet build LiftMate.slnx --no-restore` passes.
+- [x] 2.12 `flutter analyze` passes.
 
 #### Manual
 

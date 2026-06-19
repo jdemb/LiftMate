@@ -1,6 +1,8 @@
+using System.Data;
 using System.Security.Claims;
 using LiftMate.Api.Auth;
 using LiftMate.Api.Data;
+using LiftMate.Api.TrainingProgress;
 using LiftMate.Api.WorkoutSets;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -255,6 +257,12 @@ public static class SharedSessionEndpoints
         }
 
         var now = DateTimeOffset.UtcNow;
+        var projectedValues = await dbContext.WorkoutProgresses
+            .Where(progress =>
+                progress.TraineeUserId == trainee.Id &&
+                progress.WorkoutSetId == workoutSet.Id)
+            .SelectMany(progress => progress.Values)
+            .ToDictionaryAsync(value => value.WorkoutSetRowId, cancellationToken);
         var session = new SharedSession
         {
             Id = Guid.NewGuid(),
@@ -275,6 +283,7 @@ public static class SharedSessionEndpoints
 
         foreach (var row in workoutSet.Rows.OrderBy(row => row.ExerciseOrder).ThenBy(row => row.SetIndex).ThenBy(row => row.Id))
         {
+            projectedValues.TryGetValue(row.Id, out var projected);
             session.Values.Add(new SharedSessionValue
             {
                 Id = Guid.NewGuid(),
@@ -284,9 +293,9 @@ public static class SharedSessionEndpoints
                 ExerciseName = row.ExerciseName,
                 ExerciseType = row.ExerciseType,
                 SetIndex = row.SetIndex,
-                Reps = row.Reps,
-                Weight = row.Weight,
-                Seconds = row.Seconds,
+                Reps = projected?.Reps ?? row.Reps,
+                Weight = projected?.Weight ?? row.Weight,
+                Seconds = projected?.Seconds ?? row.Seconds,
                 IsDone = false,
                 CompletedAt = null,
             });
@@ -411,14 +420,74 @@ public static class SharedSessionEndpoints
         return Results.Ok(SharedSessionMapping.ToResponse(session));
     }
 
-    private static Task<IResult> Complete(
+    private static async Task<IResult> Complete(
         Guid sessionId,
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
+        WorkoutProgressProjector projector,
         SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
-        return Close(sessionId, SharedSessionStatus.Completed, SharedSessionStatus.Cancelled, principal, dbContext, broadcaster, cancellationToken);
+        IResult? terminalResult = null;
+        SharedSession? completedSession = null;
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+
+        await executionStrategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken);
+            dbContext.ChangeTracker.Clear();
+
+            var session = await FindSession(dbContext, sessionId, cancellationToken);
+            if (session is null)
+            {
+                terminalResult = Results.NotFound();
+                return;
+            }
+
+            if (!SharedSessionAccess.CanAccess(session, principal))
+            {
+                terminalResult = Results.Forbid();
+                return;
+            }
+
+            if (session.Status == SharedSessionStatus.Completed)
+            {
+                terminalResult = Results.Ok(SharedSessionMapping.ToResponse(session));
+                return;
+            }
+
+            if (session.Status == SharedSessionStatus.Cancelled)
+            {
+                terminalResult = Results.Conflict(new { error = "Shared session is already cancelled." });
+                return;
+            }
+
+            var completedAt = DateTimeOffset.UtcNow;
+            session.Status = SharedSessionStatus.Completed;
+            session.Version += 1;
+            session.UpdatedAt = completedAt;
+            session.ClosedAt = completedAt;
+
+            await projector.ProjectAsync(session, completedAt, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            completedSession = session;
+        });
+
+        if (terminalResult is not null)
+        {
+            return terminalResult;
+        }
+
+        if (completedSession is null)
+        {
+            return Results.Problem("Shared session completion did not produce a result.");
+        }
+
+        await broadcaster.BroadcastUpdatedAsync(completedSession, cancellationToken);
+        return Results.Ok(SharedSessionMapping.ToResponse(completedSession));
     }
 
     private static Task<IResult> Cancel(

@@ -331,16 +331,16 @@ Brak migracji danych i zmian kontraktów. Zmiana jest kompatybilna z istniejący
 
 #### Automated
 
-- [x] 1.1 Test kontrolera dowodzi rejoin aktywnej sesji po `reconnecting -> connected`
-- [x] 1.2 Rejoin nie wykonuje dodatkowego `GET /shared-sessions/active`, gdy sesja jest lokalnie dostępna
-- [x] 1.3 Nieudany rejoin zachowuje aktywny snapshot i pozwala na następną próbę
-- [x] 1.4 Nieudany rejoin pokazuje nieblokujący banner, a udany retry automatycznie go usuwa
-- [x] 1.5 Starszy snapshot realtime nie zastępuje nowszej wersji lokalnej
-- [x] 1.6 Event innej sesji nie zastępuje otwartego treningu i odświeża dostępność sesji dla trenera
-- [x] 1.7 Obecny fallback pustego stanu nadal działa
-- [x] 1.8 `flutter test test/shared_session_controller_test.dart` przechodzi
-- [x] 1.9 `flutter test test/live_session_screen_test.dart` przechodzi
-- [x] 1.10 `flutter analyze` przechodzi
+- [x] 1.1 Test kontrolera dowodzi rejoin aktywnej sesji po `reconnecting -> connected` — e382e5f
+- [x] 1.2 Rejoin nie wykonuje dodatkowego `GET /shared-sessions/active`, gdy sesja jest lokalnie dostępna — e382e5f
+- [x] 1.3 Nieudany rejoin zachowuje aktywny snapshot i pozwala na następną próbę — e382e5f
+- [x] 1.4 Nieudany rejoin pokazuje nieblokujący banner, a udany retry automatycznie go usuwa — e382e5f
+- [x] 1.5 Starszy snapshot realtime nie zastępuje nowszej wersji lokalnej — e382e5f
+- [x] 1.6 Event innej sesji nie zastępuje otwartego treningu i odświeża dostępność sesji dla trenera — e382e5f
+- [x] 1.7 Obecny fallback pustego stanu nadal działa — e382e5f
+- [x] 1.8 `flutter test test/shared_session_controller_test.dart` przechodzi — e382e5f
+- [x] 1.9 `flutter test test/live_session_screen_test.dart` przechodzi — e382e5f
+- [x] 1.10 `flutter analyze` przechodzi — e382e5f
 
 #### Manual
 
@@ -353,13 +353,13 @@ Brak migracji danych i zmian kontraktów. Zmiana jest kompatybilna z istniejący
 
 #### Automated
 
-- [ ] 2.1 Test przekrojowy potwierdza aktualizację read-only UI po `sessionUpdated`
-- [ ] 2.2 Test potwierdza brak ręcznego odświeżenia i dodatkowego żądania sesji
-- [ ] 2.3 Test potwierdza zachowanie granicy read-only
-- [ ] 2.4 Istniejące testy read-only nadal przechodzą
-- [ ] 2.5 `flutter test test/post_auth_relationship_screen_test.dart` przechodzi
-- [ ] 2.6 Pełne `flutter test` przechodzi
-- [ ] 2.7 `flutter analyze` przechodzi
+- [x] 2.1 Test przekrojowy potwierdza aktualizację read-only UI po `sessionUpdated`
+- [x] 2.2 Test potwierdza brak ręcznego odświeżenia i dodatkowego żądania sesji
+- [x] 2.3 Test potwierdza zachowanie granicy read-only
+- [x] 2.4 Istniejące testy read-only nadal przechodzą
+- [x] 2.5 `flutter test test/post_auth_relationship_screen_test.dart` przechodzi
+- [x] 2.6 Pełne `flutter test` przechodzi
+- [x] 2.7 `flutter analyze` przechodzi
 
 #### Manual
 

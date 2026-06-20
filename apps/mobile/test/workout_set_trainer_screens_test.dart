@@ -32,6 +32,7 @@ void main() {
           if (request.url.path == '/workout-sets' && request.method == 'POST') {
             final body = jsonDecode(request.body) as Map<String, dynamic>;
             expect(body['name'], 'Push A');
+            expect(body['restSeconds'], 105);
             expect((body['rows'] as List).length, 3);
             expect((body['rows'] as List).first['exerciseType'], 'repsWeight');
             return http.Response(jsonEncode(_detailJson(name: 'Push A')), 201);
@@ -50,6 +51,13 @@ void main() {
 
       await _tapButton(tester, 'Nowy zestaw');
       expect(find.text('Kreator zestawu'), findsOneWidget);
+      expect(find.text('Czas odpoczynku'), findsOneWidget);
+      expect(find.text('01:30'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('builder-rest-increase')),
+      );
+      await tester.pump();
+      expect(find.text('01:45'), findsOneWidget);
 
       await _tapButton(tester, 'Dodaj ćwiczenie');
       expect(find.text('Dodaj ćwiczenie'), findsOneWidget);
@@ -84,7 +92,10 @@ void main() {
             return http.Response(jsonEncode([_summaryJson(rowCount: 3)]), 200);
           }
           if (request.url.path == '/workout-sets/set-1' && request.method == 'GET') {
-            return http.Response(jsonEncode(_detailJson(rows: _benchRows())), 200);
+            return http.Response(
+              jsonEncode(_detailJson(rows: _benchRows(), restSeconds: 120)),
+              200,
+            );
           }
           if (request.url.path == '/workout-sets/set-1' && request.method == 'PUT') {
             updateBody = jsonDecode(request.body) as Map<String, dynamic>;
@@ -101,6 +112,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Bench press'), findsOneWidget);
+      expect(find.text('02:00'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('builder-rest-decrease')),
+      );
+      await tester.pump();
+      expect(find.text('01:45'), findsOneWidget);
       expect(find.text('Seria 1'), findsNothing);
 
       await tester.tap(find.text('Bench press'));
@@ -116,6 +133,7 @@ void main() {
       expect(rows, hasLength(3));
       expect(rows.first['exerciseName'], 'Incline press');
       expect(rows.map((row) => row['setIndex']), [1, 2, 3]);
+      expect(updateBody?['restSeconds'], 105);
     });
 
     testWidgets('trainer deletes an exercise from an existing set draft', (tester) async {
@@ -448,12 +466,14 @@ AssignedWorkoutSetSummary _assignedSummary({
 
 Map<String, Object?> _detailJson({
   String name = 'Push A',
+  int restSeconds = 90,
   List<Map<String, Object?>>? rows,
   List<Map<String, Object?>>? assignments,
 }) {
   return {
     'id': 'set-1',
     'name': name,
+    'restSeconds': restSeconds,
     'rows': rows ?? _benchRows(setCount: 1),
     'assignments': assignments ??
         [

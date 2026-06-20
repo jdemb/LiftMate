@@ -8,15 +8,16 @@ import 'shared_session_controller.dart';
 import 'shared_session_models.dart';
 
 class LiveSessionScreen extends StatefulWidget {
-  const LiveSessionScreen({
+  LiveSessionScreen({
     required this.user,
     required this.controller,
     required this.editable,
     required this.onBack,
     this.trainerDisplayName,
     this.onSessionClosed,
+    DateTime Function()? now,
     super.key,
-  });
+  }) : now = now ?? DateTime.now;
 
   final AuthUser user;
   final SharedSessionController controller;
@@ -24,6 +25,7 @@ class LiveSessionScreen extends StatefulWidget {
   final VoidCallback onBack;
   final String? trainerDisplayName;
   final Future<void> Function()? onSessionClosed;
+  final DateTime Function() now;
 
   @override
   State<LiveSessionScreen> createState() => _LiveSessionScreenState();
@@ -63,6 +65,7 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
                 title: 'Trening live',
                 subtitle: null,
                 onBack: widget.onBack,
+                trailing: const SizedBox(width: 48),
               ),
               const SizedBox(height: 18),
               RelationshipCard(
@@ -84,6 +87,10 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
                 title: 'Trening live',
                 subtitle: _sessionSubtitle(session),
                 onBack: widget.onBack,
+                trailing: _ElapsedSessionTime(
+                  startedAt: session.createdAt,
+                  now: widget.now,
+                ),
               ),
               const SizedBox(height: 18),
               const RelationshipCard(
@@ -118,6 +125,10 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
               title: session.traineeEmail,
               subtitle: _sessionSubtitle(session),
               onBack: widget.onBack,
+              trailing: _ElapsedSessionTime(
+                startedAt: session.createdAt,
+                now: widget.now,
+              ),
             ),
             if (state.message != null)
               Padding(
@@ -247,11 +258,13 @@ class _LiveTopBar extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onBack,
+    required this.trailing,
   });
 
   final String title;
   final String? subtitle;
   final VoidCallback onBack;
+  final Widget trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -294,7 +307,7 @@ class _LiveTopBar extends StatelessWidget {
               ],
             ),
           ),
-          const _LiveBadge(),
+          trailing,
         ],
       ),
     );
@@ -513,7 +526,7 @@ class _ReadOnlyLiveView extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'Ukończone serie: $completed',
+                      completedSeriesLabel(completed),
                       style: const TextStyle(
                         color: Color(0xFF7EE0AD),
                         fontWeight: FontWeight.w700,
@@ -970,20 +983,53 @@ class _ReadOnlyRestFooter extends StatelessWidget {
   }
 }
 
-class _LiveBadge extends StatelessWidget {
-  const _LiveBadge();
+class _ElapsedSessionTime extends StatefulWidget {
+  const _ElapsedSessionTime({
+    required this.startedAt,
+    required this.now,
+  });
+
+  final DateTime startedAt;
+  final DateTime Function() now;
+
+  @override
+  State<_ElapsedSessionTime> createState() => _ElapsedSessionTimeState();
+}
+
+class _ElapsedSessionTimeState extends State<_ElapsedSessionTime> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final seconds = widget
+        .now()
+        .toUtc()
+        .difference(widget.startedAt.toUtc())
+        .inSeconds
+        .clamp(0, 1 << 31);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFFFF4D4D).withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: const Text(
-        'żywo',
-        style: TextStyle(
+      child: Text(
+        formatElapsedSessionTime(seconds),
+        style: const TextStyle(
           color: Color(0xFFFF8D8D),
           fontWeight: FontWeight.w800,
           fontSize: 11,
@@ -991,6 +1037,23 @@ class _LiveBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+String formatElapsedSessionTime(int seconds) {
+  final minutes = seconds ~/ 60;
+  final remainder = seconds % 60;
+  return '${minutes.toString().padLeft(2, '0')}:'
+      '${remainder.toString().padLeft(2, '0')}';
+}
+
+String completedSeriesLabel(int count) {
+  if (count == 1) return '1 ukończona seria';
+  final lastTwo = count % 100;
+  final last = count % 10;
+  if ((lastTwo < 12 || lastTwo > 14) && last >= 2 && last <= 4) {
+    return '$count ukończone serie';
+  }
+  return '$count ukończonych serii';
 }
 
 List<_ExerciseValueGroup> _groupValues(List<SharedSessionValue> values) {

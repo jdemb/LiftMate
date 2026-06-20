@@ -12,6 +12,8 @@ public sealed class WorkoutSet
 
     public string Name { get; set; } = string.Empty;
 
+    public int RestSeconds { get; set; } = 90;
+
     public DateTimeOffset CreatedAt { get; set; }
 
     public DateTimeOffset UpdatedAt { get; set; }

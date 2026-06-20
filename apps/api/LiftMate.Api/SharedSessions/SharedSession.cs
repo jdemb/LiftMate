@@ -21,6 +21,8 @@ public sealed class SharedSession
 
     public string WorkoutSetName { get; set; } = "Trening";
 
+    public int RestSeconds { get; set; } = 90;
+
     public string StartedByUserId { get; set; } = string.Empty;
 
     public ApplicationUser? StartedByUser { get; set; }

@@ -90,6 +90,43 @@ public sealed class TrainingHistoryEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task DetailDurationUsesSessionStartAndCompletionTimestamps()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var completedAt = DateTimeOffset.UtcNow;
+        var session = CreateSession(
+            trainer.User.Id,
+            trainee.User.Id,
+            Guid.NewGuid(),
+            SharedSessionStatus.Completed,
+            completedAt,
+            40m,
+            duration: TimeSpan.FromSeconds(42));
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            dbContext.SharedSessions.Add(session);
+            await dbContext.SaveChangesAsync();
+        }
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var response = await client.GetAsync(
+            $"/training-history/sessions/{session.Id}");
+        var detail = await response.Content.ReadFromJsonAsync<HistorySessionResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(detail);
+        Assert.Equal(42, detail.DurationSeconds);
+        Assert.Equal(
+            TimeSpan.FromSeconds(42),
+            detail.CompletedAt - detail.StartedAt);
+    }
+
+    [Fact]
     public async Task CurrentTrainerCanReadButFormerAndUnrelatedTrainersCannot()
     {
         using var client = factory.CreateClient();
@@ -247,9 +284,12 @@ public sealed class TrainingHistoryEndpointTests(TestApplicationFactory factory)
         Guid exerciseId,
         string status,
         DateTimeOffset? completedAt,
-        decimal maximumWeight)
+        decimal maximumWeight,
+        TimeSpan? duration = null)
     {
-        var createdAt = (completedAt ?? DateTimeOffset.UtcNow).AddMinutes(-10);
+        var createdAt = completedAt.HasValue
+            ? completedAt.Value - (duration ?? TimeSpan.FromMinutes(10))
+            : DateTimeOffset.UtcNow;
         var session = new SharedSession
         {
             Id = Guid.NewGuid(),
@@ -343,6 +383,12 @@ public sealed class TrainingHistoryEndpointTests(TestApplicationFactory factory)
 
     private sealed record HistorySessionResponse(
         Guid Id,
+        string WorkoutSetName,
+        DateTimeOffset StartedAt,
+        DateTimeOffset CompletedAt,
+        int DurationSeconds,
+        int ExerciseCount,
+        int SeriesCount,
         IReadOnlyList<HistoryExerciseResponse> Exercises);
 
     private sealed record HistoryExerciseResponse(

@@ -15,6 +15,52 @@ import 'package:liftmate/shared_sessions/shared_session_models.dart';
 import 'package:liftmate/shared_sessions/shared_session_realtime_client.dart';
 
 void main() {
+  test('completed series label follows Polish grammar', () {
+    expect(completedSeriesLabel(1), '1 ukończona seria');
+    expect(completedSeriesLabel(2), '2 ukończone serie');
+    expect(completedSeriesLabel(5), '5 ukończonych serii');
+    expect(completedSeriesLabel(12), '12 ukończonych serii');
+    expect(completedSeriesLabel(22), '22 ukończone serie');
+  });
+
+  testWidgets('trainer header shows elapsed time from server session start', (
+    tester,
+  ) async {
+    final now = DateTime.utc(2026, 6, 20, 12);
+    final authController = await _authController();
+    final apiClient = _FakeSharedSessionApiClient(
+      session: _session(
+        createdAt: now.subtract(const Duration(seconds: 65)),
+      ),
+    );
+    final controller = SharedSessionController(
+      apiClient: apiClient,
+      authController: authController,
+      realtimeClientFactory: _FakeRealtimeClient.new,
+    );
+    addTearDown(controller.dispose);
+    await controller.loadById(
+      user: authController.state.user!,
+      sessionId: 'session-1',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _liveTestTheme(),
+        home: LiveSessionScreen(
+          user: authController.state.user!,
+          controller: controller,
+          editable: true,
+          onBack: () {},
+          now: () => now,
+        ),
+      ),
+    );
+
+    expect(find.text('01:05'), findsOneWidget);
+    expect(find.text('żywo'), findsNothing);
+  });
+
   testWidgets('trainer live screen renders editable rows and sends updates', (
     tester,
   ) async {
@@ -298,7 +344,9 @@ Future<AuthController> _authController({String role = 'trainer'}) async {
 SharedSession _session({
   int reps = 6,
   SharedSessionStatus status = SharedSessionStatus.active,
+  DateTime? createdAt,
 }) {
+  final startedAt = createdAt ?? DateTime.utc(2026, 6, 17);
   return SharedSession(
     id: 'session-1',
     trainerUserId: 'trainer-1',
@@ -310,8 +358,8 @@ SharedSession _session({
     startedByRole: SharedSessionStartRole.trainer,
     status: status,
     version: reps == 6 ? 1 : 2,
-    createdAt: DateTime.utc(2026, 6, 17),
-    updatedAt: DateTime.utc(2026, 6, 17),
+    createdAt: startedAt,
+    updatedAt: startedAt,
     values: [
       SharedSessionValue(
         id: 'value-1',

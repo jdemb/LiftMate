@@ -730,7 +730,7 @@ void main() {
 
       expect(find.text('40 kg'), findsOneWidget);
       expect(find.text('x 6 powt.'), findsOneWidget);
-      expect(find.text('Ukończone serie: 0'), findsOneWidget);
+      expect(find.text('0 ukończonych serii'), findsOneWidget);
       final sessionRequestCount = seen
           .where((request) => request.contains('/shared-sessions/'))
           .length;
@@ -750,7 +750,7 @@ void main() {
 
       expect(find.text('47.5 kg'), findsOneWidget);
       expect(find.text('x 8 powt.'), findsOneWidget);
-      expect(find.text('Ukończone serie: 1'), findsOneWidget);
+      expect(find.text('1 ukończona seria'), findsOneWidget);
       expect(find.byIcon(Icons.add_rounded), findsNothing);
       expect(
         seen.where((request) => request.contains('/shared-sessions/')).length,

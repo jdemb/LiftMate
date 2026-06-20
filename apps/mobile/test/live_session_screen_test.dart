@@ -26,7 +26,7 @@ void main() {
   testWidgets('trainer header shows elapsed time from server session start', (
     tester,
   ) async {
-    final now = DateTime.utc(2026, 6, 20, 12);
+    var now = DateTime.utc(2026, 6, 20, 12);
     final authController = await _authController();
     final apiClient = _FakeSharedSessionApiClient(
       session: _session(
@@ -59,6 +59,11 @@ void main() {
 
     expect(find.text('01:05'), findsOneWidget);
     expect(find.text('żywo'), findsNothing);
+
+    now = now.add(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('01:06'), findsOneWidget);
   });
 
   testWidgets('trainer live screen renders editable rows and sends updates', (

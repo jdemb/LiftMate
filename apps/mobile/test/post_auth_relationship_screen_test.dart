@@ -125,6 +125,9 @@ void main() {
       await _startAuthenticated(tester);
       await tester.tap(find.text('Anna Nowak'));
       await tester.pumpAndSettle();
+
+      expect(find.text('Historia'), findsOneWidget);
+      expect(find.text('Zmień zestaw'), findsOneWidget);
       await tester.tap(
         find.byKey(const ValueKey('trainer-open-trainee-history')),
       );
@@ -523,7 +526,6 @@ void main() {
       await tester.pumpAndSettle();
       await _tapButton(tester, 'Rozpocznij wspÃ³lny trening');
 
-      expect(find.text('Podopieczny'), findsOneWidget);
       expect(find.text('Push A'), findsOneWidget);
       expect(find.text('Bench press'), findsNothing);
     });

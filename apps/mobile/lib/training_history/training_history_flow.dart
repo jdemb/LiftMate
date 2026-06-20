@@ -12,11 +12,13 @@ class TrainingHistoryFlow extends StatefulWidget {
   const TrainingHistoryFlow({
     required this.controller,
     required this.onClose,
+    this.showLevelOneBack = false,
     super.key,
   });
 
   final TrainingHistoryController controller;
   final VoidCallback onClose;
+  final bool showLevelOneBack;
 
   @override
   State<TrainingHistoryFlow> createState() => _TrainingHistoryFlowState();
@@ -64,6 +66,7 @@ class _TrainingHistoryFlowState extends State<TrainingHistoryFlow> {
           onRetry: widget.controller.retry,
           onLoadMore: widget.controller.loadMore,
           onOpenSession: widget.controller.openSession,
+          showBack: widget.showLevelOneBack,
         );
       },
     );
@@ -77,6 +80,7 @@ class _ListLevel extends StatelessWidget {
     required this.onRetry,
     required this.onLoadMore,
     required this.onOpenSession,
+    required this.showBack,
   });
 
   final TrainingHistoryState state;
@@ -84,6 +88,7 @@ class _ListLevel extends StatelessWidget {
   final VoidCallback onRetry;
   final VoidCallback onLoadMore;
   final ValueChanged<String> onOpenSession;
+  final bool showBack;
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +99,11 @@ class _ListLevel extends StatelessWidget {
 
     return Column(
       children: [
+        if (showBack)
+          _HistoryHeader(
+            title: 'Historia treningów',
+            onBack: onClose,
+          ),
         Expanded(
           child: initialLoading
               ? const Center(child: CircularProgressIndicator())
@@ -108,15 +118,17 @@ class _ListLevel extends StatelessWidget {
                   key: const ValueKey('training-history-list'),
                   padding: const EdgeInsets.fromLTRB(22, 16, 22, 18),
                   children: [
-                    const Text(
-                      'Historia treningów',
-                      style: TextStyle(
-                        fontFamily: 'Space Grotesk',
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
+                    if (!showBack) ...[
+                      const Text(
+                        'Historia treningów',
+                        style: TextStyle(
+                          fontFamily: 'Space Grotesk',
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
+                      const SizedBox(height: 4),
+                    ],
                     Text(
                       '${state.items.length} ukończonych sesji',
                       style: const TextStyle(color: lmMuted, fontSize: 13.5),
@@ -469,7 +481,7 @@ class _ExerciseCard extends StatelessWidget {
                     ),
                     if (onTap != null)
                       const Text(
-                        'progres ›',
+                        'postęp ›',
                         style: TextStyle(
                           color: lmBlue,
                           fontSize: 12,
@@ -542,7 +554,7 @@ class _ProgressLevel extends StatelessWidget {
       children: [
         Column(
           children: [
-            _HistoryHeader(title: 'Progres ćwiczenia', onBack: onBack),
+            _HistoryHeader(title: 'Postęp ćwiczenia', onBack: onBack),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 6, 22, 18),

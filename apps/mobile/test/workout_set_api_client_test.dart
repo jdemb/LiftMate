@@ -21,7 +21,7 @@ void main() {
 
             if (request.url.path == '/workout-sets' &&
                 request.method == 'POST') {
-              expect(jsonDecode(request.body), _savePayload('Push A'));
+              expect(jsonDecode(request.body), _savePayload('Push A', 120));
               return http.Response(
                 jsonEncode(_detailJson(name: 'Push A')),
                 201,
@@ -29,7 +29,7 @@ void main() {
             }
             if (request.url.path == '/workout-sets/set-1' &&
                 request.method == 'PUT') {
-              expect(jsonDecode(request.body), _savePayload('Push B'));
+              expect(jsonDecode(request.body), _savePayload('Push B', 75));
               return http.Response(
                 jsonEncode(_detailJson(name: 'Push B')),
                 200,
@@ -59,6 +59,7 @@ void main() {
           workoutSetId: 'set-1',
           request: UpdateWorkoutSetRequest(
             name: 'Push B',
+            restSeconds: 75,
             rows: _rowsRequest(),
           ),
         );
@@ -202,7 +203,11 @@ void main() {
 }
 
 CreateWorkoutSetRequest _createRequest(String name) {
-  return CreateWorkoutSetRequest(name: name, rows: _rowsRequest());
+  return CreateWorkoutSetRequest(
+    name: name,
+    restSeconds: 120,
+    rows: _rowsRequest(),
+  );
 }
 
 List<WorkoutSetRowRequest> _rowsRequest() {
@@ -220,9 +225,10 @@ List<WorkoutSetRowRequest> _rowsRequest() {
   ];
 }
 
-Map<String, Object?> _savePayload(String name) {
+Map<String, Object?> _savePayload(String name, int restSeconds) {
   return {
     'name': name,
+    'restSeconds': restSeconds,
     'rows': [
       {
         'id': 'row-1',

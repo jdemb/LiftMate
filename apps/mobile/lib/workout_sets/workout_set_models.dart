@@ -1,21 +1,31 @@
 import '../shared_sessions/shared_session_models.dart';
 
 class CreateWorkoutSetRequest {
-  const CreateWorkoutSetRequest({required this.name, required this.rows});
+  const CreateWorkoutSetRequest({
+    required this.name,
+    required this.rows,
+    this.restSeconds = 90,
+  });
 
   final String name;
   final List<WorkoutSetRowRequest> rows;
+  final int restSeconds;
 
   Map<String, Object?> toJson() {
     return {
       'name': name,
+      'restSeconds': restSeconds,
       'rows': rows.map((row) => row.toJson()).toList(growable: false),
     };
   }
 }
 
 class UpdateWorkoutSetRequest extends CreateWorkoutSetRequest {
-  const UpdateWorkoutSetRequest({required super.name, required super.rows});
+  const UpdateWorkoutSetRequest({
+    required super.name,
+    required super.rows,
+    super.restSeconds = 90,
+  });
 }
 
 class WorkoutSetRowRequest {
@@ -120,6 +130,7 @@ class WorkoutSetDetail {
   const WorkoutSetDetail({
     required this.id,
     required this.name,
+    required this.restSeconds,
     required this.rows,
     required this.assignments,
     required this.createdAt,
@@ -128,6 +139,7 @@ class WorkoutSetDetail {
 
   final String id;
   final String name;
+  final int restSeconds;
   final List<WorkoutSetRow> rows;
   final List<WorkoutSetAssignment> assignments;
   final DateTime createdAt;
@@ -136,6 +148,7 @@ class WorkoutSetDetail {
   factory WorkoutSetDetail.fromJson(Map<String, dynamic> json) {
     final id = json['id'];
     final name = json['name'];
+    final restSeconds = json['restSeconds'] ?? 90;
     final rows = json['rows'];
     final assignments = json['assignments'];
     final createdAt = json['createdAt'];
@@ -143,6 +156,7 @@ class WorkoutSetDetail {
 
     if (id is! String ||
         name is! String ||
+        restSeconds is! int ||
         rows is! List ||
         assignments is! List ||
         createdAt is! String ||
@@ -153,6 +167,7 @@ class WorkoutSetDetail {
     return WorkoutSetDetail(
       id: id,
       name: name,
+      restSeconds: restSeconds,
       rows: _parseList(
         rows,
         WorkoutSetRow.fromJson,
@@ -270,6 +285,7 @@ class TraineeAssignedWorkoutSet {
   const TraineeAssignedWorkoutSet({
     required this.id,
     required this.name,
+    required this.restSeconds,
     required this.trainerDisplayName,
     required this.rows,
     required this.assignedAt,
@@ -278,6 +294,7 @@ class TraineeAssignedWorkoutSet {
 
   final String id;
   final String name;
+  final int restSeconds;
   final String trainerDisplayName;
   final List<WorkoutSetRow> rows;
   final DateTime assignedAt;
@@ -286,6 +303,7 @@ class TraineeAssignedWorkoutSet {
   factory TraineeAssignedWorkoutSet.fromJson(Map<String, dynamic> json) {
     final id = json['id'];
     final name = json['name'];
+    final restSeconds = json['restSeconds'] ?? 90;
     final trainerDisplayName = json['trainerDisplayName'];
     final rows = json['rows'];
     final assignedAt = json['assignedAt'];
@@ -293,6 +311,7 @@ class TraineeAssignedWorkoutSet {
 
     if (id is! String ||
         name is! String ||
+        restSeconds is! int ||
         trainerDisplayName is! String ||
         rows is! List ||
         assignedAt is! String ||
@@ -305,6 +324,7 @@ class TraineeAssignedWorkoutSet {
     return TraineeAssignedWorkoutSet(
       id: id,
       name: name,
+      restSeconds: restSeconds,
       trainerDisplayName: trainerDisplayName,
       rows: _parseList(
         rows,

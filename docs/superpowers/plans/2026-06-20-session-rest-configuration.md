@@ -48,7 +48,7 @@
 - Modify: `apps/api/LiftMate.Api/WorkoutSets/WorkoutSetMapping.cs`
 - Test: `apps/api/LiftMate.Api.Tests/WorkoutSets/WorkoutSetEndpointTests.cs`
 
-- [ ] **Step 1: Write failing workout-set persistence and validation tests**
+- [x] **Step 1: Write failing workout-set persistence and validation tests**
 
 Rozszerz test tworzenia/edycji tak, aby wysyłał `RestSeconds = 120`, odczytał tę samą wartość, następnie edytował ją na 75:
 
@@ -93,7 +93,7 @@ public async Task CreateRejectsRestSecondsOutsideAllowedRange(int restSeconds)
 
 Uzupełnij lokalne rekordy testowe `WorkoutSetDetailResponse` i `TraineeAssignedWorkoutSetResponse` o `int RestSeconds`.
 
-- [ ] **Step 2: Run workout-set tests and verify RED**
+- [x] **Step 2: Run workout-set tests and verify RED**
 
 Run:
 
@@ -103,7 +103,7 @@ dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~WorkoutSetEn
 
 Expected: FAIL, ponieważ kontrakty nie przyjmują i nie zwracają `RestSeconds`.
 
-- [ ] **Step 3: Add the API fields and validation**
+- [x] **Step 3: Add the API fields and validation**
 
 Dodaj do obu encji:
 
@@ -174,7 +174,7 @@ table.HasCheckConstraint(
     "[RestSeconds] BETWEEN 15 AND 600");
 ```
 
-- [ ] **Step 4: Run workout-set tests and verify GREEN**
+- [x] **Step 4: Run workout-set tests and verify GREEN**
 
 Run:
 
@@ -184,7 +184,7 @@ dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~WorkoutSetEn
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit API workout-set configuration**
+- [x] **Step 5: Commit API workout-set configuration**
 
 ```powershell
 git add apps/api/LiftMate.Api/WorkoutSets apps/api/LiftMate.Api/SharedSessions/SharedSession.cs apps/api/LiftMate.Api/Data/ApplicationDbContext.cs apps/api/LiftMate.Api.Tests/WorkoutSets/WorkoutSetEndpointTests.cs
@@ -199,7 +199,7 @@ git commit -m "api: add workout set rest configuration"
 - Modify: `apps/api/LiftMate.Api/SharedSessions/SharedSessionMapping.cs`
 - Test: `apps/api/LiftMate.Api.Tests/SharedSessions/SharedSessionEndpointTests.cs`
 
-- [ ] **Step 1: Write a failing session snapshot test**
+- [x] **Step 1: Write a failing session snapshot test**
 
 W teście startu sesji z zestawu utwórz zestaw z `restSeconds = 120`, rozpocznij sesję i sprawdź:
 
@@ -221,7 +221,7 @@ Assert.Equal(90, created.RestSeconds);
 
 Rozszerz testowy `SharedSessionResponse` o `int RestSeconds`.
 
-- [ ] **Step 2: Run shared-session tests and verify RED**
+- [x] **Step 2: Run shared-session tests and verify RED**
 
 Run:
 
@@ -231,7 +231,7 @@ dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~SharedSessio
 
 Expected: FAIL, ponieważ odpowiedź sesji nie zawiera migawki.
 
-- [ ] **Step 3: Copy and expose the snapshot**
+- [x] **Step 3: Copy and expose the snapshot**
 
 Dodaj `int RestSeconds` do `SharedSessionResponse` po `WorkoutSetName`.
 
@@ -249,7 +249,7 @@ RestSeconds = workoutSet.RestSeconds,
 
 W `SharedSessionMapping.ToResponse` przekaż `session.RestSeconds`.
 
-- [ ] **Step 4: Run shared-session tests and verify GREEN**
+- [x] **Step 4: Run shared-session tests and verify GREEN**
 
 Run:
 
@@ -259,7 +259,7 @@ dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~SharedSessio
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit session snapshot**
+- [x] **Step 5: Commit session snapshot**
 
 ```powershell
 git add apps/api/LiftMate.Api/SharedSessions apps/api/LiftMate.Api.Tests/SharedSessions/SharedSessionEndpointTests.cs
@@ -272,7 +272,7 @@ git commit -m "api: snapshot rest time in shared sessions"
 - Create: generated migration `AddWorkoutSetRestSeconds` under `apps/api/LiftMate.Api/Migrations/`
 - Modify: `apps/api/LiftMate.Api/Migrations/ApplicationDbContextModelSnapshot.cs`
 
-- [ ] **Step 1: Generate the EF migration**
+- [x] **Step 1: Generate the EF migration**
 
 Run from `apps/api`:
 
@@ -282,7 +282,7 @@ dotnet ef migrations add AddWorkoutSetRestSeconds --project LiftMate.Api/LiftMat
 
 Expected: migration adds non-null `RestSeconds` columns with default `90` to `WorkoutSets` and `SharedSessions`, plus both check constraints.
 
-- [ ] **Step 2: Inspect migration content**
+- [x] **Step 2: Inspect migration content**
 
 Potwierdź, że `Up` zawiera odpowiedniki:
 
@@ -297,7 +297,7 @@ migrationBuilder.AddColumn<int>(
 
 oraz analogiczną kolumnę dla `SharedSessions`. `Down` musi usunąć constraints przed kolumnami.
 
-- [ ] **Step 3: Verify the model builds**
+- [x] **Step 3: Verify the model builds**
 
 Run:
 
@@ -307,7 +307,7 @@ dotnet build LiftMate.slnx --no-restore
 
 Expected: build succeeds with zero warnings and errors.
 
-- [ ] **Step 4: Commit migration**
+- [x] **Step 4: Commit migration**
 
 ```powershell
 git add apps/api/LiftMate.Api/Migrations
@@ -321,7 +321,7 @@ git commit -m "api: migrate rest time configuration"
 - Test: `apps/mobile/test/workout_set_models_test.dart`
 - Test: `apps/mobile/test/workout_set_api_client_test.dart`
 
-- [ ] **Step 1: Write failing model and payload tests**
+- [x] **Step 1: Write failing model and payload tests**
 
 Dodaj oczekiwania:
 
@@ -342,7 +342,7 @@ expect(TraineeAssignedWorkoutSet.fromJson({
 
 W teście klienta sprawdź `restSeconds` w body `POST` i `PUT`.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run:
 
@@ -352,7 +352,7 @@ flutter test --reporter compact test/workout_set_models_test.dart test/workout_s
 
 Expected: FAIL z powodu brakującego argumentu i pola.
 
-- [ ] **Step 3: Implement mobile workout-set contracts**
+- [x] **Step 3: Implement mobile workout-set contracts**
 
 Rozszerz żądania:
 
@@ -383,7 +383,7 @@ if (restSeconds is! int) {
 }
 ```
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run:
 
@@ -393,7 +393,7 @@ flutter test --reporter compact test/workout_set_models_test.dart test/workout_s
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit Flutter contracts**
+- [x] **Step 5: Commit Flutter contracts**
 
 ```powershell
 git add apps/mobile/lib/workout_sets/workout_set_models.dart apps/mobile/test/workout_set_models_test.dart apps/mobile/test/workout_set_api_client_test.dart
@@ -406,7 +406,7 @@ git commit -m "mobile: support workout set rest configuration"
 - Modify: `apps/mobile/lib/workout_sets/workout_set_builder_screen.dart`
 - Test: `apps/mobile/test/workout_set_trainer_screens_test.dart`
 
-- [ ] **Step 1: Write failing builder tests**
+- [x] **Step 1: Write failing builder tests**
 
 W teście tworzenia sprawdź wartość domyślną i zmianę:
 
@@ -423,7 +423,7 @@ Po zapisie sprawdź body z `restSeconds: 105`.
 
 W teście edycji zwróć szczegół z `restSeconds: 120`, sprawdź `02:00`, zmniejsz do `01:45` i potwierdź payload `105`.
 
-- [ ] **Step 2: Run builder tests and verify RED**
+- [x] **Step 2: Run builder tests and verify RED**
 
 Run:
 
@@ -433,7 +433,7 @@ flutter test --reporter compact test/workout_set_trainer_screens_test.dart
 
 Expected: FAIL, ponieważ kontrolka nie istnieje.
 
-- [ ] **Step 3: Implement the stepper**
+- [x] **Step 3: Implement the stepper**
 
 Dodaj stan:
 
@@ -475,7 +475,7 @@ String formatRestSeconds(int seconds) {
 
 Przekaż `_restSeconds` do obu żądań zapisu.
 
-- [ ] **Step 4: Run builder tests and verify GREEN**
+- [x] **Step 4: Run builder tests and verify GREEN**
 
 Run:
 
@@ -485,7 +485,7 @@ flutter test --reporter compact test/workout_set_trainer_screens_test.dart
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit builder UI**
+- [x] **Step 5: Commit builder UI**
 
 ```powershell
 git add apps/mobile/lib/workout_sets/workout_set_builder_screen.dart apps/mobile/test/workout_set_trainer_screens_test.dart
@@ -501,7 +501,7 @@ git commit -m "mobile: configure rest time in workout sets"
 - Test: `apps/mobile/test/live_session_screen_test.dart`
 - Test: `apps/mobile/test/post_auth_relationship_screen_test.dart`
 
-- [ ] **Step 1: Write failing model and header tests**
+- [x] **Step 1: Write failing model and header tests**
 
 Rozszerz helper sesji o `restSeconds` i sprawdź fallback:
 
@@ -527,7 +527,7 @@ expect(find.textContaining('set-1'), findsNothing);
 
 W teście powłoki trenera uruchom sesję z wybraną `Anna Nowak` i potwierdź, że ekran pokazuje `Anna`.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run:
 
@@ -537,7 +537,7 @@ flutter test --reporter compact test/live_session_screen_test.dart test/post_aut
 
 Expected: FAIL dla brakującego pola, argumentu i starego nagłówka.
 
-- [ ] **Step 3: Implement the session model and header**
+- [x] **Step 3: Implement the session model and header**
 
 Dodaj do `SharedSession`:
 
@@ -585,7 +585,7 @@ W trenerskiej gałęzi `AuthenticatedRelationshipShell` przekaż:
 traineeDisplayName: selected?.displayName,
 ```
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run:
 
@@ -595,7 +595,7 @@ flutter test --reporter compact test/live_session_screen_test.dart test/post_aut
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit session data and header**
+- [x] **Step 5: Commit session data and header**
 
 ```powershell
 git add apps/mobile/lib/shared_sessions/shared_session_models.dart apps/mobile/lib/shared_sessions/live_session_screen.dart apps/mobile/lib/relationships/authenticated_relationship_shell.dart apps/mobile/test/live_session_screen_test.dart apps/mobile/test/post_auth_relationship_screen_test.dart
@@ -608,7 +608,7 @@ git commit -m "mobile: show trainee and set names in live session"
 - Modify: `apps/mobile/lib/shared_sessions/live_session_screen.dart`
 - Test: `apps/mobile/test/live_session_screen_test.dart`
 
-- [ ] **Step 1: Write failing pinned-layout and auto-start tests**
+- [x] **Step 1: Write failing pinned-layout and auto-start tests**
 
 Dodaj test przy rozmiarze telefonu, który bez scrollowania znajduje:
 
@@ -642,7 +642,7 @@ expect(find.text('01:59'), findsOneWidget);
 
 Ukończ następną serię po kilku sekundach i sprawdź ponowne `02:00`. Dodaj osobne testy, że cofnięcie serii oraz wynik błędu API nie zmieniają lub nie uruchamiają timera.
 
-- [ ] **Step 2: Run live-session tests and verify RED**
+- [x] **Step 2: Run live-session tests and verify RED**
 
 Run:
 
@@ -652,7 +652,7 @@ flutter test --reporter expanded test/live_session_screen_test.dart
 
 Expected: FAIL, ponieważ timer jest w liście i kliknięcie serii nie steruje odpoczynkiem.
 
-- [ ] **Step 3: Replace the scrolling card with a compact footer**
+- [x] **Step 3: Replace the scrolling card with a compact footer**
 
 Usuń `_RestTimerCard` z `ListView`. Pod `Expanded`, przed przyciskiem kończącym, dodaj:
 
@@ -669,7 +669,7 @@ _CompactRestFooter(
 
 Footer ma zawierać etykietę, czas, jeden przycisk start/pauza, `+15 s` i reset. Zachowaj istniejącą dolną akcję zakończenia poniżej.
 
-- [ ] **Step 4: Make rest state session-specific**
+- [x] **Step 4: Make rest state session-specific**
 
 Dodaj:
 
@@ -709,7 +709,7 @@ void _restartRest(int seconds) {
 }
 ```
 
-- [ ] **Step 5: Start only after confirmed completion**
+- [x] **Step 5: Start only after confirmed completion**
 
 Zmień callback karty na:
 
@@ -738,7 +738,7 @@ Future<void> _toggleDone(
 
 Karta wywołuje `onToggleDone(value, !value.isDone)`. Nie uruchamiaj timera przed zakończeniem `await`.
 
-- [ ] **Step 6: Run live-session tests and verify GREEN**
+- [x] **Step 6: Run live-session tests and verify GREEN**
 
 Run:
 
@@ -748,7 +748,7 @@ flutter test --reporter expanded test/live_session_screen_test.dart
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit pinned automatic timer**
+- [x] **Step 7: Commit pinned automatic timer**
 
 ```powershell
 git add apps/mobile/lib/shared_sessions/live_session_screen.dart apps/mobile/test/live_session_screen_test.dart
@@ -760,7 +760,7 @@ git commit -m "mobile: pin and automate session rest timer"
 **Files:**
 - Verify all files changed in Tasks 1–7.
 
-- [ ] **Step 1: Run API gates**
+- [x] **Step 1: Run API gates**
 
 Run:
 
@@ -772,7 +772,7 @@ dotnet test LiftMate.slnx --no-build --verbosity minimal
 
 Expected: restore succeeds, build has zero warnings/errors, all API tests pass.
 
-- [ ] **Step 2: Run Flutter gates**
+- [x] **Step 2: Run Flutter gates**
 
 Run:
 
@@ -783,7 +783,7 @@ flutter analyze
 
 Expected: all Flutter tests pass and analyzer reports no issues.
 
-- [ ] **Step 3: Check migration and scope**
+- [x] **Step 3: Check migration and scope**
 
 Run:
 
@@ -795,7 +795,7 @@ git status --short
 
 Expected: `AddWorkoutSetRestSeconds` is the latest migration, no whitespace errors, and unrelated pre-existing user files remain unstaged.
 
-- [ ] **Step 4: Commit narrow verification adjustments if required**
+- [x] **Step 4: Commit narrow verification adjustments if required**
 
 Jeżeli pełny przebieg wymaga wyłącznie aktualizacji fixture’ów o nowe pole, ogranicz zmiany do używanych fixture’ów w poniższych plikach:
 

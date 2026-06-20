@@ -135,6 +135,14 @@ void main() {
 
       expect(historyRequest?.queryParameters['traineeUserId'], 'trainee-1');
       expect(find.text('Brak ukończonych treningów.'), findsOneWidget);
+      expect(find.byTooltip('Wróć'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Wróć'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Podopieczny'), findsOneWidget);
+      expect(find.text('Anna Nowak'), findsWidgets);
+      expect(find.text('Aktywna relacja'), findsOneWidget);
     });
 
     testWidgets('trainee history opens from bottom navigation', (tester) async {

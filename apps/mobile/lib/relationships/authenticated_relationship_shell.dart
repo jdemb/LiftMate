@@ -143,6 +143,7 @@ class _AuthenticatedRelationshipShellState
               _trainerHistoryController != null) {
             return TrainingHistoryFlow(
               controller: _trainerHistoryController!,
+              showLevelOneBack: true,
               onClose: () {
                 _trainerHistoryController?.dispose();
                 _trainerHistoryController = null;

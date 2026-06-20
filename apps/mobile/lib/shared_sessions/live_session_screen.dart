@@ -8,16 +8,16 @@ import 'shared_session_controller.dart';
 import 'shared_session_models.dart';
 
 class LiveSessionScreen extends StatefulWidget {
-  LiveSessionScreen({
+  const LiveSessionScreen({
     required this.user,
     required this.controller,
     required this.editable,
     required this.onBack,
     this.trainerDisplayName,
     this.onSessionClosed,
-    DateTime Function()? now,
+    this.now = DateTime.now,
     super.key,
-  }) : now = now ?? DateTime.now;
+  });
 
   final AuthUser user;
   final SharedSessionController controller;

@@ -25,7 +25,7 @@
 **Files:**
 - Modify: `apps/api/LiftMate.Api.Tests/TrainingHistory/TrainingHistoryEndpointTests.cs`
 
-- [ ] **Step 1: Add a sub-minute completed session assertion**
+- [x] **Step 1: Add a sub-minute completed session assertion**
 
 W istniejącym teście listy historii utwórz dodatkową ukończoną sesję:
 
@@ -55,7 +55,7 @@ var createdAt = completedAt.HasValue
     : DateTimeOffset.UtcNow;
 ```
 
-- [ ] **Step 2: Run the targeted API history test**
+- [x] **Step 2: Run the targeted API history test**
 
 Run:
 
@@ -65,7 +65,7 @@ dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainingHist
 
 Expected: PASS. Ten test dokumentuje istniejące, poprawne zachowanie; nie wymaga zmiany kodu produkcyjnego.
 
-- [ ] **Step 3: Commit the contract test**
+- [x] **Step 3: Commit the contract test**
 
 ```powershell
 git add apps/api/LiftMate.Api.Tests/TrainingHistory/TrainingHistoryEndpointTests.cs
@@ -78,7 +78,7 @@ git commit -m "test(history): lock session duration calculation"
 - Modify: `apps/mobile/test/live_session_screen_test.dart`
 - Modify: `apps/mobile/lib/shared_sessions/live_session_screen.dart`
 
-- [ ] **Step 1: Write failing timer and Polish series-label tests**
+- [x] **Step 1: Write failing timer and Polish series-label tests**
 
 Dodaj test widgetowy z sesją rozpoczętą 65 sekund przed kontrolowanym `now`:
 
@@ -118,7 +118,7 @@ expect(completedSeriesLabel(12), '12 ukończonych serii');
 expect(completedSeriesLabel(22), '22 ukończone serie');
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run:
 
@@ -128,7 +128,7 @@ flutter test --reporter compact test/live_session_screen_test.dart
 
 Expected: FAIL, ponieważ `LiveSessionScreen` nie przyjmuje `now`, a nagłówek nadal renderuje `żywo`.
 
-- [ ] **Step 3: Implement the elapsed timer**
+- [x] **Step 3: Implement the elapsed timer**
 
 Dodaj do `LiveSessionScreen` opcjonalny zegar:
 
@@ -187,7 +187,7 @@ String formatElapsedSessionTime(int seconds) {
 }
 ```
 
-- [ ] **Step 4: Implement Polish completed-series copy**
+- [x] **Step 4: Implement Polish completed-series copy**
 
 Dodaj:
 
@@ -215,7 +215,7 @@ przez:
 completedSeriesLabel(completed)
 ```
 
-- [ ] **Step 5: Run focused tests and verify GREEN**
+- [x] **Step 5: Run focused tests and verify GREEN**
 
 Run:
 
@@ -225,7 +225,7 @@ flutter test --reporter compact test/live_session_screen_test.dart
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit timer and grammar**
+- [x] **Step 6: Commit timer and grammar**
 
 ```powershell
 git add apps/mobile/lib/shared_sessions/live_session_screen.dart apps/mobile/test/live_session_screen_test.dart
@@ -238,7 +238,7 @@ git commit -m "fix(live-session): show elapsed time and Polish series copy"
 - Modify: `apps/mobile/test/training_history_flow_test.dart`
 - Modify: `apps/mobile/lib/training_history/training_history_flow.dart`
 
-- [ ] **Step 1: Write failing copy and back-button tests**
+- [x] **Step 1: Write failing copy and back-button tests**
 
 W istniejącym teście przejścia przez historię zmień oczekiwanie:
 
@@ -274,7 +274,7 @@ testWidgets('trainer history level one exposes close action', (tester) async {
 });
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run:
 
@@ -284,7 +284,7 @@ flutter test --reporter compact test/training_history_flow_test.dart
 
 Expected: FAIL dla starego copy i braku przycisku poziomu 1.
 
-- [ ] **Step 3: Implement copy and optional Level 1 header**
+- [x] **Step 3: Implement copy and optional Level 1 header**
 
 Rozszerz `TrainingHistoryFlow`:
 
@@ -317,7 +317,7 @@ Zastąp teksty:
 'Progres ćwiczenia' -> 'Postęp ćwiczenia'
 ```
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run:
 
@@ -327,7 +327,7 @@ flutter test --reporter compact test/training_history_flow_test.dart
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit history UI corrections**
+- [x] **Step 5: Commit history UI corrections**
 
 ```powershell
 git add apps/mobile/lib/training_history/training_history_flow.dart apps/mobile/test/training_history_flow_test.dart
@@ -340,7 +340,7 @@ git commit -m "fix(history): use Polish progress copy and level-one back"
 - Modify: `apps/mobile/test/post_auth_relationship_screen_test.dart`
 - Modify: `apps/mobile/lib/relationships/authenticated_relationship_shell.dart`
 
-- [ ] **Step 1: Extend the trainer navigation test**
+- [x] **Step 1: Extend the trainer navigation test**
 
 Po otwarciu historii:
 
@@ -354,7 +354,7 @@ expect(find.text('Anna Nowak'), findsWidgets);
 expect(find.text('Aktywna relacja'), findsOneWidget);
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run:
 
@@ -365,7 +365,7 @@ flutter test --reporter compact test/post_auth_relationship_screen_test.dart \
 
 Expected: FAIL, ponieważ obecne zamknięcie historii czyści kontekst i prowadzi do pulpitu.
 
-- [ ] **Step 3: Preserve the selected trainee while history is open**
+- [x] **Step 3: Preserve the selected trainee while history is open**
 
 W `AuthenticatedRelationshipShell` przekaż:
 
@@ -385,7 +385,7 @@ onClose: () {
 
 nie czyścił `_selectedTrainee`. Warunek `selected != null` ponownie wyrenderuje `TrainerTraineeDetailScreen` dla tego samego podopiecznego.
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run:
 
@@ -396,7 +396,7 @@ flutter test --reporter compact test/post_auth_relationship_screen_test.dart \
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit trainer return navigation**
+- [x] **Step 5: Commit trainer return navigation**
 
 ```powershell
 git add apps/mobile/lib/relationships/authenticated_relationship_shell.dart apps/mobile/test/post_auth_relationship_screen_test.dart
@@ -408,7 +408,7 @@ git commit -m "fix(history): return trainer to trainee detail"
 **Files:**
 - Verify all files modified in Tasks 1–4.
 
-- [ ] **Step 1: Run API verification**
+- [x] **Step 1: Run API verification**
 
 ```powershell
 dotnet build LiftMate.slnx --no-restore
@@ -417,7 +417,7 @@ dotnet test LiftMate.slnx --no-build --verbosity minimal
 
 Expected: build succeeds with zero warnings and all API tests pass.
 
-- [ ] **Step 2: Run Flutter verification**
+- [x] **Step 2: Run Flutter verification**
 
 ```powershell
 flutter test --reporter compact
@@ -426,7 +426,7 @@ flutter analyze
 
 Expected: all Flutter tests pass and analyzer reports no issues.
 
-- [ ] **Step 3: Check repository scope**
+- [x] **Step 3: Check repository scope**
 
 ```powershell
 git diff --check
@@ -435,7 +435,7 @@ git status --short
 
 Expected: no whitespace errors; unrelated existing changes remain unstaged and untouched.
 
-- [ ] **Step 4: Commit any verification-only test adjustments**
+- [x] **Step 4: Commit any verification-only test adjustments**
 
 Only if a test required a narrow assertion adjustment:
 

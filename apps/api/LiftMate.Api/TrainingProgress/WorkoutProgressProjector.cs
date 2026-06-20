@@ -41,27 +41,32 @@ public sealed class WorkoutProgressProjector(ApplicationDbContext dbContext)
             };
             dbContext.WorkoutProgresses.Add(progress);
         }
-        else
-        {
-            dbContext.WorkoutProgressValues.RemoveRange(progress.Values);
-        }
 
         progress.SourceSessionId = session.Id;
         progress.SourceCompletedAt = completedAt;
         progress.UpdatedAt = completedAt;
 
+        var obsoleteValues = progress.Values
+            .ToDictionary(value => value.WorkoutSetRowId);
         foreach (var value in session.Values)
         {
-            progress.Values.Add(new WorkoutProgressValue
+            if (!obsoleteValues.Remove(value.WorkoutSetRowId!.Value, out var projectedValue))
             {
-                Id = Guid.NewGuid(),
-                WorkoutSetRowId = value.WorkoutSetRowId!.Value,
-                ExerciseId = value.ExerciseId!.Value,
-                ExerciseType = value.ExerciseType,
-                Reps = value.Reps,
-                Weight = value.Weight,
-                Seconds = value.Seconds,
-            });
+                projectedValue = new WorkoutProgressValue
+                {
+                    Id = Guid.NewGuid(),
+                    WorkoutSetRowId = value.WorkoutSetRowId.Value,
+                };
+                progress.Values.Add(projectedValue);
+            }
+
+            projectedValue.ExerciseId = value.ExerciseId!.Value;
+            projectedValue.ExerciseType = value.ExerciseType;
+            projectedValue.Reps = value.Reps;
+            projectedValue.Weight = value.Weight;
+            projectedValue.Seconds = value.Seconds;
         }
+
+        dbContext.WorkoutProgressValues.RemoveRange(obsoleteValues.Values);
     }
 }

@@ -495,6 +495,54 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task SecondCompletionForSameAssignedSetReplacesProgress()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(
+            client,
+            trainer,
+            "Repeated progress",
+            DefaultWorkoutSetRows());
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+
+        var first = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var firstComplete = await client.PostAsync(
+            $"/shared-sessions/{first.Id}/complete",
+            null);
+        Assert.Equal(HttpStatusCode.OK, firstComplete.StatusCode);
+
+        var second = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+        var secondValue = Assert.Single(second.Values);
+        var update = await client.PatchAsJsonAsync(
+            $"/shared-sessions/{second.Id}/values/{secondValue.Id}",
+            new UpdateSharedSessionValueRequest(11, 65m, null, false));
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+
+        var secondComplete = await client.PostAsync(
+            $"/shared-sessions/{second.Id}/complete",
+            null);
+
+        Assert.Equal(HttpStatusCode.OK, secondComplete.StatusCode);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var progress = await dbContext.WorkoutProgresses
+            .Include(item => item.Values)
+            .SingleAsync(item =>
+                item.TraineeUserId == trainee.User.Id &&
+                item.WorkoutSetId == workoutSet.Id);
+
+        Assert.Equal(second.Id, progress.SourceSessionId);
+        var projected = Assert.Single(progress.Values);
+        Assert.Equal(11, projected.Reps);
+        Assert.Equal(65m, projected.Weight);
+    }
+
+    [Fact]
     public async Task UnassignmentKeepsProgressAndReassignmentRestoresIt()
     {
         using var client = factory.CreateClient();

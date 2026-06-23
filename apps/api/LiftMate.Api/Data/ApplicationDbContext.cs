@@ -133,6 +133,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .HasMaxLength(200)
                 .IsRequired();
 
+            entity.Property(session => session.RestSeconds)
+                .HasDefaultValue(90)
+                .IsRequired();
+
             entity.HasIndex(session => session.WorkoutSetId);
             entity.HasIndex(session => session.StartedByUserId);
             entity.HasIndex(session => session.TrainerUserId);
@@ -175,6 +179,9 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 table.HasCheckConstraint(
                     "CK_SharedSessions_StartedByRole",
                     "[StartedByRole] IN ('trainer', 'trainee')");
+                table.HasCheckConstraint(
+                    "CK_SharedSessions_RestSeconds",
+                    "[RestSeconds] BETWEEN 15 AND 600");
             });
         });
 
@@ -227,6 +234,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .HasMaxLength(200)
                 .IsRequired();
 
+            entity.Property(workoutSet => workoutSet.RestSeconds)
+                .HasDefaultValue(90)
+                .IsRequired();
+
             entity.HasIndex(workoutSet => workoutSet.TrainerUserId);
 
             entity.HasOne(workoutSet => workoutSet.TrainerUser)
@@ -243,6 +254,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .WithOne(assignment => assignment.WorkoutSet)
                 .HasForeignKey(assignment => assignment.WorkoutSetId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_WorkoutSets_RestSeconds",
+                "[RestSeconds] BETWEEN 15 AND 600"));
         });
 
         builder.Entity<WorkoutSetRow>(entity =>

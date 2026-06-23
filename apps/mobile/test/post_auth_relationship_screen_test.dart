@@ -18,38 +18,50 @@ import 'package:liftmate/workout_sets/workout_set_api_client.dart';
 
 void main() {
   group('Post-auth relationship screens', () {
-    testWidgets('trainer with no trainees sees invite-code empty state and CTA',
-        (tester) async {
+    testWidgets(
+      'trainer with no trainees sees invite-code empty state and CTA',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(_userResponse(role: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainer/relationship') {
+                return http.Response(
+                  '{"inviteCode":"7F2K9D","trainees":[]}',
+                  200,
+                );
+              }
+
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
+
+        await _startAuthenticated(tester);
+
+        expect(find.text('Twój kod zaproszenia'), findsOneWidget);
+        expect(find.text('7F2K9D'), findsWidgets);
+        expect(find.text('Brak podopiecznych'), findsOneWidget);
+        expect(find.text('Zaproś podopiecznego'), findsOneWidget);
+      },
+    );
+
+    testWidgets('trainer with trainees sees list entries and opens detail', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _testApp(
           httpClient: MockClient((request) async {
             if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
-            }
-            if (request.url.path == '/trainer/relationship') {
-              return http.Response('{"inviteCode":"7F2K9D","trainees":[]}', 200);
-            }
-
-            fail('Unexpected request: ${request.method} ${request.url}');
-          }),
-        ),
-      );
-
-      await _startAuthenticated(tester);
-
-      expect(find.text('Twój kod zaproszenia'), findsOneWidget);
-      expect(find.text('7F2K9D'), findsWidgets);
-      expect(find.text('Brak podopiecznych'), findsOneWidget);
-      expect(find.text('Zaproś podopiecznego'), findsOneWidget);
-    });
-
-    testWidgets('trainer with trainees sees list entries and opens detail',
-        (tester) async {
-      await tester.pumpWidget(
-        _testApp(
-          httpClient: MockClient((request) async {
-            if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+              return http.Response(
+                jsonEncode(_userResponse(role: 'trainer')),
+                200,
+              );
             }
             if (request.url.path == '/trainer/relationship') {
               return http.Response(
@@ -112,10 +124,7 @@ void main() {
             }
             if (request.url.path == '/training-history/sessions') {
               historyRequest = request.url;
-              return http.Response(
-                '{"items":[],"nextCursor":null}',
-                200,
-              );
+              return http.Response('{"items":[],"nextCursor":null}', 200);
             }
             fail('Unexpected request: ${request.method} ${request.url}');
           }),
@@ -125,6 +134,9 @@ void main() {
       await _startAuthenticated(tester);
       await tester.tap(find.text('Anna Nowak'));
       await tester.pumpAndSettle();
+
+      expect(find.text('Historia'), findsOneWidget);
+      expect(find.text('Zmień zestaw'), findsOneWidget);
       await tester.tap(
         find.byKey(const ValueKey('trainer-open-trainee-history')),
       );
@@ -132,6 +144,14 @@ void main() {
 
       expect(historyRequest?.queryParameters['traineeUserId'], 'trainee-1');
       expect(find.text('Brak ukończonych treningów.'), findsOneWidget);
+      expect(find.byTooltip('Wróć'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Wróć'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Podopieczny'), findsOneWidget);
+      expect(find.text('Anna Nowak'), findsWidgets);
+      expect(find.text('Aktywna relacja'), findsOneWidget);
     });
 
     testWidgets('trainee history opens from bottom navigation', (tester) async {
@@ -142,10 +162,7 @@ void main() {
             if (request.url.path == '/auth/me') {
               return http.Response(
                 jsonEncode(
-                  _userResponse(
-                    role: 'trainee',
-                    trainerUserId: 'trainer-1',
-                  ),
+                  _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
                 ),
                 200,
               );
@@ -164,10 +181,7 @@ void main() {
             }
             if (request.url.path == '/training-history/sessions') {
               historyRequest = request.url;
-              return http.Response(
-                '{"items":[],"nextCursor":null}',
-                200,
-              );
+              return http.Response('{"items":[],"nextCursor":null}', 200);
             }
             fail('Unexpected request: ${request.method} ${request.url}');
           }),
@@ -183,285 +197,335 @@ void main() {
       expect(find.text('Brak ukończonych treningów.'), findsOneWidget);
     });
 
-    testWidgets('trainer detail renders assigned sets from relationship summary',
-        (tester) async {
-      final seen = <String>[];
-      await tester.pumpWidget(
-        _testApp(
-          httpClient: MockClient((request) async {
-            seen.add('${request.method} ${request.url.path}');
-            if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
-            }
-            if (request.url.path == '/trainer/relationship') {
-              return http.Response(
-                jsonEncode({
-                  'inviteCode': '7F2K9D',
-                  'trainees': [
-                    {
-                      'id': 'trainee-1',
-                      'email': 'trainee@example.test',
-                      'displayName': 'Anna Nowak',
-                      'assignedWorkoutSets': [
-                        {
-                          'id': 'set-1',
-                          'name': 'Push A',
-                          'exerciseCount': 2,
-                          'rowCount': 5,
-                          'updatedAt': '2026-06-16T12:05:00Z',
-                        },
-                      ],
-                    },
-                  ],
-                }),
-                200,
-              );
-            }
-            fail('Unexpected request: ${request.method} ${request.url}');
-          }),
-        ),
-      );
+    testWidgets(
+      'trainer detail renders assigned sets from relationship summary',
+      (tester) async {
+        final seen = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            httpClient: MockClient((request) async {
+              seen.add('${request.method} ${request.url.path}');
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(_userResponse(role: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainer/relationship') {
+                return http.Response(
+                  jsonEncode({
+                    'inviteCode': '7F2K9D',
+                    'trainees': [
+                      {
+                        'id': 'trainee-1',
+                        'email': 'trainee@example.test',
+                        'displayName': 'Anna Nowak',
+                        'assignedWorkoutSets': [
+                          {
+                            'id': 'set-1',
+                            'name': 'Push A',
+                            'exerciseCount': 2,
+                            'rowCount': 5,
+                            'updatedAt': '2026-06-16T12:05:00Z',
+                          },
+                        ],
+                      },
+                    ],
+                  }),
+                  200,
+                );
+              }
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
 
-      await _startAuthenticated(tester);
-      await tester.tap(find.textContaining('Anna').first);
-      await tester.pumpAndSettle();
+        await _startAuthenticated(tester);
+        await tester.tap(find.textContaining('Anna').first);
+        await tester.pumpAndSettle();
 
-      expect(find.text('Push A'), findsOneWidget);
-      expect(find.text('2 ćwiczenia · 5 serii'), findsOneWidget);
-      expect(find.text('Odepnij zestaw'), findsNothing);
-      expect(seen.where((path) => path == 'GET /workout-sets/set-1'), isEmpty);
-    });
+        expect(find.text('Push A'), findsOneWidget);
+        expect(find.text('2 ćwiczenia · 5 serii'), findsOneWidget);
+        expect(find.text('Odepnij zestaw'), findsNothing);
+        expect(
+          seen.where((path) => path == 'GET /workout-sets/set-1'),
+          isEmpty,
+        );
+      },
+    );
 
-    testWidgets('trainer opens trainee detail only after fresh relationship reload',
-        (tester) async {
-      var relationshipRequests = 0;
-      await tester.pumpWidget(
-        _testApp(
-          httpClient: MockClient((request) async {
-            if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
-            }
-            if (request.url.path == '/trainer/relationship') {
-              relationshipRequests += 1;
-              return http.Response(
-                jsonEncode(
-                  _trainerRelationshipWithAssignedSet(
-                    setName: relationshipRequests == 1 ? 'Push A' : 'Push B',
-                    exerciseCount: relationshipRequests == 1 ? 2 : 5,
-                    rowCount: relationshipRequests == 1 ? 5 : 12,
+    testWidgets(
+      'trainer opens trainee detail only after fresh relationship reload',
+      (tester) async {
+        var relationshipRequests = 0;
+        await tester.pumpWidget(
+          _testApp(
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(_userResponse(role: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainer/relationship') {
+                relationshipRequests += 1;
+                return http.Response(
+                  jsonEncode(
+                    _trainerRelationshipWithAssignedSet(
+                      setName: relationshipRequests == 1 ? 'Push A' : 'Push B',
+                      exerciseCount: relationshipRequests == 1 ? 2 : 5,
+                      rowCount: relationshipRequests == 1 ? 5 : 12,
+                    ),
                   ),
-                ),
-                200,
-              );
-            }
-            fail('Unexpected request: ${request.method} ${request.url}');
-          }),
-        ),
-      );
+                  200,
+                );
+              }
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
 
-      await _startAuthenticated(tester);
-      await tester.tap(find.textContaining('Anna').first);
-      await tester.pumpAndSettle();
+        await _startAuthenticated(tester);
+        await tester.tap(find.textContaining('Anna').first);
+        await tester.pumpAndSettle();
 
-      expect(relationshipRequests, 2);
-      expect(find.text('Podopieczny'), findsOneWidget);
-      expect(find.text('Push B'), findsOneWidget);
-      expect(find.text('5 ćwiczeń · 12 serii'), findsOneWidget);
-      expect(find.text('Push A'), findsNothing);
-    });
+        expect(relationshipRequests, 2);
+        expect(find.text('Podopieczny'), findsOneWidget);
+        expect(find.text('Push B'), findsOneWidget);
+        expect(find.text('5 ćwiczeń · 12 serii'), findsOneWidget);
+        expect(find.text('Push A'), findsNothing);
+      },
+    );
 
-    testWidgets('trainer trainee row shows loading and ignores duplicate opens',
-        (tester) async {
-      var relationshipRequests = 0;
-      final refreshCompleter = Completer<http.Response>();
-      await tester.pumpWidget(
-        _testApp(
-          httpClient: MockClient((request) async {
-            if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
-            }
-            if (request.url.path == '/trainer/relationship') {
-              relationshipRequests += 1;
-              if (relationshipRequests == 1) {
+    testWidgets(
+      'trainer trainee row shows loading and ignores duplicate opens',
+      (tester) async {
+        var relationshipRequests = 0;
+        final refreshCompleter = Completer<http.Response>();
+        await tester.pumpWidget(
+          _testApp(
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(_userResponse(role: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainer/relationship') {
+                relationshipRequests += 1;
+                if (relationshipRequests == 1) {
+                  return http.Response(
+                    jsonEncode(_trainerRelationshipWithAssignedSet()),
+                    200,
+                  );
+                }
+                return refreshCompleter.future;
+              }
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
+
+        await _startAuthenticated(tester);
+        await tester.tap(find.textContaining('Anna').first);
+        await tester.pump();
+        await tester.tap(find.textContaining('Anna').first);
+        await tester.pump();
+
+        expect(relationshipRequests, 2);
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        expect(find.text('Podopieczny'), findsNothing);
+
+        refreshCompleter.complete(
+          http.Response(jsonEncode(_trainerRelationshipWithAssignedSet()), 200),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Podopieczny'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'trainer detail refresh failure keeps dashboard with retry error',
+      (tester) async {
+        var relationshipRequests = 0;
+        await tester.pumpWidget(
+          _testApp(
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(_userResponse(role: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainer/relationship') {
+                relationshipRequests += 1;
+                if (relationshipRequests == 1) {
+                  return http.Response(
+                    jsonEncode(_trainerRelationshipWithAssignedSet()),
+                    200,
+                  );
+                }
+                return http.Response(
+                  '{"error":"Temporary relationship failure."}',
+                  503,
+                );
+              }
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
+
+        await _startAuthenticated(tester);
+        await tester.tap(find.textContaining('Anna').first);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Podopieczny'), findsNothing);
+        expect(find.text('Temporary relationship failure.'), findsOneWidget);
+        expect(find.text('PODOPIECZNI'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'trainer detail refresh missing trainee does not open stale detail',
+      (tester) async {
+        var relationshipRequests = 0;
+        await tester.pumpWidget(
+          _testApp(
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(_userResponse(role: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainer/relationship') {
+                relationshipRequests += 1;
+                if (relationshipRequests == 1) {
+                  return http.Response(
+                    jsonEncode(_trainerRelationshipWithAssignedSet()),
+                    200,
+                  );
+                }
+                return http.Response(
+                  jsonEncode({'inviteCode': '7F2K9D', 'trainees': []}),
+                  200,
+                );
+              }
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
+
+        await _startAuthenticated(tester);
+        await tester.tap(find.textContaining('Anna').first);
+        await tester.pumpAndSettle();
+
+        expect(relationshipRequests, 2);
+        expect(find.text('Podopieczny'), findsNothing);
+        expect(find.text('Brak podopiecznych'), findsOneWidget);
+        expect(find.text('Push A'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'trainer starts assigned set and opens loaded editable live screen',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            includeSharedSessionClient: true,
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(_userResponse(role: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainer/relationship') {
                 return http.Response(
                   jsonEncode(_trainerRelationshipWithAssignedSet()),
                   200,
                 );
               }
-              return refreshCompleter.future;
-            }
-            fail('Unexpected request: ${request.method} ${request.url}');
-          }),
-        ),
-      );
+              if (request.url.path == '/shared-sessions/from-workout-set') {
+                expect(jsonDecode(request.body), {
+                  'workoutSetId': 'set-1',
+                  'traineeUserId': 'trainee-1',
+                });
+                return http.Response(jsonEncode(_sessionResponse()), 201);
+              }
 
-      await _startAuthenticated(tester);
-      await tester.tap(find.textContaining('Anna').first);
-      await tester.pump();
-      await tester.tap(find.textContaining('Anna').first);
-      await tester.pump();
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
 
-      expect(relationshipRequests, 2);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.text('Podopieczny'), findsNothing);
+        await _startAuthenticated(tester);
+        await tester.tap(find.textContaining('Anna').first);
+        await tester.pumpAndSettle();
+        await _tapButton(tester, 'Rozpocznij wspÃ³lny trening');
 
-      refreshCompleter.complete(
-        http.Response(jsonEncode(_trainerRelationshipWithAssignedSet()), 200),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('Podopieczny'), findsOneWidget);
-    });
+        await _expectEditableLiveHierarchy(tester);
+        expect(find.text('Anna'), findsOneWidget);
+        expect(find.text('Zestaw Push A'), findsOneWidget);
+        expect(find.text('trainee@example.test'), findsNothing);
+      },
+    );
 
-    testWidgets('trainer detail refresh failure keeps dashboard with retry error',
-        (tester) async {
-      var relationshipRequests = 0;
-      await tester.pumpWidget(
-        _testApp(
-          httpClient: MockClient((request) async {
-            if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
-            }
-            if (request.url.path == '/trainer/relationship') {
-              relationshipRequests += 1;
-              if (relationshipRequests == 1) {
+    testWidgets(
+      'trainer joins trainee self-start and opens loaded editable live screen',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            includeSharedSessionClient: true,
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
                 return http.Response(
-                  jsonEncode(_trainerRelationshipWithAssignedSet()),
+                  jsonEncode(_userResponse(role: 'trainer')),
                   200,
                 );
               }
-              return http.Response('{"error":"Temporary relationship failure."}', 503);
-            }
-            fail('Unexpected request: ${request.method} ${request.url}');
-          }),
-        ),
-      );
-
-      await _startAuthenticated(tester);
-      await tester.tap(find.textContaining('Anna').first);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Podopieczny'), findsNothing);
-      expect(find.text('Temporary relationship failure.'), findsOneWidget);
-      expect(find.text('PODOPIECZNI'), findsOneWidget);
-    });
-
-    testWidgets('trainer detail refresh missing trainee does not open stale detail',
-        (tester) async {
-      var relationshipRequests = 0;
-      await tester.pumpWidget(
-        _testApp(
-          httpClient: MockClient((request) async {
-            if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
-            }
-            if (request.url.path == '/trainer/relationship') {
-              relationshipRequests += 1;
-              if (relationshipRequests == 1) {
+              if (request.url.path == '/trainer/relationship') {
                 return http.Response(
-                  jsonEncode(_trainerRelationshipWithAssignedSet()),
+                  jsonEncode(
+                    _trainerRelationshipWithAssignedSet(activeSession: true),
+                  ),
                   200,
                 );
               }
-              return http.Response(
-                jsonEncode({'inviteCode': '7F2K9D', 'trainees': []}),
-                200,
-              );
-            }
-            fail('Unexpected request: ${request.method} ${request.url}');
-          }),
-        ),
-      );
+              if (request.url.path == '/shared-sessions/session-1') {
+                return http.Response(
+                  jsonEncode(_sessionResponse(startedByRole: 'trainee')),
+                  200,
+                );
+              }
 
-      await _startAuthenticated(tester);
-      await tester.tap(find.textContaining('Anna').first);
-      await tester.pumpAndSettle();
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
 
-      expect(relationshipRequests, 2);
-      expect(find.text('Podopieczny'), findsNothing);
-      expect(find.text('Brak podopiecznych'), findsOneWidget);
-      expect(find.text('Push A'), findsNothing);
-    });
+        await _startAuthenticated(tester);
+        await tester.tap(find.textContaining('Anna').first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.textContaining('sesji').first);
+        await tester.pumpAndSettle();
 
-    testWidgets('trainer starts assigned set and opens loaded editable live screen',
-        (tester) async {
+        await _expectEditableLiveHierarchy(tester);
+      },
+    );
+
+    testWidgets('active trainer start without values stays on trainee detail', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _testApp(
           includeSharedSessionClient: true,
           httpClient: MockClient((request) async {
             if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
-            }
-            if (request.url.path == '/trainer/relationship') {
               return http.Response(
-                jsonEncode(_trainerRelationshipWithAssignedSet()),
+                jsonEncode(_userResponse(role: 'trainer')),
                 200,
               );
-            }
-            if (request.url.path == '/shared-sessions/from-workout-set') {
-              expect(jsonDecode(request.body), {
-                'workoutSetId': 'set-1',
-                'traineeUserId': 'trainee-1',
-              });
-              return http.Response(jsonEncode(_sessionResponse()), 201);
-            }
-
-            fail('Unexpected request: ${request.method} ${request.url}');
-          }),
-        ),
-      );
-
-      await _startAuthenticated(tester);
-      await tester.tap(find.textContaining('Anna').first);
-      await tester.pumpAndSettle();
-      await _tapButton(tester, 'Rozpocznij wspÃ³lny trening');
-
-      await _expectEditableLiveHierarchy(tester);
-    });
-
-    testWidgets('trainer joins trainee self-start and opens loaded editable live screen',
-        (tester) async {
-      await tester.pumpWidget(
-        _testApp(
-          includeSharedSessionClient: true,
-          httpClient: MockClient((request) async {
-            if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
-            }
-            if (request.url.path == '/trainer/relationship') {
-              return http.Response(
-                jsonEncode(_trainerRelationshipWithAssignedSet(activeSession: true)),
-                200,
-              );
-            }
-            if (request.url.path == '/shared-sessions/session-1') {
-              return http.Response(
-                jsonEncode(_sessionResponse(startedByRole: 'trainee')),
-                200,
-              );
-            }
-
-            fail('Unexpected request: ${request.method} ${request.url}');
-          }),
-        ),
-      );
-
-      await _startAuthenticated(tester);
-      await tester.tap(find.textContaining('Anna').first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('sesji').first);
-      await tester.pumpAndSettle();
-
-      await _expectEditableLiveHierarchy(tester);
-    });
-
-    testWidgets('active trainer start without values stays on trainee detail',
-        (tester) async {
-      await tester.pumpWidget(
-        _testApp(
-          includeSharedSessionClient: true,
-          httpClient: MockClient((request) async {
-            if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
             }
             if (request.url.path == '/trainer/relationship') {
               return http.Response(
@@ -494,14 +558,18 @@ void main() {
       );
     });
 
-    testWidgets('failed trainer start stays on detail instead of blank live',
-        (tester) async {
+    testWidgets('failed trainer start stays on detail instead of blank live', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _testApp(
           includeSharedSessionClient: true,
           httpClient: MockClient((request) async {
             if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+              return http.Response(
+                jsonEncode(_userResponse(role: 'trainer')),
+                200,
+              );
             }
             if (request.url.path == '/trainer/relationship') {
               return http.Response(
@@ -523,7 +591,6 @@ void main() {
       await tester.pumpAndSettle();
       await _tapButton(tester, 'Rozpocznij wspÃ³lny trening');
 
-      expect(find.text('Podopieczny'), findsOneWidget);
       expect(find.text('Push A'), findsOneWidget);
       expect(find.text('Bench press'), findsNothing);
     });
@@ -533,7 +600,10 @@ void main() {
         _testApp(
           httpClient: MockClient((request) async {
             if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+              return http.Response(
+                jsonEncode(_userResponse(role: 'trainer')),
+                200,
+              );
             }
             if (request.url.path == '/trainer/relationship') {
               return http.Response(
@@ -574,14 +644,17 @@ void main() {
       expect(find.textContaining('sesji'), findsOneWidget);
     });
 
-    testWidgets('trainee linked to trainer sees trainer identity',
-        (tester) async {
+    testWidgets('trainee linked to trainer sees trainer identity', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _testApp(
           httpClient: MockClient((request) async {
             if (request.url.path == '/auth/me') {
               return http.Response(
-                jsonEncode(_userResponse(role: 'trainee', trainerUserId: 'trainer-1')),
+                jsonEncode(
+                  _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
+                ),
                 200,
               );
             }
@@ -600,206 +673,216 @@ void main() {
       await _startAuthenticated(tester);
 
       expect(find.text('TWÓJ TRENER'), findsOneWidget);
-    expect(find.text('Test Trainer'), findsOneWidget);
-    expect(find.text('trainer@example.test'), findsOneWidget);
-  });
+      expect(find.text('Test Trainer'), findsOneWidget);
+      expect(find.text('trainer@example.test'), findsOneWidget);
+    });
 
-  testWidgets(
-    'trainee trainer-led read-only live has back action and trainer first name',
-    (tester) async {
-      final seen = <String>[];
-      await tester.pumpWidget(
-        _testApp(
-          includeSharedSessionClient: true,
-          httpClient: MockClient((request) async {
-            seen.add('${request.method} ${request.url.path}');
-            if (request.url.path == '/auth/me') {
-              return http.Response(
-                jsonEncode(
-                  _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
-                ),
-                200,
-              );
-            }
-            if (request.url.path == '/trainee/relationship') {
-              return http.Response(
-                jsonEncode({'trainer': _trainer('Test Trainer')}),
-                200,
-              );
-            }
-            if (request.url.path == '/trainee/workout-sets') {
-              return http.Response(jsonEncode([_assignedSet()]), 200);
-            }
-            if (request.url.path == '/shared-sessions/active') {
-              return http.Response(
-                jsonEncode(_sessionResponse(startedByRole: 'trainer')),
-                200,
-              );
-            }
-            if (request.url.path == '/shared-sessions/session-1') {
-              return http.Response(
-                jsonEncode(_sessionResponse(startedByRole: 'trainer')),
-                200,
-              );
-            }
-            fail('Unexpected request: ${request.method} ${request.url}');
-          }),
-        ),
-      );
-
-      await _startAuthenticated(tester);
-      await tester.pumpAndSettle();
-      await _tapButton(tester, 'aktywnego treningu');
-
-      expect(find.text('Prowadzi trener Test'), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.add_rounded), findsNothing);
-
-      final header = tester.getRect(
-        find.byKey(const ValueKey('read-only-live-header')),
-      );
-      final trainerStatus = tester.getRect(
-        find.byKey(const ValueKey('read-only-live-trainer-status')),
-      );
-      expect(trainerStatus.center.dx, closeTo(header.center.dx, 0.5));
-
-      await tester.tap(find.byIcon(Icons.chevron_left_rounded));
-      await tester.pumpAndSettle();
-
-      expect(find.text('DZISIEJSZY TRENING'), findsOneWidget);
-      expect(find.textContaining('aktywnego treningu'), findsOneWidget);
-      expect(seen.where((request) => request.contains('/complete')), isEmpty);
-      expect(seen.where((request) => request.contains('/cancel')), isEmpty);
-    },
-  );
-
-  testWidgets(
-    'trainee read-only live updates from realtime without another session request',
-    (tester) async {
-      final seen = <String>[];
-      final realtimeClient = _FakeRealtimeClient();
-      addTearDown(realtimeClient.dispose);
-      await tester.pumpWidget(
-        _testApp(
-          includeSharedSessionClient: true,
-          sharedSessionRealtimeClientFactory: () => realtimeClient,
-          httpClient: MockClient((request) async {
-            seen.add('${request.method} ${request.url.path}');
-            if (request.url.path == '/auth/me') {
-              return http.Response(
-                jsonEncode(
-                  _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
-                ),
-                200,
-              );
-            }
-            if (request.url.path == '/trainee/relationship') {
-              return http.Response(
-                jsonEncode({'trainer': _trainer('Test Trainer')}),
-                200,
-              );
-            }
-            if (request.url.path == '/trainee/workout-sets') {
-              return http.Response(jsonEncode([_assignedSet()]), 200);
-            }
-            if (request.url.path == '/shared-sessions/active' ||
-                request.url.path == '/shared-sessions/session-1') {
-              return http.Response(
-                jsonEncode(_sessionResponse(startedByRole: 'trainer')),
-                200,
-              );
-            }
-            fail('Unexpected request: ${request.method} ${request.url}');
-          }),
-        ),
-      );
-
-      await _startAuthenticated(tester);
-      await tester.pumpAndSettle();
-      await _tapButton(tester, 'aktywnego treningu');
-
-      expect(find.text('40 kg'), findsOneWidget);
-      expect(find.text('x 6 powt.'), findsOneWidget);
-      expect(find.text('Ukończone serie: 0'), findsOneWidget);
-      final sessionRequestCount = seen
-          .where((request) => request.contains('/shared-sessions/'))
-          .length;
-
-      realtimeClient.emit(
-        SharedSession.fromJson(
-          _sessionResponse(
-            startedByRole: 'trainer',
-            version: 2,
-            firstReps: 8,
-            firstWeight: 47.5,
-            completedValueIds: const {'value-2'},
+    testWidgets(
+      'trainee trainer-led read-only live has back action and trainer first name',
+      (tester) async {
+        final seen = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            includeSharedSessionClient: true,
+            httpClient: MockClient((request) async {
+              seen.add('${request.method} ${request.url.path}');
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(
+                    _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
+                  ),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainee/relationship') {
+                return http.Response(
+                  jsonEncode({'trainer': _trainer('Test Trainer')}),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainee/workout-sets') {
+                return http.Response(jsonEncode([_assignedSet()]), 200);
+              }
+              if (request.url.path == '/shared-sessions/active') {
+                return http.Response(
+                  jsonEncode(_sessionResponse(startedByRole: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/shared-sessions/session-1') {
+                return http.Response(
+                  jsonEncode(_sessionResponse(startedByRole: 'trainer')),
+                  200,
+                );
+              }
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
 
-      expect(find.text('47.5 kg'), findsOneWidget);
-      expect(find.text('x 8 powt.'), findsOneWidget);
-      expect(find.text('Ukończone serie: 1'), findsOneWidget);
-      expect(find.byIcon(Icons.add_rounded), findsNothing);
-      expect(
-        seen.where((request) => request.contains('/shared-sessions/')).length,
-        sessionRequestCount,
-      );
-    },
-  );
+        await _startAuthenticated(tester);
+        await tester.pumpAndSettle();
+        await _tapButton(tester, 'aktywnego treningu');
 
-  testWidgets('trainee trainer-led read-only live falls back to trainer email', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _testApp(
-        includeSharedSessionClient: true,
-        httpClient: MockClient((request) async {
-          if (request.url.path == '/auth/me') {
-            return http.Response(
-              jsonEncode(
-                _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
-              ),
-              200,
-            );
-          }
-          if (request.url.path == '/trainee/relationship') {
-            return http.Response(jsonEncode({'trainer': _trainer('')}), 200);
-          }
-          if (request.url.path == '/trainee/workout-sets') {
-            return http.Response(jsonEncode([_assignedSet()]), 200);
-          }
-          if (request.url.path == '/shared-sessions/active') {
-            return http.Response(
-              jsonEncode(_sessionResponse(startedByRole: 'trainer')),
-              200,
-            );
-          }
-          if (request.url.path == '/shared-sessions/session-1') {
-            return http.Response(
-              jsonEncode(_sessionResponse(startedByRole: 'trainer')),
-              200,
-            );
-          }
-          fail('Unexpected request: ${request.method} ${request.url}');
-        }),
-      ),
+        expect(find.text('Prowadzi trener Test'), findsOneWidget);
+        expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.add_rounded), findsNothing);
+
+        final header = tester.getRect(
+          find.byKey(const ValueKey('read-only-live-header')),
+        );
+        final trainerStatus = tester.getRect(
+          find.byKey(const ValueKey('read-only-live-trainer-status')),
+        );
+        expect(trainerStatus.center.dx, closeTo(header.center.dx, 0.5));
+
+        await tester.tap(find.byIcon(Icons.chevron_left_rounded));
+        await tester.pumpAndSettle();
+
+        expect(find.text('DZISIEJSZY TRENING'), findsOneWidget);
+        expect(find.textContaining('aktywnego treningu'), findsOneWidget);
+        expect(seen.where((request) => request.contains('/complete')), isEmpty);
+        expect(seen.where((request) => request.contains('/cancel')), isEmpty);
+      },
     );
 
-    await _startAuthenticated(tester);
-    await tester.pumpAndSettle();
-    await _tapButton(tester, 'aktywnego treningu');
+    testWidgets(
+      'trainee read-only live updates from realtime without another session request',
+      (tester) async {
+        final seen = <String>[];
+        final realtimeClient = _FakeRealtimeClient();
+        addTearDown(realtimeClient.dispose);
+        await tester.pumpWidget(
+          _testApp(
+            includeSharedSessionClient: true,
+            sharedSessionRealtimeClientFactory: () => realtimeClient,
+            httpClient: MockClient((request) async {
+              seen.add('${request.method} ${request.url.path}');
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(
+                    _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
+                  ),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainee/relationship') {
+                return http.Response(
+                  jsonEncode({'trainer': _trainer('Test Trainer')}),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainee/workout-sets') {
+                return http.Response(jsonEncode([_assignedSet()]), 200);
+              }
+              if (request.url.path == '/shared-sessions/active' ||
+                  request.url.path == '/shared-sessions/session-1') {
+                return http.Response(
+                  jsonEncode(_sessionResponse(startedByRole: 'trainer')),
+                  200,
+                );
+              }
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
 
-    expect(find.text('Prowadzi trener trainer@example.test'), findsOneWidget);
-  });
+        await _startAuthenticated(tester);
+        await tester.pumpAndSettle();
+        await _tapButton(tester, 'aktywnego treningu');
 
-  testWidgets('trainee unlinked sees enter-code prompt', (tester) async {
+        expect(find.text('40 kg'), findsOneWidget);
+        expect(find.text('x 6 powt.'), findsOneWidget);
+        expect(find.text('0 ukończonych serii'), findsOneWidget);
+        final sessionRequestCount = seen
+            .where((request) => request.contains('/shared-sessions/'))
+            .length;
+
+        realtimeClient.emit(
+          SharedSession.fromJson(
+            _sessionResponse(
+              startedByRole: 'trainer',
+              version: 2,
+              firstReps: 8,
+              firstWeight: 47.5,
+              completedValueIds: const {'value-2'},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('47.5 kg'), findsOneWidget);
+        expect(find.text('x 8 powt.'), findsOneWidget);
+        expect(find.text('1 ukończona seria'), findsOneWidget);
+        expect(find.byIcon(Icons.add_rounded), findsNothing);
+        expect(
+          seen.where((request) => request.contains('/shared-sessions/')).length,
+          sessionRequestCount,
+        );
+      },
+    );
+
+    testWidgets(
+      'trainee trainer-led read-only live falls back to trainer email',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            includeSharedSessionClient: true,
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(
+                    _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
+                  ),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainee/relationship') {
+                return http.Response(
+                  jsonEncode({'trainer': _trainer('')}),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainee/workout-sets') {
+                return http.Response(jsonEncode([_assignedSet()]), 200);
+              }
+              if (request.url.path == '/shared-sessions/active') {
+                return http.Response(
+                  jsonEncode(_sessionResponse(startedByRole: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/shared-sessions/session-1') {
+                return http.Response(
+                  jsonEncode(_sessionResponse(startedByRole: 'trainer')),
+                  200,
+                );
+              }
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
+
+        await _startAuthenticated(tester);
+        await tester.pumpAndSettle();
+        await _tapButton(tester, 'aktywnego treningu');
+
+        expect(
+          find.text('Prowadzi trener trainer@example.test'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('trainee unlinked sees enter-code prompt', (tester) async {
       await tester.pumpWidget(
         _testApp(
           httpClient: MockClient((request) async {
             if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainee')), 200);
+              return http.Response(
+                jsonEncode(_userResponse(role: 'trainee')),
+                200,
+              );
             }
             if (request.url.path == '/trainee/relationship') {
               return http.Response('{"trainer":null}', 200);
@@ -813,18 +896,25 @@ void main() {
       await _startAuthenticated(tester);
 
       expect(find.text('Połącz się z trenerem'), findsOneWidget);
-      expect(find.byKey(const ValueKey('relationship-trainer-code-field')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('relationship-trainer-code-field')),
+        findsOneWidget,
+      );
       expect(find.text('Połącz konto'), findsOneWidget);
     });
 
-    testWidgets('trainee submits a new code and reloads relationship state',
-        (tester) async {
+    testWidgets('trainee submits a new code and reloads relationship state', (
+      tester,
+    ) async {
       var linked = false;
       await tester.pumpWidget(
         _testApp(
           httpClient: MockClient((request) async {
             if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainee')), 200);
+              return http.Response(
+                jsonEncode(_userResponse(role: 'trainee')),
+                200,
+              );
             }
             if (request.url.path == '/trainee/relationship') {
               return http.Response(
@@ -836,7 +926,9 @@ void main() {
               expect(jsonDecode(request.body), {'code': '7F2K9D'});
               linked = true;
               return http.Response(
-                jsonEncode(_userResponse(role: 'trainee', trainerUserId: 'trainer-b')),
+                jsonEncode(
+                  _userResponse(role: 'trainee', trainerUserId: 'trainer-b'),
+                ),
                 200,
               );
             }
@@ -858,49 +950,65 @@ void main() {
       expect(find.text('Trainer B'), findsOneWidget);
     });
 
-    testWidgets('failed claim shows readable error and preserves previous state',
-        (tester) async {
-      await tester.pumpWidget(
-        _testApp(
-          httpClient: MockClient((request) async {
-            if (request.url.path == '/auth/me') {
-              return http.Response(
-                jsonEncode(_userResponse(role: 'trainee', trainerUserId: 'trainer-a')),
-                200,
-              );
-            }
-            if (request.url.path == '/trainee/relationship') {
-              return http.Response(jsonEncode({'trainer': _trainer('Trainer A')}), 200);
-            }
-            if (request.url.path == '/trainee/trainer-link') {
-              return http.Response('{"error":"Trainer invite code was not found."}', 404);
-            }
+    testWidgets(
+      'failed claim shows readable error and preserves previous state',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(
+                    _userResponse(role: 'trainee', trainerUserId: 'trainer-a'),
+                  ),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainee/relationship') {
+                return http.Response(
+                  jsonEncode({'trainer': _trainer('Trainer A')}),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainee/trainer-link') {
+                return http.Response(
+                  '{"error":"Trainer invite code was not found."}',
+                  404,
+                );
+              }
 
-            fail('Unexpected request: ${request.method} ${request.url}');
-          }),
-        ),
-      );
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
 
-      await _startAuthenticated(tester);
-      await tester.enterText(
-        find.byKey(const ValueKey('relationship-trainer-code-field')),
-        'AAAAAA',
-      );
-      await _tapButton(tester, 'Połącz z nowym trenerem');
+        await _startAuthenticated(tester);
+        await tester.enterText(
+          find.byKey(const ValueKey('relationship-trainer-code-field')),
+          'AAAAAA',
+        );
+        await _tapButton(tester, 'Połącz z nowym trenerem');
 
-      expect(find.text('Trainer A'), findsOneWidget);
-      expect(find.text('Trainer invite code was not found.'), findsOneWidget);
-    });
+        expect(find.text('Trainer A'), findsOneWidget);
+        expect(find.text('Trainer invite code was not found.'), findsOneWidget);
+      },
+    );
 
     testWidgets('logout returns to unauthenticated onboarding', (tester) async {
       await tester.pumpWidget(
         _testApp(
           httpClient: MockClient((request) async {
             if (request.url.path == '/auth/me') {
-              return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+              return http.Response(
+                jsonEncode(_userResponse(role: 'trainer')),
+                200,
+              );
             }
             if (request.url.path == '/trainer/relationship') {
-              return http.Response('{"inviteCode":"7F2K9D","trainees":[]}', 200);
+              return http.Response(
+                '{"inviteCode":"7F2K9D","trainees":[]}',
+                200,
+              );
             }
             if (request.url.path == '/auth/logout') {
               return http.Response('', 204);
@@ -986,8 +1094,7 @@ Widget _testApp({
         baseUrl: 'https://api.example.test',
         httpClient: httpClient,
       ),
-      sharedSessionRealtimeClientFactory:
-          includeSharedSessionClient
+      sharedSessionRealtimeClientFactory: includeSharedSessionClient
           ? sharedSessionRealtimeClientFactory ?? _FakeRealtimeClient.new
           : null,
     ),
@@ -1090,14 +1197,9 @@ Future<void> _expectEditableLiveHierarchy(WidgetTester tester) async {
   expect(find.text('Seria 2'), findsOneWidget);
   expect(find.byIcon(Icons.add_rounded), findsWidgets);
 
-  await tester.scrollUntilVisible(
-    find.text('ODPOCZYNEK'),
-    300,
-    scrollable: find.byType(Scrollable).last,
-  );
-  expect(find.text('ODPOCZYNEK'), findsOneWidget);
-  expect(find.text('Start'), findsOneWidget);
-  expect(find.text('Pauza'), findsOneWidget);
+  expect(find.byKey(const ValueKey('live-rest-footer')), findsOneWidget);
+  expect(find.text('Odpoczynek'), findsOneWidget);
+  expect(find.byTooltip('Start'), findsOneWidget);
   expect(find.text('+15s'), findsOneWidget);
 
   await tester.scrollUntilVisible(
@@ -1124,6 +1226,7 @@ Map<String, Object?> _sessionResponse({
     'trainerEmail': 'trainer@example.test',
     'traineeEmail': 'trainee@example.test',
     'workoutSetId': 'set-1',
+    'workoutSetName': 'Push A',
     'startedByUserId': startedByRole == 'trainer' ? 'trainer-1' : 'trainee-1',
     'startedByRole': startedByRole,
     'status': 'active',

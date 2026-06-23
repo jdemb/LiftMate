@@ -71,12 +71,19 @@ public static class WorkoutSetEndpoints
             return Results.BadRequest(new { error = nameError });
         }
 
+        var restError = WorkoutSetValidation.ValidateRestSeconds(request.RestSeconds);
+        if (restError is not null)
+        {
+            return Results.BadRequest(new { error = restError });
+        }
+
         var now = DateTimeOffset.UtcNow;
         var workoutSet = new WorkoutSet
         {
             Id = Guid.NewGuid(),
             TrainerUserId = trainerUserId,
             Name = request.Name.Trim(),
+            RestSeconds = request.RestSeconds ?? 90,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -122,6 +129,12 @@ public static class WorkoutSetEndpoints
             return Results.BadRequest(new { error = nameError });
         }
 
+        var restError = WorkoutSetValidation.ValidateRestSeconds(request.RestSeconds);
+        if (restError is not null)
+        {
+            return Results.BadRequest(new { error = restError });
+        }
+
         var rowError = ApplyRowsForUpdate(workoutSet, request.Rows, dbContext);
         if (rowError is not null)
         {
@@ -129,6 +142,7 @@ public static class WorkoutSetEndpoints
         }
 
         workoutSet.Name = request.Name.Trim();
+        workoutSet.RestSeconds = request.RestSeconds ?? 90;
         workoutSet.UpdatedAt = DateTimeOffset.UtcNow;
 
         await dbContext.SaveChangesAsync(cancellationToken);

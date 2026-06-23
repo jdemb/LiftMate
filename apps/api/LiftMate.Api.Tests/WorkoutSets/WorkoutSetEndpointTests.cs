@@ -18,8 +18,14 @@ public sealed class WorkoutSetEndpointTests(TestApplicationFactory factory)
         await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, firstTrainee);
         await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, secondTrainee);
 
-        var created = await CreateWorkoutSet(client, trainer, "Full body A", AllExerciseTypeRows());
+        var created = await CreateWorkoutSet(
+            client,
+            trainer,
+            "Full body A",
+            AllExerciseTypeRows(),
+            restSeconds: 120);
         Assert.Equal(3, created.Rows.Count);
+        Assert.Equal(120, created.RestSeconds);
 
         client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
         var listResponse = await client.GetAsync("/workout-sets");
@@ -51,7 +57,8 @@ public sealed class WorkoutSetEndpointTests(TestApplicationFactory factory)
             $"/workout-sets/{created.Id}",
             new UpdateWorkoutSetRequest(
                 "Full body B",
-                [new WorkoutSetRowRequest(1, 1, "Squat", "repsWeight", 5, 100m, null)]));
+                [new WorkoutSetRowRequest(1, 1, "Squat", "repsWeight", 5, 100m, null)],
+                RestSeconds: 75));
         var updateBody = await updateResponse.Content.ReadAsStringAsync();
 
         Assert.True(updateResponse.StatusCode == HttpStatusCode.OK, updateBody);
@@ -60,6 +67,7 @@ public sealed class WorkoutSetEndpointTests(TestApplicationFactory factory)
 
         Assert.NotNull(updated);
         Assert.Equal("Full body B", updated.Name);
+        Assert.Equal(75, updated.RestSeconds);
         Assert.Single(updated.Rows);
         Assert.Equal(2, updated.Assignments.Count);
 
@@ -70,9 +78,29 @@ public sealed class WorkoutSetEndpointTests(TestApplicationFactory factory)
         Assert.Equal(HttpStatusCode.OK, traineeDetailResponse.StatusCode);
         Assert.NotNull(traineeDetail);
         Assert.Equal("Full body B", traineeDetail.Name);
+        Assert.Equal(75, traineeDetail.RestSeconds);
         var row = Assert.Single(traineeDetail.Rows);
         Assert.Equal("Squat", row.ExerciseName);
         Assert.Equal(100m, row.Weight);
+    }
+
+    [Theory]
+    [InlineData(14)]
+    [InlineData(601)]
+    public async Task CreateRejectsRestSecondsOutsideAllowedRange(int restSeconds)
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+
+        var response = await client.PostAsJsonAsync(
+            "/workout-sets",
+            new CreateWorkoutSetRequest(
+                "Invalid rest",
+                DefaultRows(),
+                RestSeconds: restSeconds));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
@@ -312,12 +340,13 @@ public sealed class WorkoutSetEndpointTests(TestApplicationFactory factory)
         HttpClient client,
         AuthEndpointTests.AuthResponse trainer,
         string name,
-        IReadOnlyList<WorkoutSetRowRequest> rows)
+        IReadOnlyList<WorkoutSetRowRequest> rows,
+        int? restSeconds = null)
     {
         client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
         var response = await client.PostAsJsonAsync(
             "/workout-sets",
-            new CreateWorkoutSetRequest(name, rows));
+            new CreateWorkoutSetRequest(name, rows, restSeconds));
         var workoutSet = await response.Content.ReadFromJsonAsync<WorkoutSetDetailResponse>();
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -381,11 +410,13 @@ public sealed class WorkoutSetEndpointTests(TestApplicationFactory factory)
 
     private sealed record CreateWorkoutSetRequest(
         string Name,
-        IReadOnlyList<WorkoutSetRowRequest> Rows);
+        IReadOnlyList<WorkoutSetRowRequest> Rows,
+        int? RestSeconds = null);
 
     private sealed record UpdateWorkoutSetRequest(
         string Name,
-        IReadOnlyList<WorkoutSetRowRequest> Rows);
+        IReadOnlyList<WorkoutSetRowRequest> Rows,
+        int? RestSeconds = null);
 
     private sealed record WorkoutSetRowRequest(
         int ExerciseOrder,
@@ -414,6 +445,7 @@ public sealed class WorkoutSetEndpointTests(TestApplicationFactory factory)
     private sealed record WorkoutSetDetailResponse(
         Guid Id,
         string Name,
+        int RestSeconds,
         IReadOnlyList<WorkoutSetRowResponse> Rows,
         IReadOnlyList<WorkoutSetAssignmentResponse> Assignments,
         DateTimeOffset CreatedAt,
@@ -439,6 +471,7 @@ public sealed class WorkoutSetEndpointTests(TestApplicationFactory factory)
     private sealed record TraineeAssignedWorkoutSetResponse(
         Guid Id,
         string Name,
+        int RestSeconds,
         string TrainerDisplayName,
         IReadOnlyList<WorkoutSetRowResponse> Rows,
         DateTimeOffset AssignedAt,

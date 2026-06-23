@@ -49,13 +49,6 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
                   ),
                   const Spacer(),
-                  if (onOpenHistory != null)
-                    IconButton(
-                      key: const ValueKey('trainer-open-trainee-history'),
-                      tooltip: 'Historia',
-                      onPressed: onOpenHistory,
-                      icon: const Icon(Icons.history_rounded),
-                    ),
                   IconButton(
                     tooltip: 'Wyloguj',
                     onPressed: onLogout,
@@ -111,6 +104,30 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                     sessionErrorMessage!,
                     style: const TextStyle(color: Colors.redAccent),
                   ),
+                ),
+              ],
+              if (onOpenHistory != null) ...[
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        key: const ValueKey(
+                          'trainer-open-trainee-history',
+                        ),
+                        onPressed: onOpenHistory,
+                        icon: const Icon(Icons.history_rounded),
+                        label: const Text('Historia'),
+                      ),
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onOpenWorkoutSets,
+                        child: const Text('Zmień zestaw'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
               const SizedBox(height: 20),

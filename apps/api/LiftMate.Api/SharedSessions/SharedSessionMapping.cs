@@ -12,6 +12,7 @@ public static class SharedSessionMapping
             session.TraineeUser?.Email ?? string.Empty,
             session.WorkoutSetId,
             session.WorkoutSetName,
+            session.RestSeconds,
             session.StartedByUserId,
             session.StartedByRole,
             session.Status,

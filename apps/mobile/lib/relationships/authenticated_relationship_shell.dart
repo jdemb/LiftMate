@@ -131,6 +131,7 @@ class _AuthenticatedRelationshipShellState
               user: widget.user,
               controller: _sharedSessionController,
               editable: true,
+              traineeDisplayName: selected?.displayName,
               onSessionClosed: _handleTrainerSessionClosed,
               onBack: () {
                 setState(() => _trainerView = _TrainerView.dashboard);
@@ -143,6 +144,7 @@ class _AuthenticatedRelationshipShellState
               _trainerHistoryController != null) {
             return TrainingHistoryFlow(
               controller: _trainerHistoryController!,
+              showLevelOneBack: true,
               onClose: () {
                 _trainerHistoryController?.dispose();
                 _trainerHistoryController = null;

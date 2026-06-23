@@ -9,6 +9,7 @@ void main() {
       final detail = WorkoutSetDetail.fromJson(_detailJson());
 
       expect(detail.id, 'set-1');
+      expect(detail.restSeconds, 90);
       expect(detail.rows.first.exerciseId, 'exercise-1');
       expect(detail.rows.map((row) => row.exerciseType), [
         ExerciseValueType.repsWeight,
@@ -41,13 +42,18 @@ void main() {
         reps: 6,
         weight: 40,
       );
-      const request = CreateWorkoutSetRequest(name: 'Push A', rows: [row]);
+      const request = CreateWorkoutSetRequest(
+        name: 'Push A',
+        restSeconds: 120,
+        rows: [row],
+      );
 
       expect(ExerciseValueType.repsWeight.wireName, 'repsWeight');
       expect(ExerciseValueType.repsOnly.wireName, 'repsOnly');
       expect(ExerciseValueType.time.wireName, 'time');
       expect(request.toJson(), {
         'name': 'Push A',
+        'restSeconds': 120,
         'rows': [
           {
             'id': 'row-1',
@@ -70,6 +76,7 @@ void main() {
       );
 
       expect(assigned.id, 'set-1');
+      expect(assigned.restSeconds, 90);
       expect(assigned.trainerDisplayName, 'Test Trainer');
       expect(assigned.rows.map((row) => row.exerciseName), [
         'Bench press',
@@ -105,6 +112,23 @@ void main() {
         expect(requests[1].exerciseId, 'exercise-1');
       },
     );
+
+    test('parses configured rest time and falls back to 90 seconds', () {
+      expect(
+        WorkoutSetDetail.fromJson({
+          ..._detailJson(),
+          'restSeconds': 75,
+        }).restSeconds,
+        75,
+      );
+      expect(
+        TraineeAssignedWorkoutSet.fromJson({
+          ..._traineeAssignedJson(),
+          'restSeconds': 105,
+        }).restSeconds,
+        105,
+      );
+    });
   });
 }
 

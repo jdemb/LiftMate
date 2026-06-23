@@ -1,194 +1,289 @@
 ---
-project: "Aplikacja mobilna treningowa dla trenera i podopiecznego"
-version: 1
-status: proposed
-created: 2026-06-01
-updated: 2026-06-19
+project: "Aplikacja mobilna treningowa dla trenera i podopiecznego - expansion"
+version: 2
+status: draft
+created: 2026-06-23
+updated: 2026-06-23
 prd_version: 2
-main_goal: market-feedback
+main_goal: speed
 top_blocker: time
 ---
 
+# Roadmap: LiftMate expansion
+
+> Derived from `context/foundation/prd.md` (v2), `context/foundation/prd-expansion.md` (v2), the previous roadmap, and the auto-researched codebase baseline.
+> Edit in place; archive when superseded.
+> Items are listed in dependency order. The "At a glance" table is the index.
+
 ## Vision recap
 
-LiftMate should let a trainer prepare a workout, guide a trainee through it, and preserve progress between sessions. The roadmap is ordered for market feedback: direct signal from a real trainer-trainee workflow, not completeness of every technical layer.
+LiftMate ma wejść w bezpieczniejszą i bardziej dopracowaną betę bez regresji istniejącego przepływu trener-podopieczny. Najpierw zamykamy dostęp i błędy ścieżki rejestracji, a następnie dokładamy feedback po treningu, informacyjne podpowiedzi dla trenera i prostą serię regularności.
 
 ## North star
 
-North star means the first end-to-end workflow that proves the product is useful. For LiftMate, that is **S-04: Trainer enters values and trainee sees the same active session**, because it tests the guided live-workout promise in `US-03` and `FR-012`.
+**S-07: Tester może bezpiecznie i poprawnie zarejestrować konto w becie** — to pierwszy wynik, ponieważ usuwa ryzyko publicznej rejestracji i naprawia krytyczną ścieżkę wejścia przed udostępnieniem aplikacji kolejnym testerom.
+
+> North star oznacza tutaj najmniejszy przekrojowy wynik, którego dostarczenie potwierdza, że aplikację można bezpiecznie przekazać użytkownikowi beta.
 
 ## At a glance
 
-| ID | Change ID | Outcome | Prerequisites | PRD refs | Status |
+| ID | Change ID | Outcome (user can ...) | Prerequisites | PRD refs | Status |
 |---|---|---|---|---|---|
-| F-01 | mobile-api-smoke-path | Mobile app can verify the deployed API is reachable before product flows depend on it. | none | FR-001, US-01 | done |
-| F-02 | authenticated-role-boundary | A minimal authenticated identity and role boundary exists for trainer/trainee actions. | F-01 | FR-001, FR-002, FR-003, FR-004, FR-005 | done |
-| F-03 | shared-session-sync-contract | A minimal active-session sync contract exists for shared workout state. | F-01 | FR-004, FR-012, US-03 | done |
-| S-01 | trainer-trainee-pairing | Trainer and trainee can create accounts, choose roles, and form the allowed relationship. | F-02 | FR-001, FR-002, FR-003, FR-004, FR-005 | done |
-| S-02 | assign-global-workout-set | Trainer can define exercises in a global set and assign that set to a trainee. | S-01 | FR-007, FR-008, FR-010, US-01 | done |
-| S-03 | start-shared-workout-session | Trainer can start one active workout session for a trainee and assigned set. | S-01, S-02 | FR-004, FR-010, FR-012, US-03 | done |
-| S-04 | live-trainer-led-entry | Trainer enters exercise values and trainee sees the same active session without manual refresh. | F-03, S-03 | FR-004, FR-011, FR-012, US-03 | done |
-| S-05 | save-progress-next-session | Values from a completed workout become the starting point for the next session. | S-04 | FR-011, US-02 | proposed |
-| S-06 | trainee-self-edit-training-values | Trainee can view and edit own training values when completing a workout without trainer input. | S-02, S-05 | FR-005, FR-011, US-02 | proposed |
+| F-01 | mobile-api-smoke-path | (foundation) Aplikacja mobilna może potwierdzić dostępność wdrożonego API. | — | `prd.md`: FR-001, US-01 | done |
+| F-02 | authenticated-role-boundary | (foundation) Istnieje uwierzytelniona tożsamość i granica ról trenera oraz podopiecznego. | F-01 | `prd.md`: FR-001, FR-002, FR-003, FR-004, FR-005 | done |
+| F-03 | shared-session-sync-contract | (foundation) Istnieje kontrakt synchronizacji jednej aktywnej sesji treningowej. | F-01 | `prd.md`: FR-004, FR-012, US-03 | done |
+| S-01 | trainer-trainee-pairing | Trener i podopieczny mogą utworzyć konta i nawiązać dozwoloną relację. | F-02 | `prd.md`: FR-001, FR-002, FR-003, FR-004, FR-005 | done |
+| S-02 | assign-global-workout-set | Trener może utworzyć zestaw ćwiczeń i przypisać go podopiecznemu. | S-01 | `prd.md`: FR-007, FR-008, FR-010, US-01 | done |
+| S-03 | start-shared-workout-session | Trener może rozpocząć aktywną sesję dla podopiecznego i przypisanego zestawu. | S-01, S-02 | `prd.md`: FR-004, FR-010, FR-012, US-03 | done |
+| S-04 | live-trainer-led-entry | Trener może wpisywać wartości, a podopieczny widzi tę samą sesję bez ręcznego odświeżania. | F-03, S-03 | `prd.md`: FR-004, FR-011, FR-012, US-03 | done |
+| S-05 | save-progress-next-session | Użytkownik może zachować wartości zakończonego treningu jako punkt startowy kolejnej sesji. | S-04 | `prd.md`: FR-011, US-02 | ready |
+| S-06 | trainee-self-edit-training-values | Podopieczny może samodzielnie edytować własne wartości podczas wykonywania treningu. | S-02, S-05 | `prd.md`: FR-005, FR-011, US-02 | proposed |
+| S-07 | beta-registration-guard | Tester może utworzyć konto trenera albo podopiecznego tylko z poprawnym kodem beta, używając czytelnego i stabilnego formularza. | — | `prd-expansion.md`: US-04, Scope of Change — beta code, Polish validation, password visibility, pasted trainer code | ready |
+| S-08 | copy-trainer-invite-code | Trener może skopiować aktualny kod zaproszenia i natychmiast zobaczyć potwierdzenie operacji. | S-01 | `prd-expansion.md`: US-05 | ready |
+| S-09 | post-workout-feedback | Podopieczny może wysłać ocenę samopoczucia i opcjonalny komentarz po treningu, a trener widzi nieedytowalny wpis w historii sesji. | S-04 | `prd-expansion.md`: US-01 | ready |
+| S-10 | trainer-history-guidance | Trener może zobaczyć informacyjne podpowiedzi o stagnacji ciężaru lub obniżonym samopoczuciu i oznaczyć je jako przeczytane. | S-09 | `prd-expansion.md`: US-02 | proposed |
+| S-11 | trainee-weekly-streak | Podopieczny może zobaczyć aktualną i najlepszą liczbę kolejnych tygodni z zakończonym treningiem. | S-04 | `prd-expansion.md`: US-03 | ready |
+
+## Streams
+
+Ta sekcja grupuje elementy współdzielące łańcuch zależności. Kanoniczna kolejność pozostaje zapisana w polach `Prerequisites`.
+
+| Stream | Theme | Chain | Note |
+|---|---|---|---|
+| A | Podstawowy przepływ treningowy | `F-01` → (`F-02` → `S-01` → `S-02` → `S-03` / `F-03`) → `S-04` → `S-05` → `S-06` | Zachowuje historię podstawowego produktu i otwarte domknięcie progresu. |
+| B | Gotowość bety | `S-07` / `S-08` | Niezależne poprawki dostępu i obsługi kodów; zabezpieczenie rejestracji prowadzi sekwencję ze względu na cel `speed`. |
+| C | Feedback i zaangażowanie | `S-09` → `S-10`; `S-11` równolegle | Feedback odblokowuje podpowiedzi o samopoczuciu, a seria korzysta z istniejących zakończonych sesji. |
 
 ## Baseline
 
-- Frontend: partial. Flutter scaffold exists, but the app still shows a placeholder screen.
-- Backend/API: partial. ASP.NET Core API exists with health, Swagger, and template weather endpoints.
-- Data: absent. No database provider, ORM, schema, migrations, or seed data are wired.
-- Auth: absent. No account provider, token/session handling, role guard, or route authorization exists.
-- Deploy/infra: partial. API deploy to Azure App Service is wired through GitHub Actions; mobile release automation is not present.
-- Observability: absent/implicit. No application telemetry, metrics, or error tracking beyond platform/runtime logs.
+Stan kodu na 2026-06-23, potwierdzony przez użytkownika:
+
+- **Frontend:** present — Flutter zawiera gotowe przepływy uwierzytelniania, relacji, aktywnej sesji i historii treningów.
+- **Backend / API:** present — ASP.NET Core udostępnia endpointy auth, parowania, zestawów, sesji, historii i synchronizacji.
+- **Data:** present — relacyjna baza danych, migracje oraz projekcje progresu i historii są używane produkcyjnie.
+- **Auth:** present — tożsamość, tokeny, role i autoryzacja relacji są aktywne.
+- **Deploy / infra:** partial — API i migracje są wdrażane automatycznie; wydawanie aplikacji mobilnej pozostaje ręczne.
+- **Observability:** absent — brak dedykowanej telemetrii, metryk i śledzenia błędów poza standardowymi logami.
 
 ## Foundations
 
+Nie są potrzebne nowe foundation slices. Wszystkie warstwy wymagane przez expansion istnieją, a addytywne zmiany danych i kontraktów powinny być wprowadzane w pierwszym konsumującym je slice.
+
 ### F-01: Mobile-to-API smoke path
 
-- Outcome: Mobile app can verify the deployed API is reachable before product flows depend on it.
-- Change ID: `mobile-api-smoke-path`
-- PRD refs: FR-001, US-01
-- Prerequisites: none
-- Parallel with: none
-- Blockers: none
-- Unknowns: none
-- Risk: Without a verified mobile-to-backend path, later slices can fail on environment wiring instead of product behavior.
-- Status: done
-- Unlocks: F-02, F-03, and every user-facing slice that crosses mobile/API boundaries.
+- **Outcome:** (foundation) Aplikacja mobilna może potwierdzić dostępność wdrożonego API.
+- **Change ID:** `mobile-api-smoke-path`
+- **PRD refs:** `prd.md`: FR-001, US-01
+- **Unlocks:** F-02, F-03 i wszystkie przekrojowe przepływy mobile/API.
+- **Prerequisites:** —
+- **Parallel with:** —
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Bez sprawdzonego połączenia mobile/API błędy środowiska byłyby mylone z błędami produktu.
+- **Status:** done
 
 ### F-02: Authenticated role boundary
 
-- Outcome: A minimal authenticated identity and role boundary exists for trainer/trainee actions.
-- Change ID: `authenticated-role-boundary`
-- PRD refs: FR-001, FR-002, FR-003, FR-004, FR-005
-- Prerequisites: F-01
-- Parallel with: F-03 after F-01
-- Blockers: none
-- Unknowns: none
-- Risk: Pairing and training-data access rules become unreliable if role identity is not established before user-facing relationship slices.
-- Status: done
-- Unlocks: S-01, S-03, S-04, S-06.
+- **Outcome:** (foundation) Istnieje uwierzytelniona tożsamość i granica ról trenera oraz podopiecznego.
+- **Change ID:** `authenticated-role-boundary`
+- **PRD refs:** `prd.md`: FR-001, FR-002, FR-003, FR-004, FR-005
+- **Unlocks:** S-01, S-03, S-04, S-06 i S-07.
+- **Prerequisites:** F-01
+- **Parallel with:** F-03
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Błędy granic ról mogłyby ujawnić lub pomieszać dane treningowe użytkowników.
+- **Status:** done
 
 ### F-03: Shared-session sync contract
 
-- Outcome: A minimal active-session sync contract exists for shared workout state.
-- Change ID: `shared-session-sync-contract`
-- PRD refs: FR-004, FR-012, US-03
-- Prerequisites: F-01
-- Parallel with: F-02 after F-01
-- Blockers: none
-- Unknowns:
-  - Confirm how much near-real-time behavior is acceptable on the free Azure tier. Block: no. Owner: product/engineering.
-- Risk: The shared workout can miss the "same training window" requirement if synchronization is deferred until late implementation.
-- Status: done
-- Unlocks: S-04.
+- **Outcome:** (foundation) Istnieje kontrakt synchronizacji jednej aktywnej sesji treningowej.
+- **Change ID:** `shared-session-sync-contract`
+- **PRD refs:** `prd.md`: FR-004, FR-012, US-03
+- **Unlocks:** S-04 oraz zachowanie aktualizacji sesji wymagane przez expansion.
+- **Prerequisites:** F-01
+- **Parallel with:** F-02
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Oddzielne kopie sesji po stronie trenera i podopiecznego złamałyby podstawową obietnicę produktu.
+- **Status:** done
 
 ## Slices
 
 ### S-01: Trainer-trainee pairing
 
-- Outcome: Trainer and trainee can create accounts, choose roles, and form the allowed relationship.
-- Change ID: `trainer-trainee-pairing`
-- PRD refs: FR-001, FR-002, FR-003, FR-004, FR-005
-- Prerequisites: F-02
-- Parallel with: none
-- Blockers: none
-- Unknowns: none
-- Risk: Access boundaries are central to the product; mistakes here leak or mix training data between users.
-- Status: done
+- **Outcome:** Trener i podopieczny mogą utworzyć konta i nawiązać dozwoloną relację.
+- **Change ID:** `trainer-trainee-pairing`
+- **PRD refs:** `prd.md`: FR-001, FR-002, FR-003, FR-004, FR-005
+- **Prerequisites:** F-02
+- **Parallel with:** —
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Relacja jest granicą dostępu do wszystkich danych treningowych.
+- **Status:** done
 
 ### S-02: Assign global workout set
 
-- Outcome: Trainer can define exercises in a global set and assign that set to a trainee.
-- Change ID: `assign-global-workout-set`
-- PRD refs: FR-007, FR-008, FR-010, US-01
-- Prerequisites: S-01
-- Parallel with: none
-- Blockers: none
-- Unknowns: none
-- Risk: If exercise values are modeled too loosely, later progress and shared-session slices will need rework.
-- Status: done
+- **Outcome:** Trener może utworzyć zestaw ćwiczeń i przypisać go podopiecznemu.
+- **Change ID:** `assign-global-workout-set`
+- **PRD refs:** `prd.md`: FR-007, FR-008, FR-010, US-01
+- **Prerequisites:** S-01
+- **Parallel with:** —
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Niestabilna tożsamość ćwiczeń utrudniłaby progres i analizę historii.
+- **Status:** done
 
 ### S-03: Start shared workout session
 
-- Outcome: Trainer can start one active workout session for a trainee and assigned set.
-- Change ID: `start-shared-workout-session`
-- PRD refs: FR-004, FR-010, FR-012, US-03
-- Prerequisites: S-01, S-02
-- Parallel with: none
-- Blockers: none
-- Unknowns: none
-- Risk: The product can drift into separate trainer and trainee copies unless the active session is a single shared object.
-- Status: done
+- **Outcome:** Trener może rozpocząć aktywną sesję dla podopiecznego i przypisanego zestawu.
+- **Change ID:** `start-shared-workout-session`
+- **PRD refs:** `prd.md`: FR-004, FR-010, FR-012, US-03
+- **Prerequisites:** S-01, S-02
+- **Parallel with:** —
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Aktywna sesja musi pozostać jednym współdzielonym obiektem.
+- **Status:** done
 
-### S-04: Trainer enters values and trainee sees the same active session
+### S-04: Live trainer-led entry
 
-- Outcome: Trainer enters exercise values and trainee sees the same active session without manual refresh.
-- Change ID: `live-trainer-led-entry`
-- PRD refs: FR-004, FR-011, FR-012, US-03
-- Prerequisites: F-03, S-03
-- Parallel with: none
-- Blockers: none
-- Unknowns:
-  - Decide whether the first MVP accepts light polling before paid realtime infrastructure. Block: no. Owner: product/engineering.
-- Risk: This is the product's highest-feedback slice and the main place where free-tier infrastructure can constrain UX.
-- Status: done
+- **Outcome:** Trener może wpisywać wartości, a podopieczny widzi tę samą sesję bez ręcznego odświeżania.
+- **Change ID:** `live-trainer-led-entry`
+- **PRD refs:** `prd.md`: FR-004, FR-011, FR-012, US-03
+- **Prerequisites:** F-03, S-03
+- **Parallel with:** —
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Utrata synchronizacji podczas treningu podważa główną wartość prowadzonej sesji.
+- **Status:** done
 
 ### S-05: Save progress for the next session
 
-- Outcome: Values from a completed workout become the starting point for the next session.
-- Change ID: `save-progress-next-session`
-- PRD refs: FR-011, US-02
-- Prerequisites: S-04
-- Parallel with: none
-- Blockers: none
-- Unknowns: none
-- Risk: Incorrect overwrite rules can destroy progress history or show stale values at the next workout.
-- Status: proposed
+- **Outcome:** Użytkownik może zachować wartości zakończonego treningu jako punkt startowy kolejnej sesji.
+- **Change ID:** `save-progress-next-session`
+- **PRD refs:** `prd.md`: FR-011, US-02
+- **Prerequisites:** S-04
+- **Parallel with:** S-07, S-08, S-09, S-11
+- **Blockers:** —
+- **Unknowns:**
+  - Ręczna weryfikacja i formalne domknięcie istniejącej implementacji pozostają do potwierdzenia. — Owner: user. Block: no.
+- **Risk:** Niepoprawne reguły nadpisywania mogą utracić progres lub pokazać stare wartości.
+- **Status:** ready
 
 ### S-06: Trainee self-edit training values
 
-- Outcome: Trainee can view and edit own training values when completing a workout without trainer input.
-- Change ID: `trainee-self-edit-training-values`
-- PRD refs: FR-005, FR-011, US-02
-- Prerequisites: S-02, S-05
-- Parallel with: none
-- Blockers: none
-- Unknowns: none
-- Risk: Self-editing can conflict with trainer-led edits unless it reuses the same training-value ownership rules.
-- Status: proposed
+- **Outcome:** Podopieczny może samodzielnie edytować własne wartości podczas wykonywania treningu.
+- **Change ID:** `trainee-self-edit-training-values`
+- **PRD refs:** `prd.md`: FR-005, FR-011, US-02
+- **Prerequisites:** S-02, S-05
+- **Parallel with:** S-07, S-08, S-09, S-11
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Samodzielna edycja musi stosować te same reguły własności i progresu co sesja prowadzona.
+- **Status:** proposed
+
+### S-07: Bezpieczna i poprawna rejestracja beta
+
+- **Outcome:** Tester może utworzyć konto trenera albo podopiecznego tylko z poprawnym kodem beta, używając czytelnego i stabilnego formularza.
+- **Change ID:** `beta-registration-guard`
+- **PRD refs:** `prd-expansion.md`: US-04, Scope of Change — beta code, Polish validation, password visibility, pasted trainer code
+- **Prerequisites:** —
+- **Parallel with:** S-05, S-08, S-09, S-11
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Nieszczelna lub uszkodzona rejestracja uniemożliwia bezpieczne przekazanie bety testerom.
+- **Status:** ready
+
+### S-08: Kopiowanie kodu trenera
+
+- **Outcome:** Trener może skopiować aktualny kod zaproszenia i natychmiast zobaczyć potwierdzenie operacji.
+- **Change ID:** `copy-trainer-invite-code`
+- **PRD refs:** `prd-expansion.md`: US-05
+- **Prerequisites:** S-01
+- **Parallel with:** S-05, S-07, S-09, S-11
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Błędnie skopiowany kod blokuje parowanie mimo poprawnie działającego backendu.
+- **Status:** ready
+
+### S-09: Feedback po zakończonym treningu
+
+- **Outcome:** Podopieczny może wysłać ocenę samopoczucia i opcjonalny komentarz po treningu, a trener widzi nieedytowalny wpis w historii sesji.
+- **Change ID:** `post-workout-feedback`
+- **PRD refs:** `prd-expansion.md`: US-01
+- **Prerequisites:** S-04
+- **Parallel with:** S-05, S-07, S-08, S-11
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Feedback przypisany do niewłaściwej sesji zniekształci historię i późniejsze podpowiedzi.
+- **Status:** ready
+
+### S-10: Podpowiedzi trenera z historii
+
+- **Outcome:** Trener może zobaczyć informacyjne podpowiedzi o stagnacji ciężaru lub obniżonym samopoczuciu i oznaczyć je jako przeczytane.
+- **Change ID:** `trainer-history-guidance`
+- **PRD refs:** `prd-expansion.md`: US-02
+- **Prerequisites:** S-09
+- **Parallel with:** S-06, S-11
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Niejednoznaczne porównanie ćwiczeń lub duplikowanie sygnałów obniży zaufanie trenera.
+- **Status:** proposed
+
+### S-11: Tygodniowa seria regularności
+
+- **Outcome:** Podopieczny może zobaczyć aktualną i najlepszą liczbę kolejnych tygodni z zakończonym treningiem.
+- **Change ID:** `trainee-weekly-streak`
+- **PRD refs:** `prd-expansion.md`: US-03
+- **Prerequisites:** S-04
+- **Parallel with:** S-05, S-07, S-08, S-09
+- **Blockers:** —
+- **Unknowns:** —
+- **Risk:** Niewłaściwa granica tygodnia lub czasu może niesprawiedliwie wyzerować serię.
+- **Status:** ready
 
 ## Backlog Handoff
 
-| Roadmap ID | Change ID | Plan input |
-|---|---|---|
-| F-01 | `mobile-api-smoke-path` | `/10x-plan mobile-api-smoke-path` |
-| F-02 | `authenticated-role-boundary` | `/10x-plan authenticated-role-boundary` |
-| F-03 | `shared-session-sync-contract` | `/10x-plan shared-session-sync-contract` |
-| S-01 | `trainer-trainee-pairing` | `/10x-plan trainer-trainee-pairing` |
-| S-02 | `assign-global-workout-set` | `/10x-plan assign-global-workout-set` |
-| S-03 | `start-shared-workout-session` | `/10x-plan start-shared-workout-session` |
-| S-04 | `live-trainer-led-entry` | `/10x-plan live-trainer-led-entry` |
-| S-05 | `save-progress-next-session` | `/10x-plan save-progress-next-session` |
-| S-06 | `trainee-self-edit-training-values` | `/10x-plan trainee-self-edit-training-values` |
+| Roadmap ID | Change ID | Suggested issue title | Ready for `/10x-plan` | Notes |
+|---|---|---|---|---|
+| F-01 | `mobile-api-smoke-path` | Mobile-to-API smoke path | no | done |
+| F-02 | `authenticated-role-boundary` | Authenticated role boundary | no | done |
+| F-03 | `shared-session-sync-contract` | Shared-session sync contract | no | done |
+| S-01 | `trainer-trainee-pairing` | Trainer-trainee pairing | no | done |
+| S-02 | `assign-global-workout-set` | Assign global workout set | no | done |
+| S-03 | `start-shared-workout-session` | Start shared workout session | no | done |
+| S-04 | `live-trainer-led-entry` | Live trainer-led entry | no | done |
+| S-05 | `save-progress-next-session` | Domknij zapis progresu na kolejną sesję | no | Istniejąca implementacja wymaga ręcznej weryfikacji i closeoutu. |
+| S-06 | `trainee-self-edit-training-values` | Podopieczny edytuje własne wartości treningowe | no | Czeka na domknięcie S-05. |
+| S-07 | `beta-registration-guard` | Zabezpiecz i napraw rejestrację beta | yes | Run `/10x-plan beta-registration-guard`. |
+| S-08 | `copy-trainer-invite-code` | Dodaj kopiowanie kodu trenera | yes | Run `/10x-plan copy-trainer-invite-code`. |
+| S-09 | `post-workout-feedback` | Dodaj feedback po treningu | yes | Run `/10x-plan post-workout-feedback`. |
+| S-10 | `trainer-history-guidance` | Dodaj podpowiedzi trenera z historii | no | Czeka na S-09. |
+| S-11 | `trainee-weekly-streak` | Dodaj tygodniową serię regularności | yes | Run `/10x-plan trainee-weekly-streak`. |
 
 ## Open Roadmap Questions
 
-- How much near-real-time behavior is acceptable on the free Azure tier before upgrading infrastructure? Owner: product/engineering. Unblocks: quality bar for F-03 and S-04. Block: no.
-- When should the template `/weatherforecast` endpoint be removed from the public API surface? Owner: engineering. Unblocks: API cleanup before broader sharing. Block: no.
-- Should mobile release automation wait until after the core workout flow, or be introduced before external TestFlight/Android testers? Owner: product/engineering. Unblocks: release hardening. Block: no.
+Brak otwartych pytań blokujących planowanie nowych slice’ów. Szczegóły addytywnych migracji i nowych kontraktów są rozstrzygane w `/10x-plan` pierwszego slice’a, który ich potrzebuje.
 
 ## Parked
 
-- FR-006: Trainer exercise library remains nice-to-have and parked until inline exercise definitions stop being enough.
-- FR-009: Individual trainee-specific templates remain nice-to-have and parked until global templates prove too rigid.
-- Paid realtime infrastructure remains parked until S-04 proves the user value and free-tier behavior becomes insufficient.
+- **Weryfikacja adresu e-mail** — poza zakresem expansion; dostęp do bety kontroluje wspólny kod.
+- **Indywidualne kody beta i limity użyć** — wspólny kod jest świadomym uproszczeniem bety.
+- **Automatyczna analiza komentarzy** — komentarze pozostają informacją dla trenera.
+- **AI i automatyczne zmiany planu** — podpowiedzi są jawne, informacyjne i nie modyfikują treningu.
+- **Rozbudowana grywalizacja** — zakres ogranicza się do aktualnej i najlepszej serii.
+- **Zmiany ról, logowania i relacji trener-podopieczny** — obecny model pozostaje bez zmian.
+- **Biblioteka ćwiczeń trenera** — pozostaje poza podstawowym przepływem.
+- **Indywidualne szablony zestawów** — pozostają poza podstawowym przepływem.
+- **Płatna infrastruktura realtime** — wróci do oceny dopiero po przekroczeniu ograniczeń obecnego środowiska.
 
 ## Done
 
-- **F-01: Mobile app can verify the deployed API is reachable before product flows depend on it.** — Archived 2026-06-18 → `context/archive/2026-06-01-mobile-api-smoke-path/`. Lesson: —.
-- **F-02: A minimal authenticated identity and role boundary exists for trainer/trainee actions.** — Archived 2026-06-18 → `context/archive/2026-06-02-authenticated-role-boundary/`. Lesson: —.
-- **F-03: A minimal active-session sync contract exists for shared workout state.** — Archived 2026-06-18 → `context/archive/2026-06-03-shared-session-sync-contract/`. Lesson: —.
-- **S-01: Trainer and trainee can create accounts, choose roles, and form the allowed relationship.** — Archived 2026-06-18 → `context/archive/2026-06-15-trainer-trainee-pairing/`. Lesson: —.
-- **S-02: Trainer can define exercises in a global set and assign that set to a trainee.** — Archived 2026-06-18 → `context/archive/2026-06-16-assign-global-workout-set/`. Lesson: —.
-- **S-03: Trainer can start one active workout session for a trainee and assigned set.** — Archived 2026-06-18 → `context/archive/2026-06-17-start-shared-workout-session/`. Lesson: —.
-- **S-04: Trainer enters exercise values and trainee sees the same active session without manual refresh.** — Archived 2026-06-19 → `context/archive/2026-06-19-live-trainer-led-entry/`. Lesson: —.
+- **F-01: Aplikacja mobilna może potwierdzić dostępność wdrożonego API.** — Archived 2026-06-18 → `context/archive/2026-06-01-mobile-api-smoke-path/`. Lesson: —.
+- **F-02: Istnieje uwierzytelniona tożsamość i granica ról trenera oraz podopiecznego.** — Archived 2026-06-18 → `context/archive/2026-06-02-authenticated-role-boundary/`. Lesson: —.
+- **F-03: Istnieje kontrakt synchronizacji jednej aktywnej sesji treningowej.** — Archived 2026-06-18 → `context/archive/2026-06-03-shared-session-sync-contract/`. Lesson: —.
+- **S-01: Trener i podopieczny mogą utworzyć konta i nawiązać dozwoloną relację.** — Archived 2026-06-18 → `context/archive/2026-06-15-trainer-trainee-pairing/`. Lesson: —.
+- **S-02: Trener może utworzyć zestaw ćwiczeń i przypisać go podopiecznemu.** — Archived 2026-06-18 → `context/archive/2026-06-16-assign-global-workout-set/`. Lesson: —.
+- **S-03: Trener może rozpocząć aktywną sesję dla podopiecznego i przypisanego zestawu.** — Archived 2026-06-18 → `context/archive/2026-06-17-start-shared-workout-session/`. Lesson: —.
+- **S-04: Trener może wpisywać wartości, a podopieczny widzi tę samą sesję bez ręcznego odświeżania.** — Archived 2026-06-19 → `context/archive/2026-06-19-live-trainer-led-entry/`. Lesson: —.

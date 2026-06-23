@@ -25,6 +25,7 @@ class WorkoutSetBuilderScreen extends StatefulWidget {
 class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
   late final TextEditingController _nameController;
   late final List<WorkoutSetDraftExercise> _draft;
+  late int _restSeconds;
   bool _showingExerciseEditor = false;
   String? _editingDraftId;
 
@@ -33,6 +34,7 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.initialDetail?.name ?? 'Push A');
     _draft = _draftFromDetail(widget.initialDetail);
+    _restSeconds = widget.initialDetail?.restSeconds ?? 90;
   }
 
   @override
@@ -66,6 +68,13 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
                   TextField(
                     controller: _nameController,
                     decoration: const InputDecoration(hintText: 'Nazwa zestawu'),
+                  ),
+                  const SizedBox(height: 18),
+                  const _FieldLabel('Czas odpoczynku'),
+                  _RestSecondsField(
+                    seconds: _restSeconds,
+                    onDecrease: () => _changeRestSeconds(-15),
+                    onIncrease: () => _changeRestSeconds(15),
                   ),
                   const SizedBox(height: 22),
                   RelationshipSectionLabel('Ćwiczenia · ${_draft.length}'),
@@ -163,6 +172,12 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
     });
   }
 
+  void _changeRestSeconds(int delta) {
+    setState(() {
+      _restSeconds = (_restSeconds + delta).clamp(15, 600);
+    });
+  }
+
   Future<void> _save() async {
     final rows = <WorkoutSetRowRequest>[];
     for (var i = 0; i < _draft.length; i += 1) {
@@ -172,7 +187,11 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
     final initialDetail = widget.initialDetail;
     if (initialDetail == null) {
       final result = await widget.controller.createSet(
-        CreateWorkoutSetRequest(name: _nameController.text.trim(), rows: rows),
+        CreateWorkoutSetRequest(
+          name: _nameController.text.trim(),
+          rows: rows,
+          restSeconds: _restSeconds,
+        ),
       );
       if (result.isSuccess && mounted) {
         widget.onBack();
@@ -182,7 +201,11 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
 
     final result = await widget.controller.updateSet(
       initialDetail.id,
-      UpdateWorkoutSetRequest(name: _nameController.text.trim(), rows: rows),
+      UpdateWorkoutSetRequest(
+        name: _nameController.text.trim(),
+        rows: rows,
+        restSeconds: _restSeconds,
+      ),
     );
     if (result.isSuccess && mounted) {
       widget.onBack();
@@ -248,6 +271,57 @@ class _FieldLabel extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RestSecondsField extends StatelessWidget {
+  const _RestSecondsField({
+    required this.seconds,
+    required this.onDecrease,
+    required this.onIncrease,
+  });
+
+  final int seconds;
+  final VoidCallback onDecrease;
+  final VoidCallback onIncrease;
+
+  @override
+  Widget build(BuildContext context) {
+    return RelationshipCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          IconButton.outlined(
+            key: const ValueKey('builder-rest-decrease'),
+            onPressed: seconds <= 15 ? null : onDecrease,
+            icon: const Icon(Icons.remove_rounded),
+          ),
+          Expanded(
+            child: Text(
+              formatRestSeconds(seconds),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Space Grotesk',
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          IconButton.filled(
+            key: const ValueKey('builder-rest-increase'),
+            onPressed: seconds >= 600 ? null : onIncrease,
+            icon: const Icon(Icons.add_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String formatRestSeconds(int seconds) {
+  final minutes = seconds ~/ 60;
+  final remainder = seconds % 60;
+  return '${minutes.toString().padLeft(2, '0')}:'
+      '${remainder.toString().padLeft(2, '0')}';
 }
 
 class _DraftExerciseCard extends StatelessWidget {

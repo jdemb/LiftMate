@@ -84,6 +84,7 @@ class SharedSession {
     this.closedAt,
     this.workoutSetId,
     this.workoutSetName = 'Trening',
+    this.restSeconds = 90,
     this.startedByUserId = '',
     this.startedByRole = SharedSessionStartRole.trainer,
   });
@@ -95,6 +96,7 @@ class SharedSession {
   final String traineeEmail;
   final String? workoutSetId;
   final String workoutSetName;
+  final int restSeconds;
   final String startedByUserId;
   final SharedSessionStartRole startedByRole;
   final SharedSessionStatus status;
@@ -117,6 +119,7 @@ class SharedSession {
     final traineeEmail = json['traineeEmail'];
     final workoutSetId = json['workoutSetId'];
     final workoutSetName = json['workoutSetName'] ?? 'Trening';
+    final restSeconds = json['restSeconds'] ?? 90;
     final startedByUserId = json['startedByUserId'];
     final startedByRole = SharedSessionStartRole.tryParse(
       json['startedByRole'],
@@ -135,6 +138,7 @@ class SharedSession {
         traineeEmail is! String ||
         (workoutSetId != null && workoutSetId is! String) ||
         workoutSetName is! String ||
+        restSeconds is! int ||
         startedByUserId is! String ||
         startedByRole == null ||
         status == null ||
@@ -154,6 +158,7 @@ class SharedSession {
       traineeEmail: traineeEmail,
       workoutSetId: workoutSetId,
       workoutSetName: workoutSetName,
+      restSeconds: restSeconds,
       startedByUserId: startedByUserId,
       startedByRole: startedByRole,
       status: status,

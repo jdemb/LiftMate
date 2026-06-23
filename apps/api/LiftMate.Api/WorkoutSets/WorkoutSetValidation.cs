@@ -11,6 +11,13 @@ public static class WorkoutSetValidation
             : null;
     }
 
+    public static string? ValidateRestSeconds(int? restSeconds)
+    {
+        return restSeconds.HasValue && (restSeconds is < 15 or > 600)
+            ? "Rest seconds must be between 15 and 600."
+            : null;
+    }
+
     public static string? ValidateRow(
         int exerciseOrder,
         int setIndex,

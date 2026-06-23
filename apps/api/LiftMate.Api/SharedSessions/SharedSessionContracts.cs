@@ -30,6 +30,7 @@ public sealed record SharedSessionResponse(
     string TraineeEmail,
     Guid? WorkoutSetId,
     string WorkoutSetName,
+    int RestSeconds,
     string StartedByUserId,
     string StartedByRole,
     string Status,

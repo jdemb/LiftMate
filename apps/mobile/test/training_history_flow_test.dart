@@ -68,13 +68,15 @@ void main() {
     );
     expect(find.text('60×8'), findsOneWidget);
     expect(find.text('60×7'), findsOneWidget);
-    expect(find.text('progres ›'), findsOneWidget);
+    expect(find.text('postęp ›'), findsOneWidget);
+    expect(find.text('progres ›'), findsNothing);
 
     await tester.tap(
       find.byKey(const ValueKey('history-exercise-exercise-1')),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Progres ćwiczenia'), findsOneWidget);
+    expect(find.text('Postęp ćwiczenia'), findsOneWidget);
+    expect(find.textContaining('Progres'), findsNothing);
     expect(find.text('Wyciskanie sztangi'), findsOneWidget);
     expect(find.byKey(const ValueKey('history-progress-chart')), findsOneWidget);
     expect(find.text('+2,5 kg'), findsWidgets);
@@ -166,6 +168,28 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.byKey(const ValueKey('history-progress-chart')), findsOneWidget);
   });
+
+  testWidgets('trainer history level one exposes close action', (tester) async {
+    var closed = false;
+    final controller = _controller(
+      MockClient((request) async {
+        return _jsonResponse({'items': [], 'nextCursor': null});
+      }),
+    );
+
+    await tester.pumpWidget(
+      _app(
+        controller,
+        showLevelOneBack: true,
+        onClose: () => closed = true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Wróć'), findsOneWidget);
+    await tester.tap(find.byTooltip('Wróć'));
+    expect(closed, isTrue);
+  });
 }
 
 TrainingHistoryController _controller(http.Client client) {
@@ -178,11 +202,19 @@ TrainingHistoryController _controller(http.Client client) {
   );
 }
 
-Widget _app(TrainingHistoryController controller) {
+Widget _app(
+  TrainingHistoryController controller, {
+  bool showLevelOneBack = false,
+  VoidCallback? onClose,
+}) {
   return MaterialApp(
     theme: ThemeData.dark(),
     home: Scaffold(
-      body: TrainingHistoryFlow(controller: controller, onClose: () {}),
+      body: TrainingHistoryFlow(
+        controller: controller,
+        onClose: onClose ?? () {},
+        showLevelOneBack: showLevelOneBack,
+      ),
     ),
   );
 }

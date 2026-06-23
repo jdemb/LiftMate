@@ -21,6 +21,7 @@ public static class WorkoutSetMapping
         return new WorkoutSetDetailResponse(
             workoutSet.Id,
             workoutSet.Name,
+            workoutSet.RestSeconds,
             OrderedRows(workoutSet).Select(ToRowResponse).ToArray(),
             CurrentAssignments(workoutSet)
                 .OrderBy(assignment => assignment.TraineeUser?.DisplayName)
@@ -39,6 +40,7 @@ public static class WorkoutSetMapping
         return new TraineeAssignedWorkoutSetResponse(
             workoutSet.Id,
             workoutSet.Name,
+            workoutSet.RestSeconds,
             workoutSet.TrainerUser?.DisplayName ?? string.Empty,
             OrderedRows(workoutSet).Select(ToRowResponse).ToArray(),
             assignment.AssignedAt,

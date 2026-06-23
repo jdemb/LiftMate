@@ -365,6 +365,52 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task SessionSnapshotsWorkoutSetRestSeconds()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(
+            client,
+            trainer,
+            "Rest snapshot",
+            DefaultWorkoutSetRows(),
+            restSeconds: 120);
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+
+        var session = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+        Assert.Equal(120, session.RestSeconds);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var update = await client.PutAsJsonAsync(
+            $"/workout-sets/{workoutSet.Id}",
+            new UpdateWorkoutSetRequest(
+                workoutSet.Name,
+                workoutSet.Rows
+                    .Select(row => new WorkoutSetRowRequest(
+                        row.ExerciseOrder,
+                        row.SetIndex,
+                        row.ExerciseName,
+                        row.ExerciseType,
+                        row.Reps,
+                        row.Weight,
+                        row.Seconds,
+                        row.Id,
+                        row.ExerciseId))
+                    .ToArray(),
+                RestSeconds: 60));
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var read = await client.GetFromJsonAsync<SharedSessionResponse>(
+            $"/shared-sessions/{session.Id}");
+
+        Assert.NotNull(read);
+        Assert.Equal(120, read.RestSeconds);
+    }
+
+    [Fact]
     public async Task CompleteAndCancelLifecycleIsTerminalAndIdempotent()
     {
         using var client = factory.CreateClient();
@@ -372,6 +418,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         var trainee = await AuthEndpointTests.Register(client, "trainee");
         await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
         var completedSession = await CreateSession(client, trainer, trainee);
+        Assert.Equal(90, completedSession.RestSeconds);
         var completedValue = Assert.Single(completedSession.Values);
 
         client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
@@ -794,12 +841,13 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         HttpClient client,
         AuthEndpointTests.AuthResponse trainer,
         string name,
-        IReadOnlyList<WorkoutSetRowRequest> rows)
+        IReadOnlyList<WorkoutSetRowRequest> rows,
+        int? restSeconds = null)
     {
         client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
         var response = await client.PostAsJsonAsync(
             "/workout-sets",
-            new CreateWorkoutSetRequest(name, rows));
+            new CreateWorkoutSetRequest(name, rows, restSeconds));
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
@@ -899,11 +947,13 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
 
     private sealed record CreateWorkoutSetRequest(
         string Name,
-        IReadOnlyList<WorkoutSetRowRequest> Rows);
+        IReadOnlyList<WorkoutSetRowRequest> Rows,
+        int? RestSeconds = null);
 
     private sealed record UpdateWorkoutSetRequest(
         string Name,
-        IReadOnlyList<WorkoutSetRowRequest> Rows);
+        IReadOnlyList<WorkoutSetRowRequest> Rows,
+        int? RestSeconds = null);
 
     private sealed record WorkoutSetRowRequest(
         int ExerciseOrder,
@@ -928,6 +978,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         string TraineeEmail,
         Guid? WorkoutSetId,
         string WorkoutSetName,
+        int RestSeconds,
         string StartedByUserId,
         string StartedByRole,
         string Status,
@@ -956,6 +1007,7 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
     private sealed record WorkoutSetDetailResponse(
         Guid Id,
         string Name,
+        int RestSeconds,
         IReadOnlyList<WorkoutSetRowResponse> Rows,
         IReadOnlyList<WorkoutSetAssignmentResponse> Assignments,
         DateTimeOffset CreatedAt,

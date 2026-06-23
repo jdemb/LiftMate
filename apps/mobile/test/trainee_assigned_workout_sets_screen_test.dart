@@ -89,14 +89,12 @@ void main() {
       expect(find.text('Seria 2'), findsOneWidget);
       expect(find.byIcon(Icons.add_rounded), findsWidgets);
 
-      await tester.scrollUntilVisible(
-        find.text('ODPOCZYNEK'),
-        300,
-        scrollable: find.byType(Scrollable).last,
+      expect(
+        find.byKey(const ValueKey('live-rest-footer')),
+        findsOneWidget,
       );
-      expect(find.text('ODPOCZYNEK'), findsOneWidget);
-      expect(find.text('Start'), findsOneWidget);
-      expect(find.text('Pauza'), findsOneWidget);
+      expect(find.text('Odpoczynek'), findsOneWidget);
+      expect(find.byTooltip('Start'), findsOneWidget);
       expect(find.text('+15s'), findsOneWidget);
 
       await tester.scrollUntilVisible(

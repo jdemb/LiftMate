@@ -4,7 +4,7 @@ LiftMate is a fresh monorepo for a mobile fitness-coaching app: Flutter/Dart in 
 
 ## Hard Rules
 
-When the user enters a command, run it instead of explaining what it does. Do not edit `context/archive/`; archived change records are immutable. Preserve user changes in the dirty worktree, including generated context files and scaffolded app files, unless the user explicitly asks to revert them.
+When the user enters a command, run it instead of explaining what it does. Do not edit `context/archive/`; archived change records are immutable. Preserve user changes in the dirty worktree, including generated context files and scaffolded app files, unless the user explicitly asks to revert them. Use `apply_patch` for workspace file edits and do not request elevated permissions when the same edit can be completed with `apply_patch`.
 
 ## Project Structure
 

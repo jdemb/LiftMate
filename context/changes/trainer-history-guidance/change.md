@@ -1,9 +1,9 @@
 ---
 change_id: trainer-history-guidance
 title: Podpowiedzi trenera z historii
-status: new
+status: implementing
 created: 2026-06-24
-updated: 2026-06-24
+updated: 2026-06-25
 archived_at: null
 ---
 

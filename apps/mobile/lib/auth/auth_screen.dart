@@ -384,7 +384,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       onContinue: _finishPairing,
                       onBack: _pendingPairRole == UserRole.trainer
                           ? _finishPairing
-                          : () {},
+                          : null,
                       onTrainerCodeChanged: () => setState(() {}),
                     )
                   else
@@ -823,8 +823,8 @@ class _PairingPanel extends StatelessWidget {
     required this.onRetryTrainerCode,
     required this.onClaimTrainerCode,
     required this.onContinue,
-    required this.onBack,
     required this.onTrainerCodeChanged,
+    this.onBack,
     this.trainerInviteCode,
     this.errorMessage,
   });
@@ -835,7 +835,7 @@ class _PairingPanel extends StatelessWidget {
   final Future<void> Function() onRetryTrainerCode;
   final Future<void> Function() onClaimTrainerCode;
   final Future<void> Function() onContinue;
-  final VoidCallback onBack;
+  final VoidCallback? onBack;
   final VoidCallback onTrainerCodeChanged;
   final String? trainerInviteCode;
   final String? errorMessage;
@@ -847,8 +847,10 @@ class _PairingPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _BackButton(onPressed: onBack),
-        const SizedBox(height: 18),
+        if (onBack != null) ...[
+          _BackButton(onPressed: onBack!),
+          const SizedBox(height: 18),
+        ],
         if (isTrainer)
           _TrainerInvitePanel(
             code: trainerInviteCode,

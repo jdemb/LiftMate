@@ -275,8 +275,8 @@ Zmianę można wycofać przez usunięcie callbacków, przycisków i testów scho
 
 #### Manual
 
-- [ ] 2.6 Zalogowany trener może skopiować kod niezależnie od liczby podopiecznych
-- [ ] 2.7 Po odświeżeniu pulpitu akcja kopiuje kod aktualnie widoczny w karcie
-- [ ] 2.8 Kod wklejony poza aplikacją jest identyczny z kodem wyświetlonym
-- [ ] 2.9 Przycisk i karta pozostają czytelne na obsługiwanym telefonie
-- [ ] 2.10 Powtórne szybkie naciśnięcie nie zmienia kodu ani nawigacji
+- [x] 2.6 Zalogowany trener może skopiować kod niezależnie od liczby podopiecznych
+- [x] 2.7 Po odświeżeniu pulpitu akcja kopiuje kod aktualnie widoczny w karcie
+- [x] 2.8 Kod wklejony poza aplikacją jest identyczny z kodem wyświetlonym
+- [x] 2.9 Przycisk i karta pozostają czytelne na obsługiwanym telefonie
+- [x] 2.10 Powtórne szybkie naciśnięcie nie zmienia kodu ani nawigacji

@@ -102,6 +102,7 @@ app.MapAuthEndpoints();
 app.MapProbeEndpoints();
 app.MapPairingEndpoints();
 app.MapSharedSessionEndpoints();
+app.MapPostWorkoutFeedbackEndpoints();
 app.MapWorkoutSetEndpoints();
 app.MapTrainingHistoryEndpoints();
 app.MapHub<SharedSessionHub>("/hubs/shared-sessions").RequireAuthorization();

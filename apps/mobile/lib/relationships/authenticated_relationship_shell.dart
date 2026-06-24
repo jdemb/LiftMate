@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 
 import '../auth/auth_controller.dart';
 import '../auth/auth_models.dart';
+import '../post_workout_feedback/post_workout_feedback_api_client.dart';
+import '../post_workout_feedback/post_workout_feedback_controller.dart';
+import '../post_workout_feedback/post_workout_feedback_screen.dart';
 import '../shared_sessions/shared_session_api_client.dart';
 import '../shared_sessions/shared_session_controller.dart';
 import '../shared_sessions/live_session_screen.dart';
@@ -31,6 +34,7 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
     required this.workoutSetApiClient,
     required this.sharedSessionApiClient,
     required this.trainingHistoryApiClient,
+    required this.postWorkoutFeedbackApiClient,
     required this.sharedSessionRealtimeClientFactory,
     required this.onLogout,
     super.key,
@@ -42,6 +46,7 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
   final WorkoutSetApiClient workoutSetApiClient;
   final SharedSessionApiClient sharedSessionApiClient;
   final TrainingHistoryApiClient trainingHistoryApiClient;
+  final PostWorkoutFeedbackApiClient postWorkoutFeedbackApiClient;
   final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
   final Future<void> Function() onLogout;
 
@@ -57,6 +62,8 @@ class _AuthenticatedRelationshipShellState
   late final SharedSessionController _sharedSessionController;
   late final TrainingHistoryController _selfHistoryController;
   TrainingHistoryController? _trainerHistoryController;
+  PostWorkoutFeedbackController? _feedbackController;
+  _FeedbackOrigin? _feedbackOrigin;
   TrainerTraineeSummary? _selectedTrainee;
   String? _openingTraineeId;
   _TrainerView _trainerView = _TrainerView.dashboard;
@@ -65,6 +72,8 @@ class _AuthenticatedRelationshipShellState
   String? _loadedTraineeActiveSessionForUserId;
   bool _showTraineeLive = false;
   bool _showTraineeHistory = false;
+  bool _showProgressSavedAfterFeedback = false;
+  bool _handlingCompletionSignal = false;
 
   @override
   void initState() {
@@ -83,6 +92,7 @@ class _AuthenticatedRelationshipShellState
       realtimeClientFactory: widget.sharedSessionRealtimeClientFactory,
       onTrainerSessionInvalidated: _relationshipController.reload,
     );
+    _sharedSessionController.addListener(_handleSharedSessionChanged);
     _selfHistoryController = TrainingHistoryController(
       apiClient: widget.trainingHistoryApiClient,
       accessTokenProvider: () => widget.authController.tokens?.accessToken,
@@ -103,6 +113,8 @@ class _AuthenticatedRelationshipShellState
       _loadedTraineeActiveSessionForUserId = null;
       _showTraineeLive = false;
       _showTraineeHistory = false;
+      _showProgressSavedAfterFeedback = false;
+      _disposeFeedbackController();
       _trainerHistoryController?.dispose();
       _trainerHistoryController = null;
       _relationshipController.loadForUser(widget.user);
@@ -113,9 +125,11 @@ class _AuthenticatedRelationshipShellState
   void dispose() {
     _relationshipController.dispose();
     _workoutSetController.dispose();
+    _sharedSessionController.removeListener(_handleSharedSessionChanged);
     _sharedSessionController.dispose();
     _selfHistoryController.dispose();
     _trainerHistoryController?.dispose();
+    _feedbackController?.dispose();
     super.dispose();
   }
 
@@ -145,6 +159,7 @@ class _AuthenticatedRelationshipShellState
               _trainerHistoryController != null) {
             return TrainingHistoryFlow(
               controller: _trainerHistoryController!,
+              viewerRole: UserRole.trainer,
               showLevelOneBack: true,
               onClose: () {
                 _trainerHistoryController?.dispose();
@@ -235,9 +250,19 @@ class _AuthenticatedRelationshipShellState
         }
 
         final traineeTrainer = state.traineeSummary?.trainer;
+        final feedbackController = _feedbackController;
+        if (feedbackController != null) {
+          return PostWorkoutFeedbackScreen(
+            controller: feedbackController,
+            onSaved: _handleFeedbackSaved,
+            onSkipped: _handleFeedbackSkipped,
+          );
+        }
         if (_showTraineeHistory) {
           return TrainingHistoryFlow(
             controller: _selfHistoryController,
+            viewerRole: UserRole.trainee,
+            onAddFeedback: _openFeedbackFromHistory,
             onClose: () => setState(() => _showTraineeHistory = false),
           );
         }
@@ -349,6 +374,10 @@ class _AuthenticatedRelationshipShellState
   void _openSelfHistory() {
     setState(() => _showTraineeHistory = true);
     _selfHistoryController.loadInitial();
+  }
+
+  void _openFeedbackFromHistory(String sessionId) {
+    _openFeedback(sessionId, _FeedbackOrigin.history);
   }
 
   void _openTrainerHistory(TrainerTraineeSummary trainee) {
@@ -480,6 +509,7 @@ class _AuthenticatedRelationshipShellState
     final saved =
         _sharedSessionController.state.completionOutcome ==
         SharedSessionCompletionOutcome.savedForNextSession;
+    _consumeCompletedSessionSignal();
     _sharedSessionController.clearSession();
     await _relationshipController.reload();
     if (!mounted) {
@@ -488,8 +518,90 @@ class _AuthenticatedRelationshipShellState
 
     setState(() => _showTraineeLive = false);
     if (saved) {
+      if (_feedbackController == null) {
+        _showProgressSavedConfirmation();
+      } else {
+        _showProgressSavedAfterFeedback = true;
+      }
+    }
+  }
+
+  void _handleSharedSessionChanged() {
+    if (widget.user.role != UserRole.trainee || _handlingCompletionSignal) {
+      return;
+    }
+    _consumeCompletedSessionSignal();
+  }
+
+  void _consumeCompletedSessionSignal() {
+    _handlingCompletionSignal = true;
+    final sessionId = _sharedSessionController
+        .consumeCompletedSessionForFeedback();
+    _handlingCompletionSignal = false;
+    if (sessionId == null || _feedbackController != null || !mounted) {
+      return;
+    }
+    _openFeedback(sessionId, _FeedbackOrigin.immediate);
+  }
+
+  void _openFeedback(String sessionId, _FeedbackOrigin origin) {
+    _disposeFeedbackController();
+    final historyController = origin == _FeedbackOrigin.history
+        ? _selfHistoryController
+        : null;
+    final controller = PostWorkoutFeedbackController(
+      sessionId: sessionId,
+      apiClient: widget.postWorkoutFeedbackApiClient,
+      accessTokenProvider: () => widget.authController.tokens?.accessToken,
+      onSaved: historyController == null
+          ? null
+          : (_) => historyController.refreshOpenSession(),
+    );
+    setState(() {
+      _feedbackController = controller;
+      _feedbackOrigin = origin;
+      if (origin == _FeedbackOrigin.immediate) {
+        _showTraineeLive = false;
+      }
+    });
+  }
+
+  Future<void> _handleFeedbackSaved() {
+    return _closeFeedback();
+  }
+
+  Future<void> _handleFeedbackSkipped() {
+    return _closeFeedback();
+  }
+
+  Future<void> _closeFeedback() async {
+    final origin = _feedbackOrigin;
+    _disposeFeedbackController();
+    if (origin == _FeedbackOrigin.immediate) {
+      _sharedSessionController.clearSession();
+      await _relationshipController.reload();
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      if (origin == _FeedbackOrigin.immediate) {
+        _showTraineeLive = false;
+        _showTraineeHistory = false;
+      } else if (origin == _FeedbackOrigin.history) {
+        _showTraineeHistory = true;
+      }
+    });
+    if (_showProgressSavedAfterFeedback) {
+      _showProgressSavedAfterFeedback = false;
       _showProgressSavedConfirmation();
     }
+  }
+
+  void _disposeFeedbackController() {
+    _feedbackController?.dispose();
+    _feedbackController = null;
+    _feedbackOrigin = null;
   }
 
   void _showProgressSavedConfirmation() {
@@ -523,3 +635,5 @@ class _AuthenticatedRelationshipShellState
 }
 
 enum _TrainerView { dashboard, sets, builder, assign, live, history }
+
+enum _FeedbackOrigin { immediate, history }

@@ -40,4 +40,6 @@ public sealed class SharedSession
     public DateTimeOffset? ClosedAt { get; set; }
 
     public ICollection<SharedSessionValue> Values { get; } = new List<SharedSessionValue>();
+
+    public PostWorkoutFeedback? Feedback { get; set; }
 }

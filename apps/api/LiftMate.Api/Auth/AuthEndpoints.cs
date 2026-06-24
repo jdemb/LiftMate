@@ -22,26 +22,40 @@ public static class AuthEndpoints
     private static async Task<IResult> Register(
         RegisterRequest request,
         UserManager<ApplicationUser> userManager,
+        RegistrationGate registrationGate,
         TokenService tokenService,
         CancellationToken cancellationToken)
     {
-        var role = request.Role.Trim().ToLowerInvariant();
-        if (!UserRole.All.Contains(role, StringComparer.Ordinal))
+        var gateResult = registrationGate.Evaluate(request.RegistrationInviteCode);
+        if (gateResult == RegistrationGateResult.Unavailable)
         {
-            return Results.BadRequest(new { error = "Invalid role." });
+            return Results.Json(
+                new { error = "Rejestracja jest chwilowo niedostępna. Spróbuj ponownie później." },
+                statusCode: StatusCodes.Status503ServiceUnavailable);
         }
 
-        var email = request.Email.Trim();
+        if (gateResult == RegistrationGateResult.Invalid)
+        {
+            return Results.BadRequest(new { error = "Kod beta jest niepoprawny." });
+        }
+
+        var role = request.Role?.Trim().ToLowerInvariant();
+        if (!UserRole.All.Contains(role, StringComparer.Ordinal))
+        {
+            return Results.BadRequest(new { error = "Wybierz rolę trenera lub podopiecznego." });
+        }
+
+        var email = request.Email?.Trim() ?? string.Empty;
         var existingUser = await userManager.FindByEmailAsync(email);
         if (existingUser is not null)
         {
-            return Results.Conflict(new { error = "Email already registered." });
+            return Results.Conflict(new { error = "Konto z tym adresem e-mail już istnieje." });
         }
 
-        var displayName = request.DisplayName.Trim();
+        var displayName = request.DisplayName?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(displayName))
         {
-            return Results.BadRequest(new { error = "Display name is required." });
+            return Results.BadRequest(new { error = "Podaj imię i nazwisko." });
         }
 
         var user = new ApplicationUser
@@ -49,13 +63,16 @@ public static class AuthEndpoints
             Email = email,
             UserName = email,
             DisplayName = displayName,
-            LiftMateRole = role,
+            LiftMateRole = role!,
         };
 
-        var result = await userManager.CreateAsync(user, request.Password);
+        var result = await userManager.CreateAsync(user, request.Password ?? string.Empty);
         if (!result.Succeeded)
         {
-            return Results.BadRequest(new { errors = result.Errors.Select(error => error.Description) });
+            var message = IdentityErrorTranslator.Translate(result.Errors);
+            return IdentityErrorTranslator.IsDuplicateEmail(result.Errors)
+                ? Results.Conflict(new { error = message })
+                : Results.BadRequest(new { error = message });
         }
 
         var response = await tokenService.CreateTokenPairAsync(user, cancellationToken);

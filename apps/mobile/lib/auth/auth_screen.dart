@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../relationships/authenticated_relationship_shell.dart';
 import '../relationships/relationship_api_client.dart';
@@ -6,8 +7,10 @@ import '../shared_sessions/shared_session_api_client.dart';
 import '../shared_sessions/shared_session_realtime_client.dart';
 import '../training_history/training_history_api_client.dart';
 import '../workout_sets/workout_set_api_client.dart';
+import 'auth_api_client.dart';
 import 'auth_controller.dart';
 import 'auth_models.dart';
+import 'onboarding_state_store.dart';
 
 const _lmBg = Color(0xFF101216);
 const _lmPanel = Color(0xFF191C22);
@@ -16,13 +19,12 @@ const _lmBlueDark = Color(0xFF2F6FD6);
 const _lmText = Color(0xFFF3F4F6);
 const _lmMuted = Color(0xFF969BA3);
 const _lmDim = Color(0xFF686D75);
-const _lmSuccess = Color(0xFF21C97A);
-
 enum _AuthStep { welcome, role, login, signup }
 
 class AuthScreen extends StatefulWidget {
   AuthScreen({
     required this.authController,
+    required this.onboardingStateStore,
     required this.relationshipApiClient,
     required this.workoutSetApiClient,
     SharedSessionApiClient? sharedSessionApiClient,
@@ -38,6 +40,7 @@ class AuthScreen extends StatefulWidget {
            _defaultSharedSessionRealtimeClientFactory;
 
   final AuthController authController;
+  final OnboardingStateStore onboardingStateStore;
   final RelationshipApiClient relationshipApiClient;
   final WorkoutSetApiClient workoutSetApiClient;
   final SharedSessionApiClient sharedSessionApiClient;
@@ -54,6 +57,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _displayNameController = TextEditingController();
+  final _registrationInviteCodeController = TextEditingController();
   final _trainerCodeController = TextEditingController();
 
   _AuthStep _step = _AuthStep.welcome;
@@ -61,13 +65,32 @@ class _AuthScreenState extends State<AuthScreen> {
   UserRole? _pendingPairRole;
   String? _trainerInviteCode;
   String? _pairingError;
+  String? _pendingOnboardingUserId;
   bool _isPairing = false;
+  bool _isRegistering = false;
+  bool _isOnboardingStateReady = false;
+  bool _isLoginPasswordVisible = false;
+  bool _isSignupPasswordVisible = false;
 
   @override
   void initState() {
     super.initState();
     widget.authController.addListener(_onAuthChanged);
-    widget.authController.initialize();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    final pendingUserId = await widget.onboardingStateStore
+        .readPendingTraineeUserId();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _pendingOnboardingUserId = pendingUserId;
+      _isOnboardingStateReady = true;
+    });
+    await widget.authController.initialize();
   }
 
   @override
@@ -76,13 +99,21 @@ class _AuthScreenState extends State<AuthScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _displayNameController.dispose();
+    _registrationInviteCodeController.dispose();
     _trainerCodeController.dispose();
     super.dispose();
   }
 
   void _onAuthChanged() {
     if (mounted) {
-      setState(() {});
+      final user = widget.authController.state.user;
+      setState(() {
+        if (user != null &&
+            user.role == UserRole.trainee &&
+            user.id == _pendingOnboardingUserId) {
+          _pendingPairRole = UserRole.trainee;
+        }
+      });
     }
   }
 
@@ -99,28 +130,64 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _register() async {
+    if (_isRegistering) {
+      return;
+    }
+
     if (!_signupFormKey.currentState!.validate()) {
       return;
     }
 
     final role = _selectedRole;
-    final result = await widget.authController.register(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-      role: role,
-      displayName: _displayNameController.text.trim(),
-    );
+    setState(() {
+      _isRegistering = true;
+      _pendingPairRole = role;
+      _pairingError = null;
+    });
 
-    if (result.isSuccess) {
+    try {
+      final result = await widget.authController.register(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        role: role,
+        displayName: _displayNameController.text.trim(),
+        registrationInviteCode: _registrationInviteCodeController.text,
+      );
+      if (!mounted) {
+        return;
+      }
+
+      if (!result.isSuccess || result.data == null) {
+        setState(() {
+          _pendingPairRole = null;
+        });
+        return;
+      }
+
+      if (role == UserRole.trainee) {
+        final userId = result.data!.user.id;
+        await widget.onboardingStateStore.savePendingTraineeUserId(userId);
+        if (!mounted) {
+          return;
+        }
+        _pendingOnboardingUserId = userId;
+      }
+
       setState(() {
-        _pendingPairRole = role;
         _pairingError = null;
         _trainerInviteCode = null;
         _trainerCodeController.clear();
+        _registrationInviteCodeController.clear();
       });
 
       if (role == UserRole.trainer) {
         await _generateTrainerCode();
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRegistering = false;
+        });
       }
     }
   }
@@ -147,10 +214,14 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _claimTrainerCode() async {
-    final code = _trainerCodeController.text.trim();
-    if (code.isEmpty) {
+    if (_isPairing) {
+      return;
+    }
+
+    final code = _trainerCodeController.text;
+    if (code.length != 6) {
       setState(() {
-        _pairingError = 'Wpisz kod trenera.';
+        _pairingError = 'Wpisz pełny, 6-znakowy kod trenera.';
       });
       return;
     }
@@ -167,14 +238,40 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
 
+    if (result.isSuccess) {
+      try {
+        await widget.onboardingStateStore.clearPendingTraineeUserId();
+      } catch (_) {
+        if (mounted) {
+          setState(() {
+            _isPairing = false;
+            _pairingError =
+                'Nie udało się zakończyć konfiguracji. Spróbuj ponownie.';
+          });
+        }
+        return;
+      }
+    }
+    if (!mounted) {
+      return;
+    }
+
     setState(() {
       _isPairing = false;
       if (result.isSuccess) {
         _pendingPairRole = null;
+        _pendingOnboardingUserId = null;
       } else {
-        _pairingError = result.message;
+        _pairingError = _pairingMessage(result);
       }
     });
+  }
+
+  String? _pairingMessage(AuthApiResult<AuthUser> result) {
+    if (result.statusCode == 404) {
+      return 'Nie znaleziono trenera dla podanego kodu. Sprawdź kod i spróbuj ponownie.';
+    }
+    return result.message;
   }
 
   Future<void> _finishPairing() async {
@@ -195,7 +292,9 @@ class _AuthScreenState extends State<AuthScreen> {
       _trainerInviteCode = null;
       _pairingError = null;
       _isPairing = false;
+      _isRegistering = false;
       _trainerCodeController.clear();
+      _registrationInviteCodeController.clear();
     });
   }
 
@@ -230,6 +329,12 @@ class _AuthScreenState extends State<AuthScreen> {
         : null;
     final isAuthenticated =
         state.status == AuthControllerStatus.authenticated && user != null;
+
+    if (!_isOnboardingStateReady) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     if (isAuthenticated && _pendingPairRole == null) {
       return Scaffold(
@@ -277,19 +382,26 @@ class _AuthScreenState extends State<AuthScreen> {
                       onRetryTrainerCode: _generateTrainerCode,
                       onClaimTrainerCode: _claimTrainerCode,
                       onContinue: _finishPairing,
+                      onBack: _pendingPairRole == UserRole.trainer
+                          ? _finishPairing
+                          : () {},
                       onTrainerCodeChanged: () => setState(() {}),
                     )
                   else
                     _OnboardingPanel(
                       step: _step,
                       selectedRole: _selectedRole,
-                      isLoading: isLoading,
+                      isLoading: isLoading || _isRegistering,
                       errorMessage: errorMessage,
                       loginFormKey: _loginFormKey,
                       signupFormKey: _signupFormKey,
                       emailController: _emailController,
                       passwordController: _passwordController,
                       displayNameController: _displayNameController,
+                      registrationInviteCodeController:
+                          _registrationInviteCodeController,
+                      isLoginPasswordVisible: _isLoginPasswordVisible,
+                      isSignupPasswordVisible: _isSignupPasswordVisible,
                       onShowLogin: () =>
                           setState(() => _step = _AuthStep.login),
                       onShowRoleSelection: () =>
@@ -299,6 +411,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       onContinueRole: _continueToSignup,
                       onLogin: _login,
                       onRegister: _register,
+                      onToggleLoginPassword: () => setState(() {
+                        _isLoginPasswordVisible = !_isLoginPasswordVisible;
+                      }),
+                      onToggleSignupPassword: () => setState(() {
+                        _isSignupPasswordVisible = !_isSignupPasswordVisible;
+                      }),
                     ),
                 ],
               ),
@@ -345,6 +463,9 @@ class _OnboardingPanel extends StatelessWidget {
     required this.emailController,
     required this.passwordController,
     required this.displayNameController,
+    required this.registrationInviteCodeController,
+    required this.isLoginPasswordVisible,
+    required this.isSignupPasswordVisible,
     required this.onShowLogin,
     required this.onShowRoleSelection,
     required this.onBack,
@@ -352,6 +473,8 @@ class _OnboardingPanel extends StatelessWidget {
     required this.onContinueRole,
     required this.onLogin,
     required this.onRegister,
+    required this.onToggleLoginPassword,
+    required this.onToggleSignupPassword,
     this.errorMessage,
   });
 
@@ -363,6 +486,9 @@ class _OnboardingPanel extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final TextEditingController displayNameController;
+  final TextEditingController registrationInviteCodeController;
+  final bool isLoginPasswordVisible;
+  final bool isSignupPasswordVisible;
   final VoidCallback onShowLogin;
   final VoidCallback onShowRoleSelection;
   final VoidCallback onBack;
@@ -370,6 +496,8 @@ class _OnboardingPanel extends StatelessWidget {
   final VoidCallback onContinueRole;
   final Future<void> Function() onLogin;
   final Future<void> Function() onRegister;
+  final VoidCallback onToggleLoginPassword;
+  final VoidCallback onToggleSignupPassword;
   final String? errorMessage;
 
   @override
@@ -391,9 +519,11 @@ class _OnboardingPanel extends StatelessWidget {
         isLoading: isLoading,
         emailController: emailController,
         passwordController: passwordController,
+        isPasswordVisible: isLoginPasswordVisible,
         errorMessage: errorMessage,
         onBack: onBack,
         onLogin: onLogin,
+        onTogglePassword: onToggleLoginPassword,
       ),
       _AuthStep.signup => _SignupForm(
         formKey: signupFormKey,
@@ -402,9 +532,12 @@ class _OnboardingPanel extends StatelessWidget {
         emailController: emailController,
         passwordController: passwordController,
         displayNameController: displayNameController,
+        registrationInviteCodeController: registrationInviteCodeController,
+        isPasswordVisible: isSignupPasswordVisible,
         errorMessage: errorMessage,
         onBack: onBack,
         onRegister: onRegister,
+        onTogglePassword: onToggleSignupPassword,
       ),
     };
   }
@@ -432,14 +565,18 @@ class _WelcomeStep extends StatelessWidget {
             children: [
               _LiftMateLogo(size: 60),
               SizedBox(width: 15),
-              Text(
-                'LiftMate',
-                style: TextStyle(
-                  fontFamily: 'Space Grotesk',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 31,
-                  letterSpacing: -1,
-                  color: _lmText,
+              Expanded(
+                child: Text(
+                  'LiftMate',
+                  maxLines: 1,
+                  overflow: TextOverflow.fade,
+                  style: TextStyle(
+                    fontFamily: 'Space Grotesk',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 31,
+                    letterSpacing: -1,
+                    color: _lmText,
+                  ),
                 ),
               ),
             ],
@@ -526,8 +663,10 @@ class _LoginForm extends StatelessWidget {
     required this.isLoading,
     required this.emailController,
     required this.passwordController,
+    required this.isPasswordVisible,
     required this.onBack,
     required this.onLogin,
+    required this.onTogglePassword,
     this.errorMessage,
   });
 
@@ -535,8 +674,10 @@ class _LoginForm extends StatelessWidget {
   final bool isLoading;
   final TextEditingController emailController;
   final TextEditingController passwordController;
+  final bool isPasswordVisible;
   final VoidCallback onBack;
   final Future<void> Function() onLogin;
+  final VoidCallback onTogglePassword;
   final String? errorMessage;
 
   @override
@@ -560,8 +701,10 @@ class _LoginForm extends StatelessWidget {
           _DesignedField(
             label: 'Hasło',
             controller: passwordController,
-            obscureText: true,
-            suffix: 'Pokaż',
+            obscureText: !isPasswordVisible,
+            suffix: isPasswordVisible ? 'Ukryj' : 'Pokaż',
+            suffixKey: const ValueKey('toggle-password-login'),
+            onSuffixPressed: onTogglePassword,
           ),
           _ErrorText(message: errorMessage),
           const SizedBox(height: 24),
@@ -583,8 +726,11 @@ class _SignupForm extends StatelessWidget {
     required this.emailController,
     required this.passwordController,
     required this.displayNameController,
+    required this.registrationInviteCodeController,
+    required this.isPasswordVisible,
     required this.onBack,
     required this.onRegister,
+    required this.onTogglePassword,
     this.errorMessage,
   });
 
@@ -594,8 +740,11 @@ class _SignupForm extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final TextEditingController displayNameController;
+  final TextEditingController registrationInviteCodeController;
+  final bool isPasswordVisible;
   final VoidCallback onBack;
   final Future<void> Function() onRegister;
+  final VoidCallback onTogglePassword;
   final String? errorMessage;
 
   @override
@@ -644,8 +793,15 @@ class _SignupForm extends StatelessWidget {
           _DesignedField(
             label: 'Hasło',
             controller: passwordController,
-            obscureText: true,
-            suffix: 'Pokaż',
+            obscureText: !isPasswordVisible,
+            suffix: isPasswordVisible ? 'Ukryj' : 'Pokaż',
+            suffixKey: const ValueKey('toggle-password-signup'),
+            onSuffixPressed: onTogglePassword,
+          ),
+          const SizedBox(height: 14),
+          _DesignedField(
+            label: 'Kod beta',
+            controller: registrationInviteCodeController,
           ),
           _ErrorText(message: errorMessage),
           const SizedBox(height: 24),
@@ -667,6 +823,7 @@ class _PairingPanel extends StatelessWidget {
     required this.onRetryTrainerCode,
     required this.onClaimTrainerCode,
     required this.onContinue,
+    required this.onBack,
     required this.onTrainerCodeChanged,
     this.trainerInviteCode,
     this.errorMessage,
@@ -678,6 +835,7 @@ class _PairingPanel extends StatelessWidget {
   final Future<void> Function() onRetryTrainerCode;
   final Future<void> Function() onClaimTrainerCode;
   final Future<void> Function() onContinue;
+  final VoidCallback onBack;
   final VoidCallback onTrainerCodeChanged;
   final String? trainerInviteCode;
   final String? errorMessage;
@@ -689,7 +847,7 @@ class _PairingPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _BackButton(onPressed: onContinue),
+        _BackButton(onPressed: onBack),
         const SizedBox(height: 18),
         if (isTrainer)
           _TrainerInvitePanel(
@@ -783,10 +941,6 @@ class _TraineePairPanel extends StatelessWidget {
         const SizedBox(height: 28),
         _TrainerCodeInput(controller: controller, onChanged: onChanged),
         const SizedBox(height: 18),
-        _SuccessHint(
-          visible: controller.text.trim().length >= 6,
-          text: 'Znaleziono kod trenera',
-        ),
         _ErrorText(message: errorMessage),
         const SizedBox(height: 24),
         _PrimaryActionButton(
@@ -998,6 +1152,8 @@ class _DesignedField extends StatelessWidget {
     this.textInputAction,
     this.obscureText = false,
     this.suffix,
+    this.suffixKey,
+    this.onSuffixPressed,
   });
 
   final String label;
@@ -1006,6 +1162,8 @@ class _DesignedField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final bool obscureText;
   final String? suffix;
+  final Key? suffixKey;
+  final VoidCallback? onSuffixPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -1025,12 +1183,13 @@ class _DesignedField extends StatelessWidget {
           key: ValueKey('field-$label'),
           controller: controller,
           decoration: InputDecoration(
-            suffixText: suffix,
-            suffixStyle: const TextStyle(
-              color: _lmBlue,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0,
-            ),
+            suffixIcon: suffix == null
+                ? null
+                : TextButton(
+                    key: suffixKey,
+                    onPressed: onSuffixPressed,
+                    child: Text(suffix!),
+                  ),
           ),
           keyboardType: keyboardType,
           obscureText: obscureText,
@@ -1050,7 +1209,7 @@ class _TrainerCodeInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final normalized = controller.text.trim().toUpperCase();
+    final normalized = controller.text;
     final chars = List<String>.generate(
       6,
       (index) => index < normalized.length ? normalized[index] : '',
@@ -1090,6 +1249,13 @@ class _TrainerCodeInput extends StatelessWidget {
                   style: const TextStyle(color: Colors.transparent),
                   textCapitalization: TextCapitalization.characters,
                   textInputAction: TextInputAction.done,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[A-Za-z0-9]'),
+                    ),
+                    _UpperCaseTextFormatter(),
+                    LengthLimitingTextInputFormatter(6),
+                  ],
                   onChanged: (_) => onChanged(),
                 ),
               ),
@@ -1098,6 +1264,16 @@ class _TrainerCodeInput extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(text: newValue.text.toUpperCase());
   }
 }
 
@@ -1319,35 +1495,6 @@ class _BackButton extends StatelessWidget {
         onPressed: onPressed,
         icon: const Icon(Icons.chevron_left, size: 30, color: _lmMuted),
       ),
-    );
-  }
-}
-
-class _SuccessHint extends StatelessWidget {
-  const _SuccessHint({required this.visible, required this.text});
-
-  final bool visible;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!visible) {
-      return const SizedBox.shrink();
-    }
-
-    return Row(
-      children: [
-        const Icon(Icons.check, color: _lmSuccess, size: 18),
-        const SizedBox(width: 8),
-        Text(
-          text,
-          style: const TextStyle(
-            color: Color(0xFF7EE0AD),
-            fontWeight: FontWeight.w600,
-            fontSize: 13.5,
-          ),
-        ),
-      ],
     );
   }
 }

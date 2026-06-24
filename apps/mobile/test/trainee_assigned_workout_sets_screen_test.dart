@@ -13,6 +13,8 @@ import 'package:liftmate/shared_sessions/shared_session_api_client.dart';
 import 'package:liftmate/shared_sessions/shared_session_realtime_client.dart';
 import 'package:liftmate/workout_sets/workout_set_api_client.dart';
 
+import 'fake_onboarding_state_store.dart';
+
 void main() {
   group('Trainee assigned workout sets screen', () {
     testWidgets('linked trainee sees assigned sets and ordered row preview', (tester) async {
@@ -216,6 +218,7 @@ Widget _testApp({
           ),
         ),
       ),
+      onboardingStateStore: FakeOnboardingStateStore(),
       relationshipApiClient: RelationshipApiClient(
         baseUrl: 'https://api.example.test',
         httpClient: httpClient,

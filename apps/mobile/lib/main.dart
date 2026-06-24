@@ -4,6 +4,7 @@ import 'app_config.dart';
 import 'auth/auth_api_client.dart';
 import 'auth/auth_controller.dart';
 import 'auth/auth_screen.dart';
+import 'auth/onboarding_state_store.dart';
 import 'auth/token_store.dart';
 import 'relationships/relationship_api_client.dart';
 import 'shared_sessions/shared_session_api_client.dart';
@@ -32,6 +33,7 @@ Future<void> main() async {
         authApiClient: authApiClient,
         tokenStore: SecureTokenStore(),
       ),
+      onboardingStateStore: SecureOnboardingStateStore(),
       relationshipApiClient: relationshipApiClient,
       workoutSetApiClient: workoutSetApiClient,
       sharedSessionApiClient: sharedSessionApiClient,
@@ -46,6 +48,7 @@ Future<void> main() async {
 class MainApp extends StatelessWidget {
   const MainApp({
     required this.authController,
+    required this.onboardingStateStore,
     required this.relationshipApiClient,
     required this.workoutSetApiClient,
     required this.sharedSessionApiClient,
@@ -55,6 +58,7 @@ class MainApp extends StatelessWidget {
   });
 
   final AuthController authController;
+  final OnboardingStateStore onboardingStateStore;
   final RelationshipApiClient relationshipApiClient;
   final WorkoutSetApiClient workoutSetApiClient;
   final SharedSessionApiClient sharedSessionApiClient;
@@ -67,6 +71,7 @@ class MainApp extends StatelessWidget {
       theme: _liftMateTheme(),
       home: AuthScreen(
         authController: authController,
+        onboardingStateStore: onboardingStateStore,
         relationshipApiClient: relationshipApiClient,
         workoutSetApiClient: workoutSetApiClient,
         sharedSessionApiClient: sharedSessionApiClient,

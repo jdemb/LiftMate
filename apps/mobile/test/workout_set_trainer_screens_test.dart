@@ -13,6 +13,8 @@ import 'package:liftmate/relationships/relationship_models.dart';
 import 'package:liftmate/relationships/trainer_trainee_detail_screen.dart';
 import 'package:liftmate/workout_sets/workout_set_api_client.dart';
 
+import 'fake_onboarding_state_store.dart';
+
 void main() {
   group('Workout set trainer screens', () {
     testWidgets('trainer opens set list and creates a set from draft exercise', (tester) async {
@@ -395,6 +397,7 @@ Widget _testApp({required http.Client httpClient}) {
           ),
         ),
       ),
+      onboardingStateStore: FakeOnboardingStateStore(),
       relationshipApiClient: RelationshipApiClient(
         baseUrl: 'https://api.example.test',
         httpClient: httpClient,

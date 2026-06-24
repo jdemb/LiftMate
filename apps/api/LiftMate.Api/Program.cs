@@ -32,6 +32,7 @@ builder.Services
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddSingleton<RegistrationGate>();
 builder.Services.AddScoped<SharedSessionBroadcaster>();
 builder.Services.AddScoped<WorkoutProgressProjector>();
 builder.Services.AddSignalR();

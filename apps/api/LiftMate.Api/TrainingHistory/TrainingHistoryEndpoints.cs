@@ -107,6 +107,7 @@ public static class TrainingHistoryEndpoints
     {
         var session = await dbContext.SharedSessions
             .AsNoTracking()
+            .Include(item => item.Feedback)
             .Include(item => item.Values)
             .SingleOrDefaultAsync(item => item.Id == sessionId, cancellationToken);
         if (session is null || session.Status != SharedSessionStatus.Completed || session.ClosedAt is null)
@@ -132,6 +133,7 @@ public static class TrainingHistoryEndpoints
             DurationSeconds(session),
             exercises.Count,
             session.Values.Count,
+            ToFeedback(session.Feedback),
             exercises));
     }
 
@@ -311,6 +313,16 @@ public static class TrainingHistoryEndpoints
                         value.Seconds)).ToArray());
             })
             .ToArray();
+    }
+
+    private static TrainingHistoryFeedbackResponse? ToFeedback(PostWorkoutFeedback? feedback)
+    {
+        return feedback is null
+            ? null
+            : new TrainingHistoryFeedbackResponse(
+                feedback.WellbeingRating,
+                feedback.Comment,
+                feedback.SubmittedAt);
     }
 
     private static int ExerciseCount(IEnumerable<SharedSessionValue> values)

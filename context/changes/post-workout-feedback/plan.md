@@ -617,8 +617,8 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Automated
 
-- [x] 1.1 `rg -n "Jak się czujesz po treningu|Wyślij feedback|Dodaj feedback|Feedback podopiecznego|Pominąć feedback" apps/mobile/design/LiftMate.dc.html` znajduje wszystkie zakontraktowane stany.
-- [x] 1.2 Design zachowuje poprawną składnię i otwiera się bez błędów skryptu w przeglądarce.
+- [x] 1.1 `rg -n "Jak się czujesz po treningu|Wyślij feedback|Dodaj feedback|Feedback podopiecznego|Pominąć feedback" apps/mobile/design/LiftMate.dc.html` znajduje wszystkie zakontraktowane stany. — 225fcf8
+- [x] 1.2 Design zachowuje poprawną składnię i otwiera się bez błędów skryptu w przeglądarce. — 225fcf8
 
 #### Manual
 
@@ -629,20 +629,20 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Automated
 
-- [ ] 2.1 Model SQLite tworzy relację jeden-do-jednego i constraint oceny.
-- [ ] 2.2 Idempotentny skrypt migracji SQL Server zawiera addytywną tabelę oraz wymagane ograniczenia.
-- [ ] 2.3 Podopieczny tworzy feedback dla zakończonej sesji samodzielnej i wspólnej.
-- [ ] 2.4 Trener, obcy podopieczny i nieuwierzytelniony użytkownik nie mogą utworzyć feedbacku.
-- [ ] 2.5 Aktywna, anulowana i nieistniejąca sesja są odrzucane właściwym statusem.
-- [ ] 2.6 Oceny `0` i `6` oraz komentarz ponad 1000 znaków są odrzucane.
-- [ ] 2.7 Identyczny replay zwraca istniejący wpis bez zmiany czasu; inna treść zwraca `409`.
-- [ ] 2.8 Równoległe żądania nie tworzą dwóch wpisów i nie zmieniają pierwszego.
-- [ ] 2.9 Wyścig unikalności po `DbUpdateException` czyści EF tracker i ponownie odczytuje istniejący wpis bez błędu śledzenia.
-- [ ] 2.10 Szczegół historii zwraca właściwy feedback lub `null`.
-- [ ] 2.11 Aktualny trener ma dostęp, a były i obcy trener nie.
-- [ ] 2.12 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~PostWorkoutFeedback"` przechodzi.
-- [ ] 2.13 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainingHistory"` przechodzi.
-- [ ] 2.14 `dotnet build LiftMate.slnx --no-restore` przechodzi.
+- [x] 2.1 Model SQLite tworzy relację jeden-do-jednego i constraint oceny.
+- [x] 2.2 Idempotentny skrypt migracji SQL Server zawiera addytywną tabelę oraz wymagane ograniczenia.
+- [x] 2.3 Podopieczny tworzy feedback dla zakończonej sesji samodzielnej i wspólnej.
+- [x] 2.4 Trener, obcy podopieczny i nieuwierzytelniony użytkownik nie mogą utworzyć feedbacku.
+- [x] 2.5 Aktywna, anulowana i nieistniejąca sesja są odrzucane właściwym statusem.
+- [x] 2.6 Oceny `0` i `6` oraz komentarz ponad 1000 znaków są odrzucane.
+- [x] 2.7 Identyczny replay zwraca istniejący wpis bez zmiany czasu; inna treść zwraca `409`.
+- [x] 2.8 Równoległe żądania nie tworzą dwóch wpisów i nie zmieniają pierwszego.
+- [x] 2.9 Wyścig unikalności po `DbUpdateException` czyści EF tracker i ponownie odczytuje istniejący wpis bez błędu śledzenia.
+- [x] 2.10 Szczegół historii zwraca właściwy feedback lub `null`.
+- [x] 2.11 Aktualny trener ma dostęp, a były i obcy trener nie.
+- [x] 2.12 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~PostWorkoutFeedback"` przechodzi.
+- [x] 2.13 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainingHistory"` przechodzi.
+- [x] 2.14 `dotnet build LiftMate.slnx --no-restore` przechodzi.
 
 #### Manual
 

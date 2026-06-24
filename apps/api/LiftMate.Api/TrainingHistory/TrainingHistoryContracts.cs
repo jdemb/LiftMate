@@ -21,7 +21,13 @@ public sealed record TrainingHistorySessionResponse(
     int DurationSeconds,
     int ExerciseCount,
     int SeriesCount,
+    TrainingHistoryFeedbackResponse? Feedback,
     IReadOnlyList<TrainingHistoryExerciseResponse> Exercises);
+
+public sealed record TrainingHistoryFeedbackResponse(
+    int WellbeingRating,
+    string? Comment,
+    DateTimeOffset SubmittedAt);
 
 public sealed record TrainingHistoryExerciseResponse(
     Guid? ExerciseId,

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -52,6 +53,143 @@ void main() {
         expect(find.text('Zaproś podopiecznego'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'trainer copies the dashboard invite code and sees confirmation',
+      (tester) async {
+        MethodCall? clipboardCall;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+              if (call.method == 'Clipboard.setData') {
+                clipboardCall = call;
+              }
+              return null;
+            });
+        addTearDown(() {
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+              .setMockMethodCallHandler(SystemChannels.platform, null);
+        });
+
+        await tester.pumpWidget(
+          _testApp(
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(_userResponse(role: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainer/relationship') {
+                return http.Response(
+                  '{"inviteCode":"7F2K9D","trainees":[]}',
+                  200,
+                );
+              }
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
+
+        await _startAuthenticated(tester);
+        await tester.tap(
+          find.byKey(const ValueKey('copy-trainer-invite-code-dashboard')),
+        );
+        await tester.pump();
+
+        expect(clipboardCall?.method, 'Clipboard.setData');
+        expect(clipboardCall?.arguments, {'text': '7F2K9D'});
+        expect(find.text('Kod zaproszenia skopiowany.'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'dashboard copy stays disabled until an invite code is loaded',
+      (tester) async {
+        final relationshipCompleter = Completer<http.Response>();
+        var clipboardCalls = 0;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+              if (call.method == 'Clipboard.setData') {
+                clipboardCalls += 1;
+              }
+              return null;
+            });
+        addTearDown(() {
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+              .setMockMethodCallHandler(SystemChannels.platform, null);
+        });
+
+        await tester.pumpWidget(
+          _testApp(
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(_userResponse(role: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainer/relationship') {
+                return relationshipCompleter.future;
+              }
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        final copyButton = find.byKey(
+          const ValueKey('copy-trainer-invite-code-dashboard'),
+        );
+        expect(copyButton, findsOneWidget);
+        expect(tester.widget<TextButton>(copyButton).onPressed, isNull);
+        await tester.tap(copyButton);
+        await tester.pump();
+        expect(clipboardCalls, 0);
+
+        relationshipCompleter.complete(
+          http.Response('{"inviteCode":"7F2K9D","trainees":[]}', 200),
+        );
+        await tester.pumpAndSettle();
+      },
+    );
+
+    testWidgets('dashboard invite card fits the design phone width', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(412, 892);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(
+                jsonEncode(_userResponse(role: 'trainer')),
+                200,
+              );
+            }
+            if (request.url.path == '/trainer/relationship') {
+              return http.Response(
+                '{"inviteCode":"7F2K9D","trainees":[]}',
+                200,
+              );
+            }
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+
+      expect(
+        find.byKey(const ValueKey('copy-trainer-invite-code-dashboard')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
 
     testWidgets('trainer with trainees sees list entries and opens detail', (
       tester,

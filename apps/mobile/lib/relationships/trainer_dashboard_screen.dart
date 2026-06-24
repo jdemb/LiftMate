@@ -11,26 +11,29 @@ class TrainerDashboardScreen extends StatelessWidget {
     required this.state,
     required this.onOpenTrainee,
     required this.onOpenWorkoutSets,
-required this.onReload,
-required this.onLogout,
-this.openingTraineeId,
-super.key,
-});
+    required this.onCopyInviteCode,
+    required this.onReload,
+    required this.onLogout,
+    this.openingTraineeId,
+    super.key,
+  });
 
   final AuthUser user;
   final RelationshipControllerState state;
   final ValueChanged<TrainerTraineeSummary> onOpenTrainee;
-final VoidCallback onOpenWorkoutSets;
-final Future<void> Function() onReload;
-final Future<void> Function() onLogout;
-final String? openingTraineeId;
+  final VoidCallback onOpenWorkoutSets;
+  final Future<void> Function(String code) onCopyInviteCode;
+  final Future<void> Function() onReload;
+  final Future<void> Function() onLogout;
+  final String? openingTraineeId;
 
   @override
   Widget build(BuildContext context) {
     final summary = state.trainerSummary;
     final trainees = summary?.trainees ?? const <TrainerTraineeSummary>[];
-    final activeCount =
-        trainees.where((trainee) => trainee.activeSession != null).length;
+    final activeCount = trainees
+        .where((trainee) => trainee.activeSession != null)
+        .length;
 
     return Column(
       children: [
@@ -61,21 +64,32 @@ final String? openingTraineeId;
                   ],
                 ),
                 const SizedBox(height: 18),
-                _InviteCodeCard(code: summary?.inviteCode, isLoading: state.status == RelationshipControllerStatus.loading),
+                _InviteCodeCard(
+                  code: summary?.inviteCode,
+                  isLoading:
+                      state.status == RelationshipControllerStatus.loading,
+                  onCopy: onCopyInviteCode,
+                ),
                 const SizedBox(height: 24),
                 const RelationshipSectionLabel('Podopieczni'),
                 const SizedBox(height: 12),
-                if (state.status == RelationshipControllerStatus.loading && summary == null)
+                if (state.status == RelationshipControllerStatus.loading &&
+                    summary == null)
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 32),
                       child: CircularProgressIndicator(),
                     ),
                   )
-                else if (state.status == RelationshipControllerStatus.error && summary == null)
-                  _ErrorState(message: state.message ?? 'Nie udało się pobrać relacji.')
+                else if (state.status == RelationshipControllerStatus.error &&
+                    summary == null)
+                  _ErrorState(
+                    message: state.message ?? 'Nie udało się pobrać relacji.',
+                  )
                 else if (state.status == RelationshipControllerStatus.error)
-                  _ErrorState(message: state.message ?? 'Nie udało się pobrać relacji.')
+                  _ErrorState(
+                    message: state.message ?? 'Nie udało się pobrać relacji.',
+                  )
                 else if (trainees.isEmpty)
                   const _TrainerEmptyState()
                 else
@@ -120,10 +134,7 @@ final String? openingTraineeId;
 }
 
 class _TrainerHeader extends StatelessWidget {
-  const _TrainerHeader({
-    required this.user,
-    required this.onLogout,
-  });
+  const _TrainerHeader({required this.user, required this.onLogout});
 
   final AuthUser user;
   final Future<void> Function() onLogout;
@@ -136,7 +147,10 @@ class _TrainerHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Cześć,', style: TextStyle(color: lmMuted, fontSize: 14)),
+              const Text(
+                'Cześć,',
+                style: TextStyle(color: lmMuted, fontSize: 14),
+              ),
               Text(
                 user.displayName,
                 maxLines: 1,
@@ -201,50 +215,88 @@ class _InviteCodeCard extends StatelessWidget {
   const _InviteCodeCard({
     required this.code,
     required this.isLoading,
+    required this.onCopy,
   });
 
   final String? code;
   final bool isLoading;
+  final Future<void> Function(String code) onCopy;
 
   @override
   Widget build(BuildContext context) {
+    final canCopy = code != null && code!.trim().isNotEmpty;
+
     return RelationshipCard(
       borderColor: lmBlue.withValues(alpha: 0.25),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: lmBlue.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.qr_code_2_rounded, color: lmBlueSoft),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Twój kod zaproszenia',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: lmBlue.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  isLoading && code == null ? 'Ładowanie kodu' : (code ?? 'Niedostępny'),
-                  style: const TextStyle(color: lmBlueSoft, fontSize: 13),
+                child: const Icon(Icons.qr_code_2_rounded, color: lmBlueSoft),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Twój kod zaproszenia',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isLoading && code == null
+                          ? 'Ładowanie kodu'
+                          : (code ?? 'Niedostępny'),
+                      style: const TextStyle(color: lmBlueSoft, fontSize: 13),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Text(
+                code ?? '------',
+                style: const TextStyle(
+                  fontFamily: 'Space Grotesk',
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
           ),
-          Text(
-            code ?? '------',
-            style: const TextStyle(
-              fontFamily: 'Space Grotesk',
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Tooltip(
+              message: 'Kopiuj kod zaproszenia',
+              child: TextButton.icon(
+                key: const ValueKey('copy-trainer-invite-code-dashboard'),
+                onPressed: canCopy ? () => onCopy(code!) : null,
+                icon: const Icon(Icons.copy_rounded, size: 17),
+                label: const Text('Kopiuj kod'),
+                style: TextButton.styleFrom(
+                  foregroundColor: lmBlueSoft,
+                  backgroundColor: lmBlue.withValues(alpha: 0.16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: const StadiumBorder(),
+                ),
+              ),
             ),
           ),
         ],
@@ -289,17 +341,17 @@ class _TrainerEmptyState extends StatelessWidget {
 }
 
 class _TraineeListItem extends StatelessWidget {
-const _TraineeListItem({
-required this.trainee,
-required this.isOpening,
-required this.isDisabled,
-required this.onTap,
-});
+  const _TraineeListItem({
+    required this.trainee,
+    required this.isOpening,
+    required this.isDisabled,
+    required this.onTap,
+  });
 
-final TrainerTraineeSummary trainee;
-final bool isOpening;
-final bool isDisabled;
-final VoidCallback onTap;
+  final TrainerTraineeSummary trainee;
+  final bool isOpening;
+  final bool isDisabled;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -307,10 +359,10 @@ final VoidCallback onTap;
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: Colors.transparent,
-child: InkWell(
-borderRadius: BorderRadius.circular(16),
-onTap: isDisabled ? null : onTap,
-child: RelationshipCard(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: isDisabled ? null : onTap,
+          child: RelationshipCard(
             child: Row(
               children: [
                 RelationshipAvatar(label: trainee.displayName),
@@ -342,13 +394,13 @@ child: RelationshipCard(
                     ],
                   ),
                 ),
-if (isOpening)
-const SizedBox.square(
-dimension: 22,
-child: CircularProgressIndicator(strokeWidth: 2),
-)
-else
-const Icon(Icons.chevron_right_rounded, color: lmMutedDark),
+                if (isOpening)
+                  const SizedBox.square(
+                    dimension: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  const Icon(Icons.chevron_right_rounded, color: lmMutedDark),
               ],
             ),
           ),

@@ -28,6 +28,7 @@ void main() {
             'password': 'Password123!',
             'role': 'trainer',
             'displayName': 'Test Trainer',
+            'registrationInviteCode': '  Beta-Code  ',
           });
 
           return http.Response(
@@ -43,6 +44,7 @@ void main() {
         password: 'Password123!',
         role: UserRole.trainer,
         displayName: 'Test Trainer',
+        registrationInviteCode: '  Beta-Code  ',
       );
 
       expect(result.status, AuthApiStatus.success);
@@ -250,7 +252,7 @@ void main() {
       final client = AuthApiClient(
         baseUrl: 'https://api.example.test',
         httpClient: MockClient((request) async {
-          return http.Response('{"message":"Registration failed."}', 400);
+          return http.Response('{"error":"Kod beta jest niepoprawny."}', 400);
         }),
       );
 
@@ -259,12 +261,47 @@ void main() {
         password: 'Password123!',
         role: UserRole.trainer,
         displayName: 'Test Trainer',
+        registrationInviteCode: 'Beta-Code',
       );
 
       expect(result.status, AuthApiStatus.badRequest);
       expect(result.statusCode, 400);
-      expect(result.message, contains('Registration failed'));
+      expect(result.message, 'Kod beta jest niepoprawny.');
       expect(result.message, isNot(contains('Password123')));
+      expect(result.message, isNot(contains('Beta-Code')));
+    });
+
+    test('preserves friendly registration unavailable message for 503', () async {
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          return http.Response.bytes(
+            utf8.encode(
+              jsonEncode({
+                'error':
+                    'Rejestracja jest chwilowo niedostępna. Spróbuj ponownie później.',
+              }),
+            ),
+            503,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }),
+      );
+
+      final result = await client.register(
+        email: 'trainer@example.test',
+        password: 'Password123!',
+        role: UserRole.trainer,
+        displayName: 'Test Trainer',
+        registrationInviteCode: 'Beta-Code',
+      );
+
+      expect(result.status, AuthApiStatus.error);
+      expect(
+        result.message,
+        'Rejestracja jest chwilowo niedostępna. Spróbuj ponownie później.',
+      );
+      expect(result.statusCode, 503);
     });
 
     test('returns error for invalid JSON response', () async {
@@ -281,7 +318,10 @@ void main() {
       );
 
       expect(result.status, AuthApiStatus.error);
-      expect(result.message, contains('Invalid auth response JSON'));
+      expect(
+        result.message,
+        'Nie udało się odczytać odpowiedzi serwera. Spróbuj ponownie.',
+      );
     });
 
     test('returns error when API base URL is not configured', () async {
@@ -298,7 +338,37 @@ void main() {
       );
 
       expect(result.status, AuthApiStatus.error);
-      expect(result.message, contains('API_BASE_URL'));
+      expect(
+        result.message,
+        'Połączenie z usługą jest chwilowo niedostępne. Spróbuj ponownie.',
+      );
+    });
+
+    test('replaces client exception details with friendly offline message', () async {
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          throw http.ClientException(
+            'SocketException: secret-host.internal registrationInviteCode=Beta-Code',
+          );
+        }),
+      );
+
+      final result = await client.register(
+        email: 'trainer@example.test',
+        password: 'Password123!',
+        role: UserRole.trainer,
+        displayName: 'Test Trainer',
+        registrationInviteCode: 'Beta-Code',
+      );
+
+      expect(result.status, AuthApiStatus.offline);
+      expect(
+        result.message,
+        'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.',
+      );
+      expect(result.message, isNot(contains('secret-host')));
+      expect(result.message, isNot(contains('Beta-Code')));
     });
   });
 }

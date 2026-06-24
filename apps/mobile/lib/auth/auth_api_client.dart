@@ -15,6 +15,17 @@ enum AuthApiStatus {
   error,
 }
 
+const _serviceUnavailableMessage =
+    'Połączenie z usługą jest chwilowo niedostępne. Spróbuj ponownie.';
+const _offlineMessage =
+    'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.';
+const _timeoutMessage =
+    'Serwer odpowiada zbyt długo. Spróbuj ponownie za chwilę.';
+const _invalidResponseMessage =
+    'Nie udało się odczytać odpowiedzi serwera. Spróbuj ponownie.';
+const _requestFailedMessage =
+    'Nie udało się wykonać operacji. Spróbuj ponownie.';
+
 class AuthApiResult<T> {
   const AuthApiResult({
     required this.status,
@@ -50,6 +61,7 @@ class AuthApiClient {
     required String password,
     required UserRole role,
     required String displayName,
+    required String registrationInviteCode,
   }) {
     return _send<AuthSession>(
       method: 'POST',
@@ -59,10 +71,11 @@ class AuthApiClient {
         'password': password,
         'role': role.wireName,
         'displayName': displayName,
+        'registrationInviteCode': registrationInviteCode,
       },
       successStatusCodes: {201},
       parse: AuthSession.fromJson,
-      invalidJsonMessage: 'Invalid auth response JSON.',
+      invalidJsonMessage: _invalidResponseMessage,
     );
   }
 
@@ -75,7 +88,7 @@ class AuthApiClient {
       accessToken: accessToken,
       successStatusCodes: {200},
       parse: TrainerInviteCode.fromJson,
-      invalidJsonMessage: 'Invalid trainer invite code response JSON.',
+      invalidJsonMessage: _invalidResponseMessage,
     );
   }
 
@@ -92,7 +105,7 @@ class AuthApiClient {
       },
       successStatusCodes: {200},
       parse: AuthUser.fromJson,
-      invalidJsonMessage: 'Invalid trainer link response JSON.',
+      invalidJsonMessage: _invalidResponseMessage,
     );
   }
 
@@ -109,7 +122,7 @@ class AuthApiClient {
       },
       successStatusCodes: {200},
       parse: AuthSession.fromJson,
-      invalidJsonMessage: 'Invalid auth response JSON.',
+      invalidJsonMessage: _invalidResponseMessage,
       retryTransientFailures: true,
     );
   }
@@ -125,7 +138,7 @@ class AuthApiClient {
       },
       successStatusCodes: {200},
       parse: AuthSession.fromJson,
-      invalidJsonMessage: 'Invalid auth response JSON.',
+      invalidJsonMessage: _invalidResponseMessage,
     );
   }
 
@@ -143,7 +156,7 @@ class AuthApiClient {
       successStatusCodes: {200, 204},
       parse: (_) {},
       expectBody: false,
-      invalidJsonMessage: 'Invalid logout response JSON.',
+      invalidJsonMessage: _invalidResponseMessage,
     );
   }
 
@@ -156,7 +169,7 @@ class AuthApiClient {
       accessToken: accessToken,
       successStatusCodes: {200},
       parse: AuthUser.fromJson,
-      invalidJsonMessage: 'Invalid current user response JSON.',
+      invalidJsonMessage: _invalidResponseMessage,
     );
   }
 
@@ -169,7 +182,7 @@ class AuthApiClient {
       accessToken: accessToken,
       successStatusCodes: {200},
       parse: RoleProbeResult.fromJson,
-      invalidJsonMessage: 'Invalid role probe response JSON.',
+      invalidJsonMessage: _invalidResponseMessage,
     );
   }
 
@@ -182,7 +195,7 @@ class AuthApiClient {
       accessToken: accessToken,
       successStatusCodes: {200},
       parse: RoleProbeResult.fromJson,
-      invalidJsonMessage: 'Invalid role probe response JSON.',
+      invalidJsonMessage: _invalidResponseMessage,
     );
   }
 
@@ -201,7 +214,7 @@ class AuthApiClient {
     if (uri == null) {
       return AuthApiResult<T>(
         status: AuthApiStatus.error,
-        message: 'API_BASE_URL is not configured.',
+        message: _serviceUnavailableMessage,
       );
     }
 
@@ -229,7 +242,7 @@ class AuthApiClient {
 
     return AuthApiResult<T>(
       status: AuthApiStatus.error,
-      message: 'Auth request failed.',
+      message: _requestFailedMessage,
     );
   }
 
@@ -286,22 +299,22 @@ class AuthApiClient {
     } on TimeoutException {
       return AuthApiResult<T>(
         status: AuthApiStatus.offline,
-        message: 'Auth request timed out.',
+        message: _timeoutMessage,
       );
     } on FormatException {
       return AuthApiResult<T>(
         status: AuthApiStatus.error,
         message: invalidJsonMessage,
       );
-    } on http.ClientException catch (error) {
+    } on http.ClientException {
       return AuthApiResult<T>(
         status: AuthApiStatus.offline,
-        message: error.message,
+        message: _offlineMessage,
       );
-    } on Object catch (error) {
+    } on Object {
       return AuthApiResult<T>(
         status: AuthApiStatus.error,
-        message: error.toString(),
+        message: _requestFailedMessage,
       );
     }
   }
@@ -346,22 +359,22 @@ class AuthApiClient {
 
   static String _messageFrom(http.Response response) {
     if (response.body.trim().isEmpty) {
-      return 'API returned HTTP ${response.statusCode}.';
+      return _requestFailedMessage;
     }
 
     try {
       final decoded = jsonDecode(response.body);
       if (decoded is Map<String, dynamic>) {
-        final message = decoded['message'] ?? decoded['error'];
+        final message = decoded['error'] ?? decoded['message'];
         if (message is String && message.trim().isNotEmpty) {
           return message.trim();
         }
       }
     } on FormatException {
-      return 'API returned HTTP ${response.statusCode}.';
+      return _requestFailedMessage;
     }
 
-    return 'API returned HTTP ${response.statusCode}.';
+    return _requestFailedMessage;
   }
 
   static String? _resolveBaseUrl(String? explicitBaseUrl) {

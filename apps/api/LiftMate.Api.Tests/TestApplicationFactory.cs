@@ -1,4 +1,5 @@
 using System.Data.Common;
+using LiftMate.Api.Tests.Auth;
 using LiftMate.Api.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -14,6 +15,17 @@ namespace LiftMate.Api.Tests;
 public sealed class TestApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly DbConnection _connection = CreateConnection();
+    private readonly string? _registrationInviteCode;
+
+    public TestApplicationFactory()
+        : this(AuthEndpointTests.TestRegistrationInviteCode)
+    {
+    }
+
+    internal TestApplicationFactory(string? registrationInviteCode)
+    {
+        _registrationInviteCode = registrationInviteCode;
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -26,6 +38,7 @@ public sealed class TestApplicationFactory : WebApplicationFactory<Program>
                 ["Jwt:SigningKey"] = "test-signing-key-with-enough-entropy-for-hmac",
                 ["Jwt:AccessTokenMinutes"] = "15",
                 ["Jwt:RefreshTokenDays"] = "30",
+                ["Auth:RegistrationInviteCode"] = _registrationInviteCode,
             });
         });
 

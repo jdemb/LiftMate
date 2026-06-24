@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../relationships/authenticated_relationship_shell.dart';
+import '../post_workout_feedback/post_workout_feedback_api_client.dart';
 import '../relationships/relationship_api_client.dart';
 import '../shared_sessions/shared_session_api_client.dart';
 import '../shared_sessions/shared_session_realtime_client.dart';
@@ -30,12 +31,15 @@ class AuthScreen extends StatefulWidget {
     required this.workoutSetApiClient,
     SharedSessionApiClient? sharedSessionApiClient,
     TrainingHistoryApiClient? trainingHistoryApiClient,
+    PostWorkoutFeedbackApiClient? postWorkoutFeedbackApiClient,
     SharedSessionRealtimeClientFactory? sharedSessionRealtimeClientFactory,
     super.key,
   }) : sharedSessionApiClient =
            sharedSessionApiClient ?? SharedSessionApiClient(),
        trainingHistoryApiClient =
            trainingHistoryApiClient ?? TrainingHistoryApiClient(),
+       postWorkoutFeedbackApiClient =
+           postWorkoutFeedbackApiClient ?? PostWorkoutFeedbackApiClient(),
        sharedSessionRealtimeClientFactory =
            sharedSessionRealtimeClientFactory ??
            _defaultSharedSessionRealtimeClientFactory;
@@ -46,6 +50,7 @@ class AuthScreen extends StatefulWidget {
   final WorkoutSetApiClient workoutSetApiClient;
   final SharedSessionApiClient sharedSessionApiClient;
   final TrainingHistoryApiClient trainingHistoryApiClient;
+  final PostWorkoutFeedbackApiClient postWorkoutFeedbackApiClient;
   final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
 
   @override
@@ -393,6 +398,8 @@ class _AuthScreenState extends State<AuthScreen> {
                   workoutSetApiClient: widget.workoutSetApiClient,
                   sharedSessionApiClient: widget.sharedSessionApiClient,
                   trainingHistoryApiClient: widget.trainingHistoryApiClient,
+                  postWorkoutFeedbackApiClient:
+                      widget.postWorkoutFeedbackApiClient,
                   sharedSessionRealtimeClientFactory:
                       widget.sharedSessionRealtimeClientFactory,
                   onLogout: _logout,

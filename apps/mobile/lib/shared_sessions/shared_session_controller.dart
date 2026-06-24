@@ -19,6 +19,7 @@ class SharedSessionControllerState {
     this.session,
     this.message,
     this.completionOutcome,
+    this.completedSessionIdForFeedback,
     this.connectionStatus = SharedSessionConnectionStatus.disconnected,
   });
 
@@ -30,6 +31,7 @@ class SharedSessionControllerState {
   final SharedSession? session;
   final String? message;
   final SharedSessionCompletionOutcome? completionOutcome;
+  final String? completedSessionIdForFeedback;
   final SharedSessionConnectionStatus connectionStatus;
 
   SharedSessionControllerState copyWith({
@@ -38,9 +40,11 @@ class SharedSessionControllerState {
     SharedSession? session,
     String? message,
     SharedSessionCompletionOutcome? completionOutcome,
+    String? completedSessionIdForFeedback,
     bool clearMessage = false,
     bool clearSession = false,
     bool clearCompletionOutcome = false,
+    bool clearCompletedSessionIdForFeedback = false,
     SharedSessionConnectionStatus? connectionStatus,
   }) {
     return SharedSessionControllerState(
@@ -51,6 +55,9 @@ class SharedSessionControllerState {
       completionOutcome: clearCompletionOutcome
           ? null
           : completionOutcome ?? this.completionOutcome,
+      completedSessionIdForFeedback: clearCompletedSessionIdForFeedback
+          ? null
+          : completedSessionIdForFeedback ?? this.completedSessionIdForFeedback,
       connectionStatus: connectionStatus ?? this.connectionStatus,
     );
   }
@@ -85,6 +92,8 @@ class SharedSessionController extends ChangeNotifier {
   SharedSessionControllerState _state =
       const SharedSessionControllerState.idle();
   bool _wasReconnecting = false;
+  String? _lastKnownActiveSessionId;
+  final Set<String> _feedbackCompletionSessionIds = <String>{};
 
   SharedSessionControllerState get state => _state;
 
@@ -94,6 +103,17 @@ class SharedSessionController extends ChangeNotifier {
         session!.values.isNotEmpty;
   }
 
+  String? consumeCompletedSessionForFeedback() {
+    final sessionId = _state.completedSessionIdForFeedback;
+    if (sessionId == null) {
+      return null;
+    }
+
+    _feedbackCompletionSessionIds.add(sessionId);
+    _setState(_state.copyWith(clearCompletedSessionIdForFeedback: true));
+    return sessionId;
+  }
+
   Future<void> loadActive(AuthUser user) async {
     final accessToken = authController.tokens?.accessToken;
     _setState(
@@ -101,6 +121,7 @@ class SharedSessionController extends ChangeNotifier {
         status: SharedSessionControllerStatus.loading,
         user: user,
         session: _state.session,
+        completedSessionIdForFeedback: _state.completedSessionIdForFeedback,
         connectionStatus: _state.connectionStatus,
       ),
     );
@@ -116,6 +137,7 @@ class SharedSessionController extends ChangeNotifier {
         SharedSessionControllerState(
           status: SharedSessionControllerStatus.loaded,
           user: user,
+          completedSessionIdForFeedback: _state.completedSessionIdForFeedback,
           connectionStatus: _state.connectionStatus,
         ),
       );
@@ -254,6 +276,7 @@ class SharedSessionController extends ChangeNotifier {
         status: SharedSessionControllerStatus.loaded,
         user: _state.user,
         completionOutcome: _state.completionOutcome,
+        completedSessionIdForFeedback: _state.completedSessionIdForFeedback,
         connectionStatus: _state.connectionStatus,
       ),
     );
@@ -331,6 +354,7 @@ class SharedSessionController extends ChangeNotifier {
     required bool joinLoadedSession,
   }) async {
     final session = result.data;
+    final previousSession = _state.session;
     if (!result.isSuccess || session == null) {
       _setError(user, result.message);
       return;
@@ -365,9 +389,15 @@ class SharedSessionController extends ChangeNotifier {
         status: SharedSessionControllerStatus.loaded,
         user: user,
         session: session,
+        completionOutcome: _state.completionOutcome,
+        completedSessionIdForFeedback: _completedSessionIdForFeedback(
+          previousSession,
+          session,
+        ),
         connectionStatus: _state.connectionStatus,
       ),
     );
+    _rememberActiveSession(session);
 
     final accessToken = authController.tokens?.accessToken;
     if (accessToken == null) {
@@ -412,6 +442,29 @@ class SharedSessionController extends ChangeNotifier {
 
     try {
       final session = _state.session;
+      if (returnedFromReconnect && _lastKnownActiveSessionId != null) {
+        if (session?.status == SharedSessionStatus.active) {
+          await _realtimeClient.joinSession(sessionId: session!.id);
+        }
+
+        final accessToken = authController.tokens?.accessToken;
+        if (accessToken != null) {
+          final result = await apiClient.get(
+            accessToken: accessToken,
+            sessionId: _lastKnownActiveSessionId!,
+          );
+          await _acceptResult(user, result, joinLoadedSession: false);
+        } else {
+          _setState(
+            _state.copyWith(
+              status: SharedSessionControllerStatus.loaded,
+              clearMessage: true,
+            ),
+          );
+        }
+        return;
+      }
+
       if (returnedFromReconnect &&
           session?.status == SharedSessionStatus.active) {
         await _realtimeClient.joinSession(sessionId: session!.id);
@@ -451,9 +504,14 @@ class SharedSessionController extends ChangeNotifier {
       _state.copyWith(
         status: SharedSessionControllerStatus.loaded,
         session: session,
+        completedSessionIdForFeedback: _completedSessionIdForFeedback(
+          currentSession,
+          session,
+        ),
         clearMessage: true,
       ),
     );
+    _rememberActiveSession(session);
 
     final user = _state.user;
     if (user?.role == UserRole.trainer) {
@@ -477,9 +535,38 @@ class SharedSessionController extends ChangeNotifier {
         user: user,
         session: _state.session,
         message: message,
+        completionOutcome: _state.completionOutcome,
+        completedSessionIdForFeedback: _state.completedSessionIdForFeedback,
         connectionStatus: _state.connectionStatus,
       ),
     );
+  }
+
+  String? _completedSessionIdForFeedback(
+    SharedSession? previousSession,
+    SharedSession nextSession,
+  ) {
+    final pendingSessionId = _state.completedSessionIdForFeedback;
+    if (pendingSessionId != null) {
+      return pendingSessionId;
+    }
+
+    final completedSameSession =
+        previousSession?.id == nextSession.id &&
+        previousSession?.status == SharedSessionStatus.active &&
+        nextSession.status == SharedSessionStatus.completed;
+    if (!completedSameSession ||
+        _feedbackCompletionSessionIds.contains(nextSession.id)) {
+      return null;
+    }
+
+    return nextSession.id;
+  }
+
+  void _rememberActiveSession(SharedSession session) {
+    if (session.status == SharedSessionStatus.active) {
+      _lastKnownActiveSessionId = session.id;
+    }
   }
 
   void _setState(SharedSessionControllerState state) {

@@ -10,6 +10,7 @@ import 'package:liftmate/auth/auth_api_client.dart';
 import 'package:liftmate/auth/auth_controller.dart';
 import 'package:liftmate/auth/auth_screen.dart';
 import 'package:liftmate/auth/token_store.dart';
+import 'package:liftmate/post_workout_feedback/post_workout_feedback_api_client.dart';
 import 'package:liftmate/relationships/relationship_api_client.dart';
 import 'package:liftmate/shared_sessions/shared_session_api_client.dart';
 import 'package:liftmate/shared_sessions/shared_session_models.dart';
@@ -1014,6 +1015,269 @@ void main() {
       },
     );
 
+    testWidgets(
+      'trainee self-start completion opens feedback for the completed session',
+      (tester) async {
+        String? feedbackPath;
+        Map<String, dynamic>? feedbackBody;
+        await tester.pumpWidget(
+          _testApp(
+            includeSharedSessionClient: true,
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(
+                    _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
+                  ),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainee/relationship') {
+                return http.Response(
+                  jsonEncode({'trainer': _trainer('Test Trainer')}),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainee/workout-sets') {
+                return http.Response(jsonEncode([_assignedSet()]), 200);
+              }
+              if (request.url.path == '/shared-sessions/active') {
+                return http.Response('', 404);
+              }
+              if (request.url.path == '/shared-sessions/from-workout-set') {
+                return http.Response(
+                  jsonEncode(_sessionResponse(startedByRole: 'trainee')),
+                  201,
+                );
+              }
+              if (request.url.path == '/shared-sessions/session-1/complete') {
+                return http.Response(
+                  jsonEncode(
+                    _sessionResponse(
+                      startedByRole: 'trainee',
+                      status: 'completed',
+                      version: 2,
+                    ),
+                  ),
+                  200,
+                );
+              }
+              if (request.url.path == '/shared-sessions/session-1/feedback') {
+                feedbackPath = request.url.path;
+                feedbackBody = jsonDecode(request.body) as Map<String, dynamic>;
+                return http.Response(
+                  jsonEncode(_feedbackResponse(rating: 4)),
+                  201,
+                );
+              }
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
+
+        await _startAuthenticated(tester);
+        await tester.pumpAndSettle();
+        await _tapButton(tester, 'Rozpocznij trening');
+        await _tapButton(tester, 'Zakończ i zapisz trening');
+
+        expect(find.text('Jak się czujesz po treningu?'), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('feedback-rating-4')));
+        await tester.pump();
+        await tester.tap(find.text('Wyślij feedback'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 700));
+        await tester.pumpAndSettle();
+
+        expect(feedbackPath, '/shared-sessions/session-1/feedback');
+        expect(feedbackBody, {'wellbeingRating': 4, 'comment': null});
+        expect(find.text('DZISIEJSZY TRENING'), findsOneWidget);
+      },
+    );
+
+    testWidgets('trainee realtime completion opens one feedback prompt', (
+      tester,
+    ) async {
+      final realtimeClient = _FakeRealtimeClient();
+      addTearDown(realtimeClient.dispose);
+      await tester.pumpWidget(
+        _testApp(
+          includeSharedSessionClient: true,
+          sharedSessionRealtimeClientFactory: () => realtimeClient,
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(
+                jsonEncode(
+                  _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
+                ),
+                200,
+              );
+            }
+            if (request.url.path == '/trainee/relationship') {
+              return http.Response(
+                jsonEncode({'trainer': _trainer('Test Trainer')}),
+                200,
+              );
+            }
+            if (request.url.path == '/trainee/workout-sets') {
+              return http.Response(jsonEncode([_assignedSet()]), 200);
+            }
+            if (request.url.path == '/shared-sessions/active' ||
+                request.url.path == '/shared-sessions/session-1') {
+              return http.Response(
+                jsonEncode(_sessionResponse(startedByRole: 'trainer')),
+                200,
+              );
+            }
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.pumpAndSettle();
+      await _tapButton(tester, 'aktywnego treningu');
+
+      final completed = SharedSession.fromJson(
+        _sessionResponse(
+          startedByRole: 'trainer',
+          status: 'completed',
+          version: 2,
+        ),
+      );
+      realtimeClient.emit(completed);
+      await tester.pumpAndSettle();
+      realtimeClient.emit(completed);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Jak się czujesz po treningu?'), findsOneWidget);
+    });
+
+    testWidgets('trainer completion never opens trainee feedback form', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _testApp(
+          includeSharedSessionClient: true,
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(
+                jsonEncode(_userResponse(role: 'trainer')),
+                200,
+              );
+            }
+            if (request.url.path == '/trainer/relationship') {
+              return http.Response(
+                jsonEncode(_trainerRelationshipWithAssignedSet()),
+                200,
+              );
+            }
+            if (request.url.path == '/shared-sessions/from-workout-set') {
+              return http.Response(jsonEncode(_sessionResponse()), 201);
+            }
+            if (request.url.path == '/shared-sessions/session-1/complete') {
+              return http.Response(
+                jsonEncode(_sessionResponse(status: 'completed', version: 2)),
+                200,
+              );
+            }
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
+
+      await _startAuthenticated(tester);
+      await tester.tap(find.textContaining('Anna').first);
+      await tester.pumpAndSettle();
+      await _tapButton(tester, 'Rozpocznij wspólny trening');
+      await _tapButton(tester, 'Zakończ i zapisz trening');
+
+      expect(find.text('Jak się czujesz po treningu?'), findsNothing);
+      expect(find.text('PODOPIECZNI'), findsOneWidget);
+    });
+
+    testWidgets(
+      'trainee adds feedback from history and returns to refreshed detail',
+      (tester) async {
+        var detailRequests = 0;
+        await tester.pumpWidget(
+          _testApp(
+            includeSharedSessionClient: true,
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(
+                    _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
+                  ),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainee/relationship') {
+                return http.Response(
+                  jsonEncode({'trainer': _trainer('Test Trainer')}),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainee/workout-sets') {
+                return http.Response('[]', 200);
+              }
+              if (request.url.path == '/shared-sessions/active') {
+                return http.Response('', 404);
+              }
+              if (request.url.path == '/training-history/sessions') {
+                return http.Response(
+                  jsonEncode({
+                    'items': [_historySessionSummary()],
+                    'nextCursor': null,
+                  }),
+                  200,
+                );
+              }
+              if (request.url.path == '/training-history/sessions/session-1') {
+                detailRequests += 1;
+                return http.Response(
+                  jsonEncode(
+                    _historySessionDetail(
+                      feedback: detailRequests > 1
+                          ? _feedbackResponse(rating: 5)
+                          : null,
+                    ),
+                  ),
+                  200,
+                );
+              }
+              if (request.url.path == '/shared-sessions/session-1/feedback') {
+                return http.Response(
+                  jsonEncode(_feedbackResponse(rating: 5)),
+                  201,
+                );
+              }
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
+
+        await _startAuthenticated(tester);
+        await tester.tap(find.text('Historia'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('history-session-session-1')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Dodaj feedback'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('feedback-rating-5')));
+        await tester.pump();
+        await tester.tap(find.text('Wyślij feedback'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 700));
+        await tester.pumpAndSettle();
+
+        expect(detailRequests, 2);
+        expect(find.text('Samopoczucie: 5/5'), findsOneWidget);
+        expect(find.text('Bardzo dobrze'), findsOneWidget);
+      },
+    );
+
     testWidgets('trainee unlinked sees enter-code prompt', (tester) async {
       await tester.pumpWidget(
         _testApp(
@@ -1235,6 +1499,10 @@ Widget _testApp({
         baseUrl: 'https://api.example.test',
         httpClient: httpClient,
       ),
+      postWorkoutFeedbackApiClient: PostWorkoutFeedbackApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: httpClient,
+      ),
       sharedSessionRealtimeClientFactory: includeSharedSessionClient
           ? sharedSessionRealtimeClientFactory ?? _FakeRealtimeClient.new
           : null,
@@ -1354,6 +1622,7 @@ Future<void> _expectEditableLiveHierarchy(WidgetTester tester) async {
 
 Map<String, Object?> _sessionResponse({
   String startedByRole = 'trainer',
+  String status = 'active',
   bool includeValues = true,
   int version = 1,
   int firstReps = 6,
@@ -1370,11 +1639,11 @@ Map<String, Object?> _sessionResponse({
     'workoutSetName': 'Push A',
     'startedByUserId': startedByRole == 'trainer' ? 'trainer-1' : 'trainee-1',
     'startedByRole': startedByRole,
-    'status': 'active',
+    'status': status,
     'version': version,
     'createdAt': '2026-06-17T12:00:00Z',
     'updatedAt': '2026-06-17T12:00:00Z',
-    'closedAt': null,
+    'closedAt': status == 'active' ? null : '2026-06-17T13:00:00Z',
     'values': includeValues
         ? [
             {
@@ -1421,6 +1690,41 @@ Map<String, Object?> _sessionResponse({
             },
           ]
         : <Map<String, Object?>>[],
+  };
+}
+
+Map<String, Object?> _feedbackResponse({required int rating}) {
+  return {
+    'sharedSessionId': 'session-1',
+    'wellbeingRating': rating,
+    'comment': null,
+    'submittedAt': '2026-06-17T13:01:00Z',
+  };
+}
+
+Map<String, Object?> _historySessionSummary() {
+  return {
+    'id': 'session-1',
+    'workoutSetName': 'Push A',
+    'startedAt': '2026-06-17T12:00:00Z',
+    'completedAt': '2026-06-17T13:00:00Z',
+    'durationSeconds': 3600,
+    'exerciseCount': 0,
+    'seriesCount': 0,
+  };
+}
+
+Map<String, Object?> _historySessionDetail({Map<String, Object?>? feedback}) {
+  return {
+    ..._historySessionSummary(),
+    'feedback': feedback == null
+        ? null
+        : {
+            'wellbeingRating': feedback['wellbeingRating'],
+            'comment': feedback['comment'],
+            'submittedAt': feedback['submittedAt'],
+          },
+    'exercises': <Object?>[],
   };
 }
 

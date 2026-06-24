@@ -18,6 +18,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<SharedSessionValue> SharedSessionValues => Set<SharedSessionValue>();
 
+    public DbSet<PostWorkoutFeedback> PostWorkoutFeedbacks => Set<PostWorkoutFeedback>();
+
     public DbSet<WorkoutSet> WorkoutSets => Set<WorkoutSet>();
 
     public DbSet<WorkoutSetRow> WorkoutSetRows => Set<WorkoutSetRow>();
@@ -171,6 +173,11 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .HasForeignKey(value => value.SharedSessionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(session => session.Feedback)
+                .WithOne(feedback => feedback.SharedSession)
+                .HasForeignKey<PostWorkoutFeedback>(feedback => feedback.SharedSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             entity.ToTable(table =>
             {
                 table.HasCheckConstraint(
@@ -183,6 +190,21 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                     "CK_SharedSessions_RestSeconds",
                     "[RestSeconds] BETWEEN 15 AND 600");
             });
+        });
+
+        builder.Entity<PostWorkoutFeedback>(entity =>
+        {
+            entity.HasKey(feedback => feedback.SharedSessionId);
+
+            entity.Property(feedback => feedback.Comment)
+                .HasMaxLength(1000);
+
+            entity.Property(feedback => feedback.SubmittedAt)
+                .IsRequired();
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_PostWorkoutFeedbacks_WellbeingRating",
+                "[WellbeingRating] BETWEEN 1 AND 5"));
         });
 
         builder.Entity<SharedSessionValue>(entity =>

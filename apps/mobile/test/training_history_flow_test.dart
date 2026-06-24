@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:liftmate/auth/auth_models.dart';
 import 'package:liftmate/training_history/training_history_api_client.dart';
 import 'package:liftmate/training_history/training_history_controller.dart';
 import 'package:liftmate/training_history/training_history_flow.dart';
@@ -19,16 +20,16 @@ void main() {
         if (request.url.path == '/training-history/sessions' &&
             request.url.queryParameters['cursor'] == null) {
           return _jsonResponse({
-              'items': [_sessionSummary('session-1', 'Push A')],
-              'nextCursor': 'next-page',
-            });
+            'items': [_sessionSummary('session-1', 'Push A')],
+            'nextCursor': 'next-page',
+          });
         }
         if (request.url.path == '/training-history/sessions' &&
             request.url.queryParameters['cursor'] == 'next-page') {
           return _jsonResponse({
-              'items': [_sessionSummary('session-2', 'Leg Day')],
-              'nextCursor': null,
-            });
+            'items': [_sessionSummary('session-2', 'Leg Day')],
+            'nextCursor': null,
+          });
         }
         if (request.url.path == '/training-history/sessions/session-1') {
           return _jsonResponse(_sessionDetail());
@@ -57,9 +58,7 @@ void main() {
       hasLength(1),
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey('history-session-session-1')),
-    );
+    await tester.tap(find.byKey(const ValueKey('history-session-session-1')));
     await tester.pumpAndSettle();
     expect(
       controller.state.detail,
@@ -71,14 +70,15 @@ void main() {
     expect(find.text('postęp ›'), findsOneWidget);
     expect(find.text('progres ›'), findsNothing);
 
-    await tester.tap(
-      find.byKey(const ValueKey('history-exercise-exercise-1')),
-    );
+    await tester.tap(find.byKey(const ValueKey('history-exercise-exercise-1')));
     await tester.pumpAndSettle();
     expect(find.text('Postęp ćwiczenia'), findsOneWidget);
     expect(find.textContaining('Progres'), findsNothing);
     expect(find.text('Wyciskanie sztangi'), findsOneWidget);
-    expect(find.byKey(const ValueKey('history-progress-chart')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('history-progress-chart')),
+      findsOneWidget,
+    );
     expect(find.text('+2,5 kg'), findsWidgets);
     expect(find.text('—'), findsOneWidget);
     expect(find.textContaining('PR'), findsNothing);
@@ -99,18 +99,21 @@ void main() {
       MockClient((request) async {
         if (request.url.queryParameters['cursor'] == null) {
           return _jsonResponse({
-              'items': [_sessionSummary('session-1', 'Push A')],
-              'nextCursor': 'next-page',
-            });
+            'items': [_sessionSummary('session-1', 'Push A')],
+            'nextCursor': 'next-page',
+          });
         }
         pageAttempts += 1;
         if (pageAttempts == 1) {
-          return http.Response('{"error":"Historia chwilowo niedostępna."}', 503);
+          return http.Response(
+            '{"error":"Historia chwilowo niedostępna."}',
+            503,
+          );
         }
         return _jsonResponse({
-            'items': [_sessionSummary('session-2', 'Leg Day')],
-            'nextCursor': null,
-          });
+          'items': [_sessionSummary('session-2', 'Leg Day')],
+          'nextCursor': null,
+        });
       }),
     );
 
@@ -138,9 +141,9 @@ void main() {
       MockClient((request) async {
         if (request.url.path == '/training-history/sessions') {
           return _jsonResponse({
-              'items': [_sessionSummary('session-1', 'Push A')],
-              'nextCursor': null,
-            });
+            'items': [_sessionSummary('session-1', 'Push A')],
+            'nextCursor': null,
+          });
         }
         if (request.url.path.endsWith('session-1')) {
           return _jsonResponse(_sessionDetail());
@@ -151,22 +154,21 @@ void main() {
 
     await tester.pumpWidget(_app(controller));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey('history-session-session-1')),
-    );
+    await tester.tap(find.byKey(const ValueKey('history-session-session-1')));
     await tester.pumpAndSettle();
     expect(
       controller.state.detail,
       isNotNull,
       reason: controller.state.message,
     );
-    await tester.tap(
-      find.byKey(const ValueKey('history-exercise-exercise-1')),
-    );
+    await tester.tap(find.byKey(const ValueKey('history-exercise-exercise-1')));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.byKey(const ValueKey('history-progress-chart')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('history-progress-chart')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('trainer history level one exposes close action', (tester) async {
@@ -178,17 +180,112 @@ void main() {
     );
 
     await tester.pumpWidget(
-      _app(
-        controller,
-        showLevelOneBack: true,
-        onClose: () => closed = true,
-      ),
+      _app(controller, showLevelOneBack: true, onClose: () => closed = true),
     );
     await tester.pumpAndSettle();
 
     expect(find.byTooltip('Wróć'), findsOneWidget);
     await tester.tap(find.byTooltip('Wróć'));
     expect(closed, isTrue);
+  });
+
+  testWidgets('trainee without feedback can add it for the open session', (
+    tester,
+  ) async {
+    String? requestedSessionId;
+    final controller = _controller(
+      MockClient((request) async {
+        if (request.url.path == '/training-history/sessions') {
+          return _jsonResponse({
+            'items': [_sessionSummary('session-1', 'Push A')],
+            'nextCursor': null,
+          });
+        }
+        return _jsonResponse({..._sessionDetail(), 'feedback': null});
+      }),
+    );
+
+    await tester.pumpWidget(
+      _app(
+        controller,
+        viewerRole: UserRole.trainee,
+        onAddFeedback: (sessionId) => requestedSessionId = sessionId,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('history-session-session-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Feedback podopiecznego'), findsOneWidget);
+    expect(find.text('Dodaj feedback'), findsOneWidget);
+    await tester.tap(find.text('Dodaj feedback'));
+    expect(requestedSessionId, 'session-1');
+  });
+
+  testWidgets('trainer without feedback sees read-only empty state', (
+    tester,
+  ) async {
+    final controller = _controller(
+      MockClient((request) async {
+        if (request.url.path == '/training-history/sessions') {
+          return _jsonResponse({
+            'items': [_sessionSummary('session-1', 'Push A')],
+            'nextCursor': null,
+          });
+        }
+        return _jsonResponse({..._sessionDetail(), 'feedback': null});
+      }),
+    );
+
+    await tester.pumpWidget(_app(controller, viewerRole: UserRole.trainer));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('history-session-session-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Feedback podopiecznego'), findsOneWidget);
+    expect(find.text('Brak feedbacku'), findsOneWidget);
+    expect(find.text('Dodaj feedback'), findsNothing);
+  });
+
+  testWidgets('saved feedback is rendered read-only before exercises', (
+    tester,
+  ) async {
+    final controller = _controller(
+      MockClient((request) async {
+        if (request.url.path == '/training-history/sessions') {
+          return _jsonResponse({
+            'items': [_sessionSummary('session-1', 'Push A')],
+            'nextCursor': null,
+          });
+        }
+        return _jsonResponse({
+          ..._sessionDetail(),
+          'feedback': {
+            'wellbeingRating': 4,
+            'comment': 'Dobry trening',
+            'submittedAt': '2026-06-17T11:06:00Z',
+          },
+        });
+      }),
+    );
+
+    await tester.pumpWidget(_app(controller, viewerRole: UserRole.trainer));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('history-session-session-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Samopoczucie: 4/5'), findsOneWidget);
+    expect(find.text('Dobrze'), findsOneWidget);
+    expect(find.text('Dobry trening'), findsOneWidget);
+    expect(find.text('Dodaj feedback'), findsNothing);
+
+    final feedbackTop = tester.getTopLeft(
+      find.byKey(const ValueKey('history-feedback-card')),
+    );
+    final exerciseTop = tester.getTopLeft(
+      find.byKey(const ValueKey('history-exercise-exercise-1')),
+    );
+    expect(feedbackTop.dy, lessThan(exerciseTop.dy));
   });
 }
 
@@ -204,6 +301,8 @@ TrainingHistoryController _controller(http.Client client) {
 
 Widget _app(
   TrainingHistoryController controller, {
+  UserRole viewerRole = UserRole.trainee,
+  ValueChanged<String>? onAddFeedback,
   bool showLevelOneBack = false,
   VoidCallback? onClose,
 }) {
@@ -212,6 +311,8 @@ Widget _app(
     home: Scaffold(
       body: TrainingHistoryFlow(
         controller: controller,
+        viewerRole: viewerRole,
+        onAddFeedback: onAddFeedback,
         onClose: onClose ?? () {},
         showLevelOneBack: showLevelOneBack,
       ),

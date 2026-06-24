@@ -79,6 +79,21 @@ void main() {
     expect(controller.state.status, TrainingHistoryStatus.loaded);
     expect(controller.state.items, isEmpty);
   });
+
+  test('refreshOpenSession reloads the current detail only', () async {
+    final api = _FakeHistoryApiClient();
+    final controller = TrainingHistoryController(
+      apiClient: api,
+      accessTokenProvider: () => 'token',
+    );
+    addTearDown(controller.dispose);
+
+    await controller.openSession('session-1');
+    await controller.refreshOpenSession();
+
+    expect(api.detailCalls, ['session-1', 'session-1']);
+    expect(controller.state.detail?.id, 'session-1');
+  });
 }
 
 class _FakeHistoryApiClient extends TrainingHistoryApiClient {
@@ -93,6 +108,7 @@ class _FakeHistoryApiClient extends TrainingHistoryApiClient {
   final bool emptyAfterRetry;
   int initialCalls = 0;
   int secondPageCalls = 0;
+  final detailCalls = <String>[];
 
   @override
   Future<TrainingHistoryApiResult<TrainingHistoryPage>> list({
@@ -137,6 +153,7 @@ class _FakeHistoryApiClient extends TrainingHistoryApiClient {
     required String accessToken,
     required String sessionId,
   }) async {
+    detailCalls.add(sessionId);
     return TrainingHistoryApiResult(
       status: TrainingHistoryApiStatus.success,
       message: 'ok',

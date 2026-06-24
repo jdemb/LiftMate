@@ -30,4 +30,27 @@ public sealed class MigrationScriptTests
             script,
             StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void PostWorkoutFeedbackMigrationGeneratesAdditiveTableWithConstraints()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=LiftMateMigrationScript;Trusted_Connection=True")
+            .Options;
+
+        using var dbContext = new ApplicationDbContext(options);
+        var migrator = dbContext.GetService<IMigrator>();
+        var script = migrator.GenerateScript(
+            options: MigrationsSqlGenerationOptions.Idempotent);
+
+        Assert.Contains("AddPostWorkoutFeedback", script, StringComparison.Ordinal);
+        Assert.Contains("PostWorkoutFeedbacks", script, StringComparison.Ordinal);
+        Assert.Contains("SharedSessionId", script, StringComparison.Ordinal);
+        Assert.Contains("WellbeingRating", script, StringComparison.Ordinal);
+        Assert.Contains("SubmittedAt", script, StringComparison.Ordinal);
+        Assert.Contains("CK_PostWorkoutFeedbacks_WellbeingRating", script, StringComparison.Ordinal);
+        Assert.Contains("BETWEEN 1 AND 5", script, StringComparison.Ordinal);
+        Assert.Contains("nvarchar(1000)", script, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("FK_PostWorkoutFeedbacks_SharedSessions_SharedSessionId", script, StringComparison.Ordinal);
+    }
 }

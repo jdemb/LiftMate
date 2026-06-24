@@ -101,6 +101,41 @@ public sealed class SharedSessionHubTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task TraineeReceivesCompletedSnapshotWhenTrainerCompletesSession()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        var session = await CreateSession(client, trainer, trainee);
+        var receivedCompletion = new TaskCompletionSource<SharedSessionResponse>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using var connection = CreateConnection(trainee.AccessToken);
+        connection.On<SharedSessionResponse>("sessionUpdated", response =>
+        {
+            if (response.Id == session.Id && response.Status == "completed")
+            {
+                receivedCompletion.TrySetResult(response);
+            }
+        });
+
+        await connection.StartAsync();
+        await connection.InvokeAsync("JoinSession", session.Id);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var completeResponse = await client.PostAsync(
+            $"/shared-sessions/{session.Id}/complete",
+            null);
+        var completed = await receivedCompletion.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(HttpStatusCode.OK, completeResponse.StatusCode);
+        Assert.Equal(session.Id, completed.Id);
+        Assert.Equal("completed", completed.Status);
+        Assert.NotNull(completed.ClosedAt);
+        Assert.True(completed.Version > session.Version);
+    }
+
+    [Fact]
     public async Task NonParticipantCannotJoinSessionGroup()
     {
         using var client = factory.CreateClient();

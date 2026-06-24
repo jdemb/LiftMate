@@ -267,11 +267,11 @@ Zmianę można wycofać przez usunięcie callbacków, przycisków i testów scho
 
 #### Automated
 
-- [x] 2.1 `flutter test test/post_auth_relationship_screen_test.dart` przechodzi z `apps/mobile`
-- [x] 2.2 `flutter test test/auth_screen_test.dart test/post_auth_relationship_screen_test.dart` przechodzi z `apps/mobile`
-- [x] 2.3 `flutter test` przechodzi z `apps/mobile`
-- [x] 2.4 `flutter analyze` przechodzi z `apps/mobile`
-- [x] 2.5 Test pulpitu potwierdza dokładny kod, `SnackBar`, nieaktywny stan i brak overflow na 412 px
+- [x] 2.1 `flutter test test/post_auth_relationship_screen_test.dart` przechodzi z `apps/mobile` — 07d72a6
+- [x] 2.2 `flutter test test/auth_screen_test.dart test/post_auth_relationship_screen_test.dart` przechodzi z `apps/mobile` — 07d72a6
+- [x] 2.3 `flutter test` przechodzi z `apps/mobile` — 07d72a6
+- [x] 2.4 `flutter analyze` przechodzi z `apps/mobile` — 07d72a6
+- [x] 2.5 Test pulpitu potwierdza dokładny kod, `SnackBar`, nieaktywny stan i brak overflow na 412 px — 07d72a6
 
 #### Manual
 

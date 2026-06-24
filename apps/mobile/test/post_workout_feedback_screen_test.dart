@@ -8,6 +8,20 @@ import 'package:liftmate/post_workout_feedback/post_workout_feedback_models.dart
 import 'package:liftmate/post_workout_feedback/post_workout_feedback_screen.dart';
 
 void main() {
+  testWidgets('rating labels do not overflow on a narrow phone', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final controller = _controller(_FakeFeedbackApiClient.success());
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(_app(controller, textScaleFactor: 1.1));
+
+    expect(find.text('Bardzo dobrze'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('requires a rating and exposes all rating semantics', (
     tester,
   ) async {
@@ -176,9 +190,16 @@ Widget _app(
   PostWorkoutFeedbackController controller, {
   Future<void> Function()? onSaved,
   Future<void> Function()? onSkipped,
+  double textScaleFactor = 1,
 }) {
   return MaterialApp(
     theme: ThemeData.dark(useMaterial3: true),
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(
+        context,
+      ).copyWith(textScaler: TextScaler.linear(textScaleFactor)),
+      child: child!,
+    ),
     home: PostWorkoutFeedbackScreen(
       controller: controller,
       onSaved: onSaved ?? () async {},

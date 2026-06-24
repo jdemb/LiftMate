@@ -232,7 +232,7 @@ class _RatingButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 140),
-          height: 76,
+          height: 84,
           padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
           decoration: BoxDecoration(
             color: selected ? lmBlue.withValues(alpha: 0.2) : lmSurface,

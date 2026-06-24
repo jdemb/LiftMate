@@ -485,18 +485,18 @@ Skonfigurować produkcyjny sekret poza repozytorium, wdrożyć backend przed apl
 
 #### Automated
 
-- [x] 2.1 Klient wysyła kod beta w pełnym payloadzie rejestracji dla obu ról.
-- [x] 2.2 Formularz blokuje pusty kod beta i pokazuje polski komunikat.
-- [x] 2.3 Kod beta zachowuje wielkość liter i spacje zgodnie z dokładnym kontraktem.
-- [x] 2.4 `Pokaż` i `Ukryj` działają osobno dla loginu oraz signup.
-- [x] 2.5 Znane błędy rejestracji i parowania w onboardingu są czytelne po polsku, a błędy techniczne są zastąpione neutralnym tekstem.
-- [x] 2.6 Kod trenera jest ograniczony do sześciu dozwolonych znaków i payload odpowiada widocznym polom.
-- [x] 2.7 Podopieczny nie może opuścić bieżącego onboardingu przed sukcesem parowania, również po restarcie lub ponownym logowaniu.
-- [x] 2.8 Jawne single-flight guardy sprawiają, że podwójne tapnięcie nie wysyła dwóch rejestracji ani dwóch requestów parowania.
-- [x] 2.9 Widget test na małym viewportcie nie raportuje overflow po wklejeniu kodu i otwarciu klawiatury.
-- [x] 2.10 `flutter test --reporter compact test/auth_api_client_test.dart test/auth_screen_test.dart test/onboarding_state_store_test.dart` przechodzi.
-- [x] 2.11 Pełne `flutter test --reporter compact` przechodzi.
-- [x] 2.12 `flutter analyze` przechodzi.
+- [x] 2.1 Klient wysyła kod beta w pełnym payloadzie rejestracji dla obu ról. — a2b04a3
+- [x] 2.2 Formularz blokuje pusty kod beta i pokazuje polski komunikat. — a2b04a3
+- [x] 2.3 Kod beta zachowuje wielkość liter i spacje zgodnie z dokładnym kontraktem. — a2b04a3
+- [x] 2.4 `Pokaż` i `Ukryj` działają osobno dla loginu oraz signup. — a2b04a3
+- [x] 2.5 Znane błędy rejestracji i parowania w onboardingu są czytelne po polsku, a błędy techniczne są zastąpione neutralnym tekstem. — a2b04a3
+- [x] 2.6 Kod trenera jest ograniczony do sześciu dozwolonych znaków i payload odpowiada widocznym polom. — a2b04a3
+- [x] 2.7 Podopieczny nie może opuścić bieżącego onboardingu przed sukcesem parowania, również po restarcie lub ponownym logowaniu. — a2b04a3
+- [x] 2.8 Jawne single-flight guardy sprawiają, że podwójne tapnięcie nie wysyła dwóch rejestracji ani dwóch requestów parowania. — a2b04a3
+- [x] 2.9 Widget test na małym viewportcie nie raportuje overflow po wklejeniu kodu i otwarciu klawiatury. — a2b04a3
+- [x] 2.10 `flutter test --reporter compact test/auth_api_client_test.dart test/auth_screen_test.dart test/onboarding_state_store_test.dart` przechodzi. — a2b04a3
+- [x] 2.11 Pełne `flutter test --reporter compact` przechodzi. — a2b04a3
+- [x] 2.12 `flutter analyze` przechodzi. — a2b04a3
 
 #### Manual
 
@@ -510,13 +510,13 @@ Skonfigurować produkcyjny sekret poza repozytorium, wdrożyć backend przed apl
 
 #### Automated
 
-- [ ] 3.1 `dotnet restore LiftMate.slnx` kończy się sukcesem.
-- [ ] 3.2 `dotnet build LiftMate.slnx --no-restore` przechodzi.
-- [ ] 3.3 Pełne `dotnet test LiftMate.slnx --no-build --verbosity minimal` przechodzi.
-- [ ] 3.4 Pełne `flutter test --reporter compact` przechodzi.
-- [ ] 3.5 `flutter analyze` przechodzi.
-- [ ] 3.6 Skan śledzonych plików nie znajduje niepustej, zahardkodowanej wartości `RegistrationInviteCode`, a secret scanner nie raportuje nowego sekretu; kontrola nie używa produkcyjnej wartości kodu jako wzorca.
-- [ ] 3.7 Roadmapa S-07 pozostaje niedomknięta przed ręcznym potwierdzeniem.
+- [x] 3.1 `dotnet restore LiftMate.slnx` kończy się sukcesem.
+- [x] 3.2 `dotnet build LiftMate.slnx --no-restore` przechodzi.
+- [x] 3.3 Pełne `dotnet test LiftMate.slnx --no-build --verbosity minimal` przechodzi.
+- [x] 3.4 Pełne `flutter test --reporter compact` przechodzi.
+- [x] 3.5 `flutter analyze` przechodzi.
+- [x] 3.6 Skan śledzonych plików nie znajduje niepustej, zahardkodowanej wartości `RegistrationInviteCode`, a secret scanner nie raportuje nowego sekretu; kontrola nie używa produkcyjnej wartości kodu jako wzorca.
+- [x] 3.7 Roadmapa S-07 pozostaje niedomknięta przed ręcznym potwierdzeniem.
 
 #### Manual
 

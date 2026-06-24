@@ -403,7 +403,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('trainee pairing back button does not open dashboard',
+    testWidgets('trainee pairing does not render a dead back button',
         (tester) async {
       await tester.pumpWidget(
         _testApp(
@@ -428,11 +428,9 @@ void main() {
       );
       await _tapButton(tester, 'Utwórz konto');
 
-      await tester.tap(find.byIcon(Icons.chevron_left));
-      await tester.pumpAndSettle();
-
       expect(find.text('Połącz się\nz trenerem'), findsOneWidget);
       expect(find.text('Cześć,'), findsNothing);
+      expect(find.byIcon(Icons.chevron_left), findsNothing);
     });
 
     testWidgets('pending trainee pairing is restored after app restart',

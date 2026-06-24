@@ -3,7 +3,7 @@ project: "Aplikacja mobilna treningowa dla trenera i podopiecznego - expansion"
 version: 2
 status: draft
 created: 2026-06-23
-updated: 2026-06-23
+updated: 2026-06-24
 prd_version: 2
 main_goal: speed
 top_blocker: time
@@ -40,8 +40,8 @@ LiftMate ma wejść w bezpieczniejszą i bardziej dopracowaną betę bez regresj
 | S-06 | trainee-self-edit-training-values | Podopieczny może samodzielnie edytować własne wartości podczas wykonywania treningu. | S-02, S-05 | `prd.md`: FR-005, FR-011, US-02 | proposed |
 | S-07 | beta-registration-guard | Tester może utworzyć konto trenera albo podopiecznego tylko z poprawnym kodem beta, używając czytelnego i stabilnego formularza. | — | `prd-expansion.md`: US-04, Scope of Change — beta code, Polish validation, password visibility, pasted trainer code | ready |
 | S-08 | copy-trainer-invite-code | Trener może skopiować aktualny kod zaproszenia i natychmiast zobaczyć potwierdzenie operacji. | S-01 | `prd-expansion.md`: US-05 | ready |
-| S-09 | post-workout-feedback | Podopieczny może wysłać ocenę samopoczucia i opcjonalny komentarz po treningu, a trener widzi nieedytowalny wpis w historii sesji. | S-04 | `prd-expansion.md`: US-01 | ready |
-| S-10 | trainer-history-guidance | Trener może zobaczyć informacyjne podpowiedzi o stagnacji ciężaru lub obniżonym samopoczuciu i oznaczyć je jako przeczytane. | S-09 | `prd-expansion.md`: US-02 | proposed |
+| S-09 | post-workout-feedback | Podopieczny może wysłać ocenę samopoczucia i opcjonalny komentarz po treningu, a trener widzi nieedytowalny wpis w historii sesji. | S-04 | `prd-expansion.md`: US-01 | done |
+| S-10 | trainer-history-guidance | Trener może zobaczyć informacyjne podpowiedzi o stagnacji ciężaru lub obniżonym samopoczuciu i oznaczyć je jako przeczytane. | S-09 | `prd-expansion.md`: US-02 | ready |
 | S-11 | trainee-weekly-streak | Podopieczny może zobaczyć aktualną i najlepszą liczbę kolejnych tygodni z zakończonym treningiem. | S-04 | `prd-expansion.md`: US-03 | ready |
 
 ## Streams
@@ -217,7 +217,7 @@ Nie są potrzebne nowe foundation slices. Wszystkie warstwy wymagane przez expan
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Feedback przypisany do niewłaściwej sesji zniekształci historię i późniejsze podpowiedzi.
-- **Status:** ready
+- **Status:** done
 
 ### S-10: Podpowiedzi trenera z historii
 
@@ -229,7 +229,7 @@ Nie są potrzebne nowe foundation slices. Wszystkie warstwy wymagane przez expan
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Niejednoznaczne porównanie ćwiczeń lub duplikowanie sygnałów obniży zaufanie trenera.
-- **Status:** proposed
+- **Status:** ready
 
 ### S-11: Tygodniowa seria regularności
 
@@ -258,8 +258,8 @@ Nie są potrzebne nowe foundation slices. Wszystkie warstwy wymagane przez expan
 | S-06 | `trainee-self-edit-training-values` | Podopieczny edytuje własne wartości treningowe | no | Czeka na domknięcie S-05. |
 | S-07 | `beta-registration-guard` | Zabezpiecz i napraw rejestrację beta | yes | Run `/10x-plan beta-registration-guard`. |
 | S-08 | `copy-trainer-invite-code` | Dodaj kopiowanie kodu trenera | yes | Run `/10x-plan copy-trainer-invite-code`. |
-| S-09 | `post-workout-feedback` | Dodaj feedback po treningu | yes | Run `/10x-plan post-workout-feedback`. |
-| S-10 | `trainer-history-guidance` | Dodaj podpowiedzi trenera z historii | no | Czeka na S-09. |
+| S-09 | `post-workout-feedback` | Dodaj feedback po treningu | no | done |
+| S-10 | `trainer-history-guidance` | Dodaj podpowiedzi trenera z historii | yes | Run `/10x-plan trainer-history-guidance`. |
 | S-11 | `trainee-weekly-streak` | Dodaj tygodniową serię regularności | yes | Run `/10x-plan trainee-weekly-streak`. |
 
 ## Open Roadmap Questions
@@ -280,6 +280,7 @@ Brak otwartych pytań blokujących planowanie nowych slice’ów. Szczegóły ad
 
 ## Done
 
+- **S-09: Podopieczny może wysłać ocenę samopoczucia i opcjonalny komentarz po treningu, a trener widzi nieedytowalny wpis w historii sesji.** — Completed 2026-06-24. Change: `context/changes/post-workout-feedback/`.
 - **F-01: Aplikacja mobilna może potwierdzić dostępność wdrożonego API.** — Archived 2026-06-18 → `context/archive/2026-06-01-mobile-api-smoke-path/`. Lesson: —.
 - **F-02: Istnieje uwierzytelniona tożsamość i granica ról trenera oraz podopiecznego.** — Archived 2026-06-18 → `context/archive/2026-06-02-authenticated-role-boundary/`. Lesson: —.
 - **F-03: Istnieje kontrakt synchronizacji jednej aktywnej sesji treningowej.** — Archived 2026-06-18 → `context/archive/2026-06-03-shared-session-sync-contract/`. Lesson: —.

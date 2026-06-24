@@ -702,14 +702,14 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Automated
 
-- [x] 5.1 `dotnet restore LiftMate.slnx` przechodzi.
-- [x] 5.2 `dotnet build LiftMate.slnx --no-restore` przechodzi.
-- [x] 5.3 Pełne `dotnet test LiftMate.slnx --no-build --verbosity minimal` przechodzi.
-- [x] 5.4 Pełne `flutter test` przechodzi.
-- [x] 5.5 `flutter analyze` przechodzi.
-- [x] 5.6 Idempotentny skrypt migracji generuje się bez błędu.
-- [x] 5.7 Skoordynowane testy backend HTTP, backend SignalR i Flutter fake realtime pokrywają oba typy treningu, późniejsze uzupełnienie, retry i autoryzację.
-- [x] 5.8 Roadmap S-09 pozostaje niedone przed manualnym potwierdzeniem.
+- [x] 5.1 `dotnet restore LiftMate.slnx` przechodzi. — a228e19
+- [x] 5.2 `dotnet build LiftMate.slnx --no-restore` przechodzi. — a228e19
+- [x] 5.3 Pełne `dotnet test LiftMate.slnx --no-build --verbosity minimal` przechodzi. — a228e19
+- [x] 5.4 Pełne `flutter test` przechodzi. — a228e19
+- [x] 5.5 `flutter analyze` przechodzi. — a228e19
+- [x] 5.6 Idempotentny skrypt migracji generuje się bez błędu. — a228e19
+- [x] 5.7 Skoordynowane testy backend HTTP, backend SignalR i Flutter fake realtime pokrywają oba typy treningu, późniejsze uzupełnienie, retry i autoryzację. — a228e19
+- [x] 5.8 Roadmap S-09 pozostaje niedone przed manualnym potwierdzeniem. — a228e19
 
 #### Manual
 

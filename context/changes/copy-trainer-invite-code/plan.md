@@ -251,27 +251,27 @@ Zmianę można wycofać przez usunięcie callbacków, przycisków i testów scho
 
 #### Automated
 
-- [x] 1.1 `flutter test test/auth_screen_test.dart` przechodzi z `apps/mobile`
-- [x] 1.2 Test potwierdza dokładny argument `Clipboard.setData` i polski komunikat sukcesu
-- [x] 1.3 Test potwierdza brak wywołania schowka bez dostępnego kodu
-- [x] 1.4 Test potwierdza polski komunikat błędu bez fałszywego sukcesu
+- [x] 1.1 `flutter test test/auth_screen_test.dart` przechodzi z `apps/mobile` — f50bf2f
+- [x] 1.2 Test potwierdza dokładny argument `Clipboard.setData` i polski komunikat sukcesu — f50bf2f
+- [x] 1.3 Test potwierdza brak wywołania schowka bez dostępnego kodu — f50bf2f
+- [x] 1.4 Test potwierdza polski komunikat błędu bez fałszywego sukcesu — f50bf2f
 
 #### Manual
 
-- [x] 1.5 Przycisk porejestracyjny zachowuje wygląd designu i reaguje na dotyk
-- [x] 1.6 Skopiowany kod można wkleić poza aplikacją bez dodatkowych znaków
-- [x] 1.7 Potwierdzenie pojawia się natychmiast i nie zasłania głównego CTA
-- [x] 1.8 Stan ładowania nie pozwala skopiować placeholdera
+- [x] 1.5 Przycisk porejestracyjny zachowuje wygląd designu i reaguje na dotyk — f50bf2f
+- [x] 1.6 Skopiowany kod można wkleić poza aplikacją bez dodatkowych znaków — f50bf2f
+- [x] 1.7 Potwierdzenie pojawia się natychmiast i nie zasłania głównego CTA — f50bf2f
+- [x] 1.8 Stan ładowania nie pozwala skopiować placeholdera — f50bf2f
 
 ### Phase 2: Kopiowanie na pulpicie i regresja całości
 
 #### Automated
 
-- [ ] 2.1 `flutter test test/post_auth_relationship_screen_test.dart` przechodzi z `apps/mobile`
-- [ ] 2.2 `flutter test test/auth_screen_test.dart test/post_auth_relationship_screen_test.dart` przechodzi z `apps/mobile`
-- [ ] 2.3 `flutter test` przechodzi z `apps/mobile`
-- [ ] 2.4 `flutter analyze` przechodzi z `apps/mobile`
-- [ ] 2.5 Test pulpitu potwierdza dokładny kod, `SnackBar`, nieaktywny stan i brak overflow na 412 px
+- [x] 2.1 `flutter test test/post_auth_relationship_screen_test.dart` przechodzi z `apps/mobile`
+- [x] 2.2 `flutter test test/auth_screen_test.dart test/post_auth_relationship_screen_test.dart` przechodzi z `apps/mobile`
+- [x] 2.3 `flutter test` przechodzi z `apps/mobile`
+- [x] 2.4 `flutter analyze` przechodzi z `apps/mobile`
+- [x] 2.5 Test pulpitu potwierdza dokładny kod, `SnackBar`, nieaktywny stan i brak overflow na 412 px
 
 #### Manual
 

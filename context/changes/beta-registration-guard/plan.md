@@ -510,13 +510,13 @@ Skonfigurować produkcyjny sekret poza repozytorium, wdrożyć backend przed apl
 
 #### Automated
 
-- [x] 3.1 `dotnet restore LiftMate.slnx` kończy się sukcesem.
-- [x] 3.2 `dotnet build LiftMate.slnx --no-restore` przechodzi.
-- [x] 3.3 Pełne `dotnet test LiftMate.slnx --no-build --verbosity minimal` przechodzi.
-- [x] 3.4 Pełne `flutter test --reporter compact` przechodzi.
-- [x] 3.5 `flutter analyze` przechodzi.
-- [x] 3.6 Skan śledzonych plików nie znajduje niepustej, zahardkodowanej wartości `RegistrationInviteCode`, a secret scanner nie raportuje nowego sekretu; kontrola nie używa produkcyjnej wartości kodu jako wzorca.
-- [x] 3.7 Roadmapa S-07 pozostaje niedomknięta przed ręcznym potwierdzeniem.
+- [x] 3.1 `dotnet restore LiftMate.slnx` kończy się sukcesem. — 6ab2cb1
+- [x] 3.2 `dotnet build LiftMate.slnx --no-restore` przechodzi. — 6ab2cb1
+- [x] 3.3 Pełne `dotnet test LiftMate.slnx --no-build --verbosity minimal` przechodzi. — 6ab2cb1
+- [x] 3.4 Pełne `flutter test --reporter compact` przechodzi. — 6ab2cb1
+- [x] 3.5 `flutter analyze` przechodzi. — 6ab2cb1
+- [x] 3.6 Skan śledzonych plików nie znajduje niepustej, zahardkodowanej wartości `RegistrationInviteCode`, a secret scanner nie raportuje nowego sekretu; kontrola nie używa produkcyjnej wartości kodu jako wzorca. — 6ab2cb1
+- [x] 3.7 Roadmapa S-07 pozostaje niedomknięta przed ręcznym potwierdzeniem. — 6ab2cb1
 
 #### Manual
 

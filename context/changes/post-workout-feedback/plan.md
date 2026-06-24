@@ -653,19 +653,19 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Automated
 
-- [x] 3.1 Modele feedbacku poprawnie serializują, parsują i odrzucają niepoprawne dane.
-- [x] 3.2 Klient wysyła prawidłową ścieżkę, token i body oraz mapuje `200`, `201`, `400`, `404`, `409` i offline.
-- [x] 3.3 Controller zachowuje wpisane dane przy błędzie i blokuje równoległe submit.
-- [x] 3.4 Historia parsuje wpis i `null`.
-- [x] 3.5 Lokalny complete emituje jeden event z właściwym ID.
-- [x] 3.6 Realtime `active → completed` emituje jeden event dla sesji wspólnej.
-- [x] 3.7 Duplikat HTTP/realtime i starszy snapshot nie otwierają drugiego promptu.
-- [x] 3.8 Utracony broadcast po reconnect jest odzyskiwany przez odświeżenie znanego `sessionId` i otwiera co najwyżej jeden prompt.
-- [x] 3.9 Cancel nie emituje eventu.
-- [x] 3.10 Po zapisie z historii controller odświeża właściwy detail.
-- [x] 3.11 Targeted Flutter tests dla modeli, klienta, controllera i shared session przechodzą.
-- [x] 3.12 Pełne `flutter test` przechodzi.
-- [x] 3.13 `flutter analyze` przechodzi.
+- [x] 3.1 Modele feedbacku poprawnie serializują, parsują i odrzucają niepoprawne dane. — 8493625
+- [x] 3.2 Klient wysyła prawidłową ścieżkę, token i body oraz mapuje `200`, `201`, `400`, `404`, `409` i offline. — 8493625
+- [x] 3.3 Controller zachowuje wpisane dane przy błędzie i blokuje równoległe submit. — 8493625
+- [x] 3.4 Historia parsuje wpis i `null`. — 8493625
+- [x] 3.5 Lokalny complete emituje jeden event z właściwym ID. — 8493625
+- [x] 3.6 Realtime `active → completed` emituje jeden event dla sesji wspólnej. — 8493625
+- [x] 3.7 Duplikat HTTP/realtime i starszy snapshot nie otwierają drugiego promptu. — 8493625
+- [x] 3.8 Utracony broadcast po reconnect jest odzyskiwany przez odświeżenie znanego `sessionId` i otwiera co najwyżej jeden prompt. — 8493625
+- [x] 3.9 Cancel nie emituje eventu. — 8493625
+- [x] 3.10 Po zapisie z historii controller odświeża właściwy detail. — 8493625
+- [x] 3.11 Targeted Flutter tests dla modeli, klienta, controllera i shared session przechodzą. — 8493625
+- [x] 3.12 Pełne `flutter test` przechodzi. — 8493625
+- [x] 3.13 `flutter analyze` przechodzi. — 8493625
 
 #### Manual
 
@@ -676,20 +676,20 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Automated
 
-- [ ] 4.1 Formularz blokuje submit bez oceny i poprawnie wybiera wartości 1–5.
-- [ ] 4.2 Wszystkie opcje oceny mają poprawne etykiety semantyczne.
-- [ ] 4.3 Licznik i limit komentarza działają dla 0, 1000 i próby przekroczenia limitu.
-- [ ] 4.4 Loading blokuje duplikat, a błąd zachowuje dane i pozwala ponowić.
-- [ ] 4.5 Dialog pominięcia działa dla CTA i systemowego back.
-- [ ] 4.6 Samodzielne zakończenie otwiera formularz z właściwym ID.
-- [ ] 4.7 Zakończenie wspólne przez realtime otwiera formularz raz.
-- [ ] 4.8 Trener nie otrzymuje formularza po zakończeniu prowadzonej sesji.
-- [ ] 4.9 `TrainingHistoryFlow` używa jawnego `viewerRole` i callbacku; trainer/trainee call sites oraz testy konstruktorów nie inferują roli z danych sesji.
-- [ ] 4.10 Historia podopiecznego pokazuje `Dodaj feedback`; historia trenera pokazuje `Brak feedbacku`.
-- [ ] 4.11 Zapisany wpis jest read-only i pojawia się tylko przy właściwej sesji.
-- [ ] 4.12 Targeted widget tests przechodzą.
-- [ ] 4.13 Pełne `flutter test` przechodzi.
-- [ ] 4.14 `flutter analyze` przechodzi.
+- [x] 4.1 Formularz blokuje submit bez oceny i poprawnie wybiera wartości 1–5.
+- [x] 4.2 Wszystkie opcje oceny mają poprawne etykiety semantyczne.
+- [x] 4.3 Licznik i limit komentarza działają dla 0, 1000 i próby przekroczenia limitu.
+- [x] 4.4 Loading blokuje duplikat, a błąd zachowuje dane i pozwala ponowić.
+- [x] 4.5 Dialog pominięcia działa dla CTA i systemowego back.
+- [x] 4.6 Samodzielne zakończenie otwiera formularz z właściwym ID.
+- [x] 4.7 Zakończenie wspólne przez realtime otwiera formularz raz.
+- [x] 4.8 Trener nie otrzymuje formularza po zakończeniu prowadzonej sesji.
+- [x] 4.9 `TrainingHistoryFlow` używa jawnego `viewerRole` i callbacku; trainer/trainee call sites oraz testy konstruktorów nie inferują roli z danych sesji.
+- [x] 4.10 Historia podopiecznego pokazuje `Dodaj feedback`; historia trenera pokazuje `Brak feedbacku`.
+- [x] 4.11 Zapisany wpis jest read-only i pojawia się tylko przy właściwej sesji.
+- [x] 4.12 Targeted widget tests przechodzą.
+- [x] 4.13 Pełne `flutter test` przechodzi.
+- [x] 4.14 `flutter analyze` przechodzi.
 
 #### Manual
 

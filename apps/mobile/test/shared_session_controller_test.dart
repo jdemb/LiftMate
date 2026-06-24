@@ -184,8 +184,116 @@ void main() {
           controller.state.completionOutcome,
           SharedSessionCompletionOutcome.savedForNextSession,
         );
+        expect(controller.state.completedSessionIdForFeedback, 'session-1');
+        expect(controller.consumeCompletedSessionForFeedback(), 'session-1');
+        expect(controller.state.completedSessionIdForFeedback, isNull);
       },
     );
+
+    test(
+      'duplicate HTTP and realtime completion emits one feedback event',
+      () async {
+        final authController = await _authController(role: UserRole.trainee);
+        final apiClient = _FakeSharedSessionApiClient();
+        final realtimeClient = _FakeSharedSessionRealtimeClient();
+        final controller = SharedSessionController(
+          apiClient: apiClient,
+          authController: authController,
+          realtimeClientFactory: () => realtimeClient,
+        );
+        addTearDown(controller.dispose);
+        await controller.startTraineeSession(
+          user: authController.state.user!,
+          workoutSetId: 'set-1',
+        );
+
+        await controller.complete(authController.state.user!);
+        expect(controller.consumeCompletedSessionForFeedback(), 'session-1');
+
+        realtimeClient.emit(_session(status: SharedSessionStatus.completed));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(controller.consumeCompletedSessionForFeedback(), isNull);
+      },
+    );
+
+    test('realtime active to completed emits feedback event once', () async {
+      final authController = await _authController(role: UserRole.trainee);
+      final realtimeClient = _FakeSharedSessionRealtimeClient();
+      final controller = SharedSessionController(
+        apiClient: _FakeSharedSessionApiClient(),
+        authController: authController,
+        realtimeClientFactory: () => realtimeClient,
+      );
+      addTearDown(controller.dispose);
+      await controller.loadActive(authController.state.user!);
+
+      realtimeClient.emit(
+        _session(status: SharedSessionStatus.completed, version: 2),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.consumeCompletedSessionForFeedback(), 'session-1');
+      expect(controller.consumeCompletedSessionForFeedback(), isNull);
+    });
+
+    test(
+      'cancel and stale completed snapshot do not emit feedback event',
+      () async {
+        final authController = await _authController(role: UserRole.trainee);
+        final realtimeClient = _FakeSharedSessionRealtimeClient();
+        final controller = SharedSessionController(
+          apiClient: _FakeSharedSessionApiClient(),
+          authController: authController,
+          realtimeClientFactory: () => realtimeClient,
+        );
+        addTearDown(controller.dispose);
+        await controller.loadActive(authController.state.user!);
+
+        realtimeClient.emit(
+          _session(status: SharedSessionStatus.cancelled, version: 2),
+        );
+        await Future<void>.delayed(Duration.zero);
+        expect(controller.consumeCompletedSessionForFeedback(), isNull);
+
+        realtimeClient.emit(
+          _session(status: SharedSessionStatus.completed, version: 1),
+        );
+        await Future<void>.delayed(Duration.zero);
+        expect(controller.consumeCompletedSessionForFeedback(), isNull);
+      },
+    );
+
+    test('reconnect refresh recovers missed completed snapshot once', () async {
+      final authController = await _authController(role: UserRole.trainee);
+      final apiClient = _FakeSharedSessionApiClient();
+      final realtimeClient = _FakeSharedSessionRealtimeClient();
+      final controller = SharedSessionController(
+        apiClient: apiClient,
+        authController: authController,
+        realtimeClientFactory: () => realtimeClient,
+      );
+      addTearDown(controller.dispose);
+      await controller.loadActive(authController.state.user!);
+      apiClient.setCurrentSession(
+        _session(status: SharedSessionStatus.completed, version: 2),
+      );
+
+      realtimeClient.emitStatus(SharedSessionConnectionStatus.reconnecting);
+      realtimeClient.emitStatus(SharedSessionConnectionStatus.connected);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(apiClient.loadedSessionId, 'session-1');
+      expect(controller.consumeCompletedSessionForFeedback(), 'session-1');
+
+      realtimeClient.emitStatus(SharedSessionConnectionStatus.reconnecting);
+      realtimeClient.emitStatus(SharedSessionConnectionStatus.connected);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.consumeCompletedSessionForFeedback(), isNull);
+    });
 
     test(
       'connected realtime with empty state recovers active session',
@@ -515,6 +623,10 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
       message: 'Request succeeded.',
       data: _currentSession,
     );
+  }
+
+  void setCurrentSession(SharedSession session) {
+    _currentSession = session;
   }
 }
 

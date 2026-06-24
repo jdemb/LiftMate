@@ -6,6 +6,7 @@ import 'auth/auth_controller.dart';
 import 'auth/auth_screen.dart';
 import 'auth/onboarding_state_store.dart';
 import 'auth/token_store.dart';
+import 'post_workout_feedback/post_workout_feedback_api_client.dart';
 import 'relationships/relationship_api_client.dart';
 import 'shared_sessions/shared_session_api_client.dart';
 import 'shared_sessions/shared_session_realtime_client.dart';
@@ -27,6 +28,9 @@ Future<void> main() async {
   final trainingHistoryApiClient = TrainingHistoryApiClient(
     baseUrl: config.apiBaseUrl,
   );
+  final postWorkoutFeedbackApiClient = PostWorkoutFeedbackApiClient(
+    baseUrl: config.apiBaseUrl,
+  );
   runApp(
     MainApp(
       authController: AuthController(
@@ -38,6 +42,7 @@ Future<void> main() async {
       workoutSetApiClient: workoutSetApiClient,
       sharedSessionApiClient: sharedSessionApiClient,
       trainingHistoryApiClient: trainingHistoryApiClient,
+      postWorkoutFeedbackApiClient: postWorkoutFeedbackApiClient,
       sharedSessionRealtimeClientFactory: () {
         return SignalRSharedSessionRealtimeClient(baseUrl: config.apiBaseUrl);
       },
@@ -53,6 +58,7 @@ class MainApp extends StatelessWidget {
     required this.workoutSetApiClient,
     required this.sharedSessionApiClient,
     required this.trainingHistoryApiClient,
+    required this.postWorkoutFeedbackApiClient,
     required this.sharedSessionRealtimeClientFactory,
     super.key,
   });
@@ -63,6 +69,7 @@ class MainApp extends StatelessWidget {
   final WorkoutSetApiClient workoutSetApiClient;
   final SharedSessionApiClient sharedSessionApiClient;
   final TrainingHistoryApiClient trainingHistoryApiClient;
+  final PostWorkoutFeedbackApiClient postWorkoutFeedbackApiClient;
   final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
 
   @override
@@ -76,6 +83,7 @@ class MainApp extends StatelessWidget {
         workoutSetApiClient: workoutSetApiClient,
         sharedSessionApiClient: sharedSessionApiClient,
         trainingHistoryApiClient: trainingHistoryApiClient,
+        postWorkoutFeedbackApiClient: postWorkoutFeedbackApiClient,
         sharedSessionRealtimeClientFactory: sharedSessionRealtimeClientFactory,
       ),
     );

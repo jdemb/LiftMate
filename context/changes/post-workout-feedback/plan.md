@@ -629,20 +629,20 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Automated
 
-- [x] 2.1 Model SQLite tworzy relację jeden-do-jednego i constraint oceny.
-- [x] 2.2 Idempotentny skrypt migracji SQL Server zawiera addytywną tabelę oraz wymagane ograniczenia.
-- [x] 2.3 Podopieczny tworzy feedback dla zakończonej sesji samodzielnej i wspólnej.
-- [x] 2.4 Trener, obcy podopieczny i nieuwierzytelniony użytkownik nie mogą utworzyć feedbacku.
-- [x] 2.5 Aktywna, anulowana i nieistniejąca sesja są odrzucane właściwym statusem.
-- [x] 2.6 Oceny `0` i `6` oraz komentarz ponad 1000 znaków są odrzucane.
-- [x] 2.7 Identyczny replay zwraca istniejący wpis bez zmiany czasu; inna treść zwraca `409`.
-- [x] 2.8 Równoległe żądania nie tworzą dwóch wpisów i nie zmieniają pierwszego.
-- [x] 2.9 Wyścig unikalności po `DbUpdateException` czyści EF tracker i ponownie odczytuje istniejący wpis bez błędu śledzenia.
-- [x] 2.10 Szczegół historii zwraca właściwy feedback lub `null`.
-- [x] 2.11 Aktualny trener ma dostęp, a były i obcy trener nie.
-- [x] 2.12 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~PostWorkoutFeedback"` przechodzi.
-- [x] 2.13 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainingHistory"` przechodzi.
-- [x] 2.14 `dotnet build LiftMate.slnx --no-restore` przechodzi.
+- [x] 2.1 Model SQLite tworzy relację jeden-do-jednego i constraint oceny. — eef79c4
+- [x] 2.2 Idempotentny skrypt migracji SQL Server zawiera addytywną tabelę oraz wymagane ograniczenia. — eef79c4
+- [x] 2.3 Podopieczny tworzy feedback dla zakończonej sesji samodzielnej i wspólnej. — eef79c4
+- [x] 2.4 Trener, obcy podopieczny i nieuwierzytelniony użytkownik nie mogą utworzyć feedbacku. — eef79c4
+- [x] 2.5 Aktywna, anulowana i nieistniejąca sesja są odrzucane właściwym statusem. — eef79c4
+- [x] 2.6 Oceny `0` i `6` oraz komentarz ponad 1000 znaków są odrzucane. — eef79c4
+- [x] 2.7 Identyczny replay zwraca istniejący wpis bez zmiany czasu; inna treść zwraca `409`. — eef79c4
+- [x] 2.8 Równoległe żądania nie tworzą dwóch wpisów i nie zmieniają pierwszego. — eef79c4
+- [x] 2.9 Wyścig unikalności po `DbUpdateException` czyści EF tracker i ponownie odczytuje istniejący wpis bez błędu śledzenia. — eef79c4
+- [x] 2.10 Szczegół historii zwraca właściwy feedback lub `null`. — eef79c4
+- [x] 2.11 Aktualny trener ma dostęp, a były i obcy trener nie. — eef79c4
+- [x] 2.12 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~PostWorkoutFeedback"` przechodzi. — eef79c4
+- [x] 2.13 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainingHistory"` przechodzi. — eef79c4
+- [x] 2.14 `dotnet build LiftMate.slnx --no-restore` przechodzi. — eef79c4
 
 #### Manual
 
@@ -653,19 +653,19 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Automated
 
-- [ ] 3.1 Modele feedbacku poprawnie serializują, parsują i odrzucają niepoprawne dane.
-- [ ] 3.2 Klient wysyła prawidłową ścieżkę, token i body oraz mapuje `200`, `201`, `400`, `404`, `409` i offline.
-- [ ] 3.3 Controller zachowuje wpisane dane przy błędzie i blokuje równoległe submit.
-- [ ] 3.4 Historia parsuje wpis i `null`.
-- [ ] 3.5 Lokalny complete emituje jeden event z właściwym ID.
-- [ ] 3.6 Realtime `active → completed` emituje jeden event dla sesji wspólnej.
-- [ ] 3.7 Duplikat HTTP/realtime i starszy snapshot nie otwierają drugiego promptu.
-- [ ] 3.8 Utracony broadcast po reconnect jest odzyskiwany przez odświeżenie znanego `sessionId` i otwiera co najwyżej jeden prompt.
-- [ ] 3.9 Cancel nie emituje eventu.
-- [ ] 3.10 Po zapisie z historii controller odświeża właściwy detail.
-- [ ] 3.11 Targeted Flutter tests dla modeli, klienta, controllera i shared session przechodzą.
-- [ ] 3.12 Pełne `flutter test` przechodzi.
-- [ ] 3.13 `flutter analyze` przechodzi.
+- [x] 3.1 Modele feedbacku poprawnie serializują, parsują i odrzucają niepoprawne dane.
+- [x] 3.2 Klient wysyła prawidłową ścieżkę, token i body oraz mapuje `200`, `201`, `400`, `404`, `409` i offline.
+- [x] 3.3 Controller zachowuje wpisane dane przy błędzie i blokuje równoległe submit.
+- [x] 3.4 Historia parsuje wpis i `null`.
+- [x] 3.5 Lokalny complete emituje jeden event z właściwym ID.
+- [x] 3.6 Realtime `active → completed` emituje jeden event dla sesji wspólnej.
+- [x] 3.7 Duplikat HTTP/realtime i starszy snapshot nie otwierają drugiego promptu.
+- [x] 3.8 Utracony broadcast po reconnect jest odzyskiwany przez odświeżenie znanego `sessionId` i otwiera co najwyżej jeden prompt.
+- [x] 3.9 Cancel nie emituje eventu.
+- [x] 3.10 Po zapisie z historii controller odświeża właściwy detail.
+- [x] 3.11 Targeted Flutter tests dla modeli, klienta, controllera i shared session przechodzą.
+- [x] 3.12 Pełne `flutter test` przechodzi.
+- [x] 3.13 `flutter analyze` przechodzi.
 
 #### Manual
 

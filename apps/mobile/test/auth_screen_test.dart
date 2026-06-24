@@ -367,6 +367,15 @@ void main() {
       await _tapButton(tester, 'Utwórz konto');
 
       final codeField = find.byKey(const ValueKey('field-Kod trenera'));
+      expect(
+        find.ancestor(
+          of: codeField,
+          matching: find.byKey(
+            const ValueKey('trainer-code-input-editor-opacity'),
+          ),
+        ),
+        findsOneWidget,
+      );
       await tester.enterText(codeField, '  7f-2k9dXYZ  ');
       await tester.pump();
 
@@ -483,9 +492,17 @@ void main() {
         _testApp(
           httpClient: MockClient((request) async {
             if (request.url.path == '/auth/register/trainee') {
-              return http.Response(
-                '{"error":"Nie znaleziono trenera dla podanego kodu. Sprawdź kod i spróbuj ponownie."}',
+              return http.Response.bytes(
+                utf8.encode(
+                  jsonEncode({
+                    'error':
+                        'Nie znaleziono trenera dla podanego kodu. Sprawdź kod i spróbuj ponownie.',
+                  }),
+                ),
                 404,
+                headers: const {
+                  'content-type': 'application/json; charset=utf-8',
+                },
               );
             }
             fail('Unexpected request: ${request.method} ${request.url}');

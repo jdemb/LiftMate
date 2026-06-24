@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using LiftMate.Api.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,7 @@ public static class AuthEndpoints
         var group = routes.MapGroup("/auth");
 
         group.MapPost("/register", Register);
+        group.MapPost("/register/trainee", RegisterTrainee);
         group.MapPost("/login", Login);
         group.MapPost("/refresh", Refresh);
         group.MapPost("/logout", Logout).RequireAuthorization();
@@ -79,6 +81,79 @@ public static class AuthEndpoints
         return Results.Created($"/auth/users/{user.Id}", response);
     }
 
+    private static async Task<IResult> RegisterTrainee(
+        RegisterTraineeRequest request,
+        UserManager<ApplicationUser> userManager,
+        ApplicationDbContext dbContext,
+        RegistrationGate registrationGate,
+        TokenService tokenService,
+        CancellationToken cancellationToken)
+    {
+        var gateResult = registrationGate.Evaluate(request.RegistrationInviteCode);
+        if (gateResult == RegistrationGateResult.Unavailable)
+        {
+            return Results.Json(
+                new { error = "Rejestracja jest chwilowo niedostępna. Spróbuj ponownie później." },
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        if (gateResult == RegistrationGateResult.Invalid)
+        {
+            return Results.BadRequest(new { error = "Kod beta jest niepoprawny." });
+        }
+
+        var code = NormalizeTrainerInviteCode(request.TrainerInviteCode);
+        if (code is null)
+        {
+            return Results.NotFound(new { error = "Nie znaleziono trenera dla podanego kodu. Sprawdź kod i spróbuj ponownie." });
+        }
+
+        var inviteCode = await dbContext.TrainerInviteCodes
+            .Include(value => value.TrainerUser)
+            .SingleOrDefaultAsync(value => value.Code == code, cancellationToken);
+        if (inviteCode?.TrainerUser is null || inviteCode.TrainerUser.LiftMateRole != UserRole.Trainer)
+        {
+            return Results.NotFound(new { error = "Nie znaleziono trenera dla podanego kodu. Sprawdź kod i spróbuj ponownie." });
+        }
+
+        var email = request.Email?.Trim() ?? string.Empty;
+        var existingUser = await userManager.FindByEmailAsync(email);
+        if (existingUser is not null)
+        {
+            return Results.Conflict(new { error = "Konto z tym adresem e-mail już istnieje." });
+        }
+
+        var displayName = request.DisplayName?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            return Results.BadRequest(new { error = "Podaj imię i nazwisko." });
+        }
+
+        var user = new ApplicationUser
+        {
+            Email = email,
+            UserName = email,
+            DisplayName = displayName,
+            LiftMateRole = UserRole.Trainee,
+            TrainerUserId = inviteCode.TrainerUserId,
+        };
+
+        var result = await userManager.CreateAsync(user, request.Password ?? string.Empty);
+        if (!result.Succeeded)
+        {
+            var message = IdentityErrorTranslator.Translate(result.Errors);
+            return IdentityErrorTranslator.IsDuplicateEmail(result.Errors)
+                ? Results.Conflict(new { error = message })
+                : Results.BadRequest(new { error = message });
+        }
+
+        inviteCode.LastUsedAt = DateTimeOffset.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var response = await tokenService.CreateTokenPairAsync(user, cancellationToken);
+        return Results.Created($"/auth/users/{user.Id}", response);
+    }
+
     private static async Task<IResult> Login(
         LoginRequest request,
         UserManager<ApplicationUser> userManager,
@@ -131,5 +206,19 @@ public static class AuthEndpoints
 
         var user = await userManager.Users.SingleOrDefaultAsync(user => user.Id == userId);
         return user is null ? Results.Unauthorized() : Results.Ok(TokenService.ToUserResponse(user));
+    }
+
+    private static string? NormalizeTrainerInviteCode(string code)
+    {
+        const string inviteCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        const int inviteCodeLength = 6;
+
+        var normalized = code.Trim().ToUpperInvariant();
+        if (normalized.Length != inviteCodeLength)
+        {
+            return null;
+        }
+
+        return normalized.All(inviteCodeAlphabet.Contains) ? normalized : null;
     }
 }

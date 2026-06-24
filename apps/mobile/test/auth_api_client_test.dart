@@ -75,6 +75,44 @@ void main() {
       expect(result.data?.code, '7F2K9D');
     });
 
+    test('register trainee posts trainer code and parses linked session', () async {
+      final client = AuthApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(
+            request.url.toString(),
+            'https://api.example.test/auth/register/trainee',
+          );
+          expect(jsonDecode(request.body), {
+            'email': 'trainee@example.test',
+            'password': 'Password123!',
+            'displayName': 'Test Trainee',
+            'registrationInviteCode': '  Beta-Code  ',
+            'trainerInviteCode': '7F2K9D',
+          });
+
+          return http.Response(
+            jsonEncode(_authResponse(role: 'trainee')),
+            201,
+            headers: {'Content-Type': 'application/json'},
+          );
+        }),
+      );
+
+      final result = await client.registerTrainee(
+        email: 'trainee@example.test',
+        password: 'Password123!',
+        displayName: 'Test Trainee',
+        registrationInviteCode: '  Beta-Code  ',
+        trainerInviteCode: '  7f2k9d  ',
+      );
+
+      expect(result.status, AuthApiStatus.success);
+      expect(result.data?.user.role, UserRole.trainee);
+      expect(result.data?.user.trainerUserId, 'trainer-1');
+    });
+
     test('claim trainer invite code normalizes input and parses linked user', () async {
       final client = AuthApiClient(
         baseUrl: 'https://api.example.test',

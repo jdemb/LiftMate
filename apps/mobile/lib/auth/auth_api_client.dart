@@ -79,6 +79,29 @@ class AuthApiClient {
     );
   }
 
+  Future<AuthApiResult<AuthSession>> registerTrainee({
+    required String email,
+    required String password,
+    required String displayName,
+    required String registrationInviteCode,
+    required String trainerInviteCode,
+  }) {
+    return _send<AuthSession>(
+      method: 'POST',
+      path: '/auth/register/trainee',
+      body: {
+        'email': email,
+        'password': password,
+        'displayName': displayName,
+        'registrationInviteCode': registrationInviteCode,
+        'trainerInviteCode': normalizeTrainerInviteCode(trainerInviteCode),
+      },
+      successStatusCodes: {201},
+      parse: AuthSession.fromJson,
+      invalidJsonMessage: _invalidResponseMessage,
+    );
+  }
+
   Future<AuthApiResult<TrainerInviteCode>> generateTrainerInviteCode({
     required String accessToken,
   }) {

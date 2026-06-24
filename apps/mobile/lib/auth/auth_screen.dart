@@ -139,6 +139,16 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     final role = _selectedRole;
+    if (role == UserRole.trainee) {
+      setState(() {
+        _pendingPairRole = UserRole.trainee;
+        _pairingError = null;
+        _trainerInviteCode = null;
+        _trainerCodeController.clear();
+      });
+      return;
+    }
+
     setState(() {
       _isRegistering = true;
       _pendingPairRole = role;
@@ -164,15 +174,6 @@ class _AuthScreenState extends State<AuthScreen> {
         return;
       }
 
-      if (role == UserRole.trainee) {
-        final userId = result.data!.user.id;
-        await widget.onboardingStateStore.savePendingTraineeUserId(userId);
-        if (!mounted) {
-          return;
-        }
-        _pendingOnboardingUserId = userId;
-      }
-
       setState(() {
         _pairingError = null;
         _trainerInviteCode = null;
@@ -180,9 +181,7 @@ class _AuthScreenState extends State<AuthScreen> {
         _registrationInviteCodeController.clear();
       });
 
-      if (role == UserRole.trainer) {
-        await _generateTrainerCode();
-      }
+      await _generateTrainerCode();
     } finally {
       if (mounted) {
         setState(() {
@@ -231,9 +230,18 @@ class _AuthScreenState extends State<AuthScreen> {
       _pairingError = null;
     });
 
-    final result = await widget.authController.claimTrainerInviteCode(
-      code: code,
-    );
+    final AuthApiResult<dynamic> result;
+    if (widget.authController.state.user == null) {
+      result = await widget.authController.registerTrainee(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        displayName: _displayNameController.text.trim(),
+        registrationInviteCode: _registrationInviteCodeController.text,
+        trainerInviteCode: code,
+      );
+    } else {
+      result = await widget.authController.claimTrainerInviteCode(code: code);
+    }
     if (!mounted) {
       return;
     }
@@ -261,13 +269,15 @@ class _AuthScreenState extends State<AuthScreen> {
       if (result.isSuccess) {
         _pendingPairRole = null;
         _pendingOnboardingUserId = null;
+        _trainerCodeController.clear();
+        _registrationInviteCodeController.clear();
       } else {
         _pairingError = _pairingMessage(result);
       }
     });
   }
 
-  String? _pairingMessage(AuthApiResult<AuthUser> result) {
+  String? _pairingMessage(AuthApiResult<dynamic> result) {
     if (result.statusCode == 404) {
       return 'Nie znaleziono trenera dla podanego kodu. Sprawdź kod i spróbuj ponownie.';
     }
@@ -277,6 +287,15 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _finishPairing() async {
     setState(() {
       _pendingPairRole = null;
+    });
+  }
+
+  void _backToSignupFromPairing() {
+    setState(() {
+      _pendingPairRole = null;
+      _pairingError = null;
+      _isPairing = false;
+      _step = _AuthStep.signup;
     });
   }
 
@@ -372,7 +391,7 @@ class _AuthScreenState extends State<AuthScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (user != null && _pendingPairRole != null)
+                  if (_pendingPairRole != null)
                     _PairingPanel(
                       role: _pendingPairRole!,
                       trainerInviteCode: _trainerInviteCode,
@@ -384,7 +403,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       onContinue: _finishPairing,
                       onBack: _pendingPairRole == UserRole.trainer
                           ? _finishPairing
-                          : () {},
+                          : _backToSignupFromPairing,
                       onTrainerCodeChanged: () => setState(() {}),
                     )
                   else
@@ -823,8 +842,8 @@ class _PairingPanel extends StatelessWidget {
     required this.onRetryTrainerCode,
     required this.onClaimTrainerCode,
     required this.onContinue,
-    required this.onBack,
     required this.onTrainerCodeChanged,
+    this.onBack,
     this.trainerInviteCode,
     this.errorMessage,
   });
@@ -835,7 +854,7 @@ class _PairingPanel extends StatelessWidget {
   final Future<void> Function() onRetryTrainerCode;
   final Future<void> Function() onClaimTrainerCode;
   final Future<void> Function() onContinue;
-  final VoidCallback onBack;
+  final VoidCallback? onBack;
   final VoidCallback onTrainerCodeChanged;
   final String? trainerInviteCode;
   final String? errorMessage;
@@ -847,8 +866,10 @@ class _PairingPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _BackButton(onPressed: onBack),
-        const SizedBox(height: 18),
+        if (onBack != null) ...[
+          _BackButton(onPressed: onBack!),
+          const SizedBox(height: 18),
+        ],
         if (isTrainer)
           _TrainerInvitePanel(
             code: trainerInviteCode,

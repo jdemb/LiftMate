@@ -139,6 +139,27 @@ class AuthController extends ChangeNotifier {
     return result;
   }
 
+  Future<AuthApiResult<AuthSession>> registerTrainee({
+    required String email,
+    required String password,
+    required String displayName,
+    required String registrationInviteCode,
+    required String trainerInviteCode,
+  }) async {
+    _setState(const AuthControllerState.loading());
+
+    final result = await authApiClient.registerTrainee(
+      email: email,
+      password: password,
+      displayName: displayName,
+      registrationInviteCode: registrationInviteCode,
+      trainerInviteCode: trainerInviteCode,
+    );
+    await _storeSessionOrShowError(result);
+
+    return result;
+  }
+
   Future<AuthApiResult<AuthSession>> login({
     required String email,
     required String password,

@@ -676,20 +676,20 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Automated
 
-- [x] 4.1 Formularz blokuje submit bez oceny i poprawnie wybiera wartości 1–5.
-- [x] 4.2 Wszystkie opcje oceny mają poprawne etykiety semantyczne.
-- [x] 4.3 Licznik i limit komentarza działają dla 0, 1000 i próby przekroczenia limitu.
-- [x] 4.4 Loading blokuje duplikat, a błąd zachowuje dane i pozwala ponowić.
-- [x] 4.5 Dialog pominięcia działa dla CTA i systemowego back.
-- [x] 4.6 Samodzielne zakończenie otwiera formularz z właściwym ID.
-- [x] 4.7 Zakończenie wspólne przez realtime otwiera formularz raz.
-- [x] 4.8 Trener nie otrzymuje formularza po zakończeniu prowadzonej sesji.
-- [x] 4.9 `TrainingHistoryFlow` używa jawnego `viewerRole` i callbacku; trainer/trainee call sites oraz testy konstruktorów nie inferują roli z danych sesji.
-- [x] 4.10 Historia podopiecznego pokazuje `Dodaj feedback`; historia trenera pokazuje `Brak feedbacku`.
-- [x] 4.11 Zapisany wpis jest read-only i pojawia się tylko przy właściwej sesji.
-- [x] 4.12 Targeted widget tests przechodzą.
-- [x] 4.13 Pełne `flutter test` przechodzi.
-- [x] 4.14 `flutter analyze` przechodzi.
+- [x] 4.1 Formularz blokuje submit bez oceny i poprawnie wybiera wartości 1–5. — d8a6ab9
+- [x] 4.2 Wszystkie opcje oceny mają poprawne etykiety semantyczne. — d8a6ab9
+- [x] 4.3 Licznik i limit komentarza działają dla 0, 1000 i próby przekroczenia limitu. — d8a6ab9
+- [x] 4.4 Loading blokuje duplikat, a błąd zachowuje dane i pozwala ponowić. — d8a6ab9
+- [x] 4.5 Dialog pominięcia działa dla CTA i systemowego back. — d8a6ab9
+- [x] 4.6 Samodzielne zakończenie otwiera formularz z właściwym ID. — d8a6ab9
+- [x] 4.7 Zakończenie wspólne przez realtime otwiera formularz raz. — d8a6ab9
+- [x] 4.8 Trener nie otrzymuje formularza po zakończeniu prowadzonej sesji. — d8a6ab9
+- [x] 4.9 `TrainingHistoryFlow` używa jawnego `viewerRole` i callbacku; trainer/trainee call sites oraz testy konstruktorów nie inferują roli z danych sesji. — d8a6ab9
+- [x] 4.10 Historia podopiecznego pokazuje `Dodaj feedback`; historia trenera pokazuje `Brak feedbacku`. — d8a6ab9
+- [x] 4.11 Zapisany wpis jest read-only i pojawia się tylko przy właściwej sesji. — d8a6ab9
+- [x] 4.12 Targeted widget tests przechodzą. — d8a6ab9
+- [x] 4.13 Pełne `flutter test` przechodzi. — d8a6ab9
+- [x] 4.14 `flutter analyze` przechodzi. — d8a6ab9
 
 #### Manual
 
@@ -702,14 +702,14 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Automated
 
-- [ ] 5.1 `dotnet restore LiftMate.slnx` przechodzi.
-- [ ] 5.2 `dotnet build LiftMate.slnx --no-restore` przechodzi.
-- [ ] 5.3 Pełne `dotnet test LiftMate.slnx --no-build --verbosity minimal` przechodzi.
-- [ ] 5.4 Pełne `flutter test` przechodzi.
-- [ ] 5.5 `flutter analyze` przechodzi.
-- [ ] 5.6 Idempotentny skrypt migracji generuje się bez błędu.
-- [ ] 5.7 Skoordynowane testy backend HTTP, backend SignalR i Flutter fake realtime pokrywają oba typy treningu, późniejsze uzupełnienie, retry i autoryzację.
-- [ ] 5.8 Roadmap S-09 pozostaje niedone przed manualnym potwierdzeniem.
+- [x] 5.1 `dotnet restore LiftMate.slnx` przechodzi.
+- [x] 5.2 `dotnet build LiftMate.slnx --no-restore` przechodzi.
+- [x] 5.3 Pełne `dotnet test LiftMate.slnx --no-build --verbosity minimal` przechodzi.
+- [x] 5.4 Pełne `flutter test` przechodzi.
+- [x] 5.5 `flutter analyze` przechodzi.
+- [x] 5.6 Idempotentny skrypt migracji generuje się bez błędu.
+- [x] 5.7 Skoordynowane testy backend HTTP, backend SignalR i Flutter fake realtime pokrywają oba typy treningu, późniejsze uzupełnienie, retry i autoryzację.
+- [x] 5.8 Roadmap S-09 pozostaje niedone przed manualnym potwierdzeniem.
 
 #### Manual
 

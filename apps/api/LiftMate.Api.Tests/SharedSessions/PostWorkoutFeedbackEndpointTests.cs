@@ -48,6 +48,45 @@ public sealed class PostWorkoutFeedbackEndpointTests(TestApplicationFactory fact
     }
 
     [Fact]
+    public async Task SelfStartedSessionCompletesThenFeedbackAppearsInTraineeAndTrainerHistory()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(client, trainer, "Feedback journey");
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, trainee.User.Id);
+        var session = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var completeResponse = await client.PostAsync(
+            $"/shared-sessions/{session.Id}/complete",
+            null);
+        var feedbackResponse = await client.PostAsJsonAsync(
+            $"/shared-sessions/{session.Id}/feedback",
+            new FeedbackRequest(4, "Po pełnym przepływie"));
+        var traineeHistoryResponse = await client.GetAsync(
+            $"/training-history/sessions/{session.Id}");
+        var traineeHistory = await traineeHistoryResponse.Content
+            .ReadFromJsonAsync<HistorySessionResponse>();
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var trainerHistoryResponse = await client.GetAsync(
+            $"/training-history/sessions/{session.Id}");
+        var trainerHistory = await trainerHistoryResponse.Content
+            .ReadFromJsonAsync<HistorySessionResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, completeResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, feedbackResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, traineeHistoryResponse.StatusCode);
+        Assert.Equal(4, traineeHistory?.Feedback?.WellbeingRating);
+        Assert.Equal("Po pełnym przepływie", traineeHistory?.Feedback?.Comment);
+        Assert.Equal(HttpStatusCode.OK, trainerHistoryResponse.StatusCode);
+        Assert.Equal(4, trainerHistory?.Feedback?.WellbeingRating);
+        Assert.Equal("Po pełnym przepływie", trainerHistory?.Feedback?.Comment);
+    }
+
+    [Fact]
     public async Task IdenticalReplayReturnsExistingFeedbackButDifferentReplayConflicts()
     {
         using var client = factory.CreateClient();
@@ -248,12 +287,86 @@ public sealed class PostWorkoutFeedbackEndpointTests(TestApplicationFactory fact
         return session.Id;
     }
 
+    private static async Task<WorkoutSetResponse> CreateWorkoutSet(
+        HttpClient client,
+        AuthEndpointTests.AuthResponse trainer,
+        string name)
+    {
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.PostAsJsonAsync(
+            "/workout-sets",
+            new CreateWorkoutSetRequest(
+                name,
+                [new WorkoutSetRowRequest(1, 1, "Bench press", "repsWeight", 8, 40m, null)]));
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+        var workoutSet = await response.Content.ReadFromJsonAsync<WorkoutSetResponse>();
+        Assert.NotNull(workoutSet);
+        return workoutSet;
+    }
+
+    private static async Task AssignWorkoutSet(
+        HttpClient client,
+        AuthEndpointTests.AuthResponse trainer,
+        Guid workoutSetId,
+        string traineeUserId)
+    {
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.PostAsJsonAsync(
+            $"/workout-sets/{workoutSetId}/assignments",
+            new AssignWorkoutSetRequest([traineeUserId]));
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+    }
+
+    private static async Task<SharedSessionStartResponse> StartFromWorkoutSet(
+        HttpClient client,
+        AuthEndpointTests.AuthResponse trainee,
+        Guid workoutSetId)
+    {
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var response = await client.PostAsJsonAsync(
+            "/shared-sessions/from-workout-set",
+            new StartSharedSessionFromWorkoutSetRequest(workoutSetId, null));
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+        var session = await response.Content.ReadFromJsonAsync<SharedSessionStartResponse>();
+        Assert.NotNull(session);
+        return session;
+    }
+
     private static AuthenticationHeaderValue Bearer(string accessToken)
     {
         return new AuthenticationHeaderValue("Bearer", accessToken);
     }
 
     private sealed record FeedbackRequest(int WellbeingRating, string? Comment);
+
+    private sealed record CreateWorkoutSetRequest(
+        string Name,
+        IReadOnlyList<WorkoutSetRowRequest> Rows);
+
+    private sealed record WorkoutSetRowRequest(
+        int ExerciseOrder,
+        int SetIndex,
+        string ExerciseName,
+        string ExerciseType,
+        int? Reps,
+        decimal? Weight,
+        int? Seconds);
+
+    private sealed record AssignWorkoutSetRequest(IReadOnlyList<string> TraineeUserIds);
+
+    private sealed record StartSharedSessionFromWorkoutSetRequest(
+        Guid WorkoutSetId,
+        string? TraineeUserId);
+
+    private sealed record WorkoutSetResponse(Guid Id);
+
+    private sealed record SharedSessionStartResponse(Guid Id);
 
     private sealed record FeedbackResponse(
         Guid SharedSessionId,

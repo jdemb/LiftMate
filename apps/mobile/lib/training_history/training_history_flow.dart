@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../auth/auth_models.dart';
 import '../relationships/relationship_screen_styles.dart';
 import '../shared_sessions/shared_session_models.dart';
 import 'training_history_controller.dart';
@@ -11,13 +12,17 @@ import 'training_history_models.dart';
 class TrainingHistoryFlow extends StatefulWidget {
   const TrainingHistoryFlow({
     required this.controller,
+    required this.viewerRole,
     required this.onClose,
+    this.onAddFeedback,
     this.showLevelOneBack = false,
     super.key,
   });
 
   final TrainingHistoryController controller;
+  final UserRole viewerRole;
   final VoidCallback onClose;
+  final ValueChanged<String>? onAddFeedback;
   final bool showLevelOneBack;
 
   @override
@@ -58,6 +63,8 @@ class _TrainingHistoryFlowState extends State<TrainingHistoryFlow> {
             message: state.message,
             onBack: widget.controller.backFromDetail,
             onOpenProgress: widget.controller.openProgress,
+            viewerRole: widget.viewerRole,
+            onAddFeedback: widget.onAddFeedback,
           );
         }
         return _ListLevel(
@@ -100,10 +107,7 @@ class _ListLevel extends StatelessWidget {
     return Column(
       children: [
         if (showBack)
-          _HistoryHeader(
-            title: 'Historia treningów',
-            onBack: onClose,
-          ),
+          _HistoryHeader(title: 'Historia treningów', onBack: onClose),
         Expanded(
           child: initialLoading
               ? const Center(child: CircularProgressIndicator())
@@ -237,10 +241,9 @@ class _SessionCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            formatHistoryDate(date)
-                                .split(' ')
-                                .elementAt(1)
-                                .toUpperCase(),
+                            formatHistoryDate(
+                              date,
+                            ).split(' ').elementAt(1).toUpperCase(),
                             style: const TextStyle(
                               color: lmMuted,
                               fontSize: 8.5,
@@ -279,10 +282,7 @@ class _SessionCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 13),
-                Divider(
-                  height: 1,
-                  color: Colors.white.withValues(alpha: 0.06),
-                ),
+                Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
                 const SizedBox(height: 13),
                 Row(
                   children: [
@@ -297,7 +297,9 @@ class _SessionCard extends StatelessWidget {
                       ),
                     ),
                     Expanded(
-                      child: _MetricText(formatSeriesCount(session.seriesCount)),
+                      child: _MetricText(
+                        formatSeriesCount(session.seriesCount),
+                      ),
                     ),
                   ],
                 ),
@@ -337,6 +339,8 @@ class _DetailLevel extends StatelessWidget {
     required this.message,
     required this.onBack,
     required this.onOpenProgress,
+    required this.viewerRole,
+    required this.onAddFeedback,
   });
 
   final TrainingHistorySession session;
@@ -344,6 +348,8 @@ class _DetailLevel extends StatelessWidget {
   final String? message;
   final VoidCallback onBack;
   final ValueChanged<String> onOpenProgress;
+  final UserRole viewerRole;
+  final ValueChanged<String>? onAddFeedback;
 
   @override
   Widget build(BuildContext context) {
@@ -364,9 +370,7 @@ class _DetailLevel extends StatelessWidget {
                     children: [
                       Expanded(
                         child: _MetricCard(
-                          value: formatHistoryDuration(
-                            session.durationSeconds,
-                          ),
+                          value: formatHistoryDuration(session.durationSeconds),
                           label: 'czas',
                         ),
                       ),
@@ -394,6 +398,12 @@ class _DetailLevel extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(height: 16),
+                  _HistoryFeedbackCard(
+                    session: session,
+                    viewerRole: viewerRole,
+                    onAddFeedback: onAddFeedback,
+                  ),
+                  const SizedBox(height: 12),
                   for (final exercise in session.exercises)
                     _ExerciseCard(
                       exercise: exercise,
@@ -408,6 +418,72 @@ class _DetailLevel extends StatelessWidget {
         ),
         if (loading) const _NestedLoading(),
       ],
+    );
+  }
+}
+
+class _HistoryFeedbackCard extends StatelessWidget {
+  const _HistoryFeedbackCard({
+    required this.session,
+    required this.viewerRole,
+    required this.onAddFeedback,
+  });
+
+  final TrainingHistorySession session;
+  final UserRole viewerRole;
+  final ValueChanged<String>? onAddFeedback;
+
+  @override
+  Widget build(BuildContext context) {
+    final feedback = session.feedback;
+    return RelationshipCard(
+      key: const ValueKey('history-feedback-card'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Feedback podopiecznego',
+            style: TextStyle(
+              color: lmMutedDark,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (feedback != null) ...[
+            Text(
+              'Samopoczucie: ${feedback.wellbeingRating}/5',
+              style: const TextStyle(
+                fontFamily: 'Space Grotesk',
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              _historyRatingLabel(feedback.wellbeingRating),
+              style: const TextStyle(
+                color: lmBlueSoft,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              feedback.comment?.trim().isNotEmpty == true
+                  ? feedback.comment!.trim()
+                  : 'Bez komentarza',
+              style: const TextStyle(color: lmMuted, height: 1.4),
+            ),
+          ] else if (viewerRole == UserRole.trainee && onAddFeedback != null)
+            OutlinedButton(
+              onPressed: () => onAddFeedback!(session.id),
+              child: const Text('Dodaj feedback'),
+            )
+          else
+            const Text('Brak feedbacku', style: TextStyle(color: lmMuted)),
+        ],
+      ),
     );
   }
 }
@@ -585,10 +661,7 @@ class _ProgressLevel extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        formatSignedDelta(
-                          progress.overallDelta,
-                          progress.unit,
-                        ),
+                        formatSignedDelta(progress.overallDelta, progress.unit),
                         style: TextStyle(
                           color: _deltaColor(progress.overallDelta),
                           fontWeight: FontWeight.w700,
@@ -688,10 +761,7 @@ class _ProgressChart extends StatelessWidget {
                   FittedBox(
                     child: Text(
                       formatHistoryShortDate(points[index].completedAt),
-                      style: const TextStyle(
-                        color: lmMutedDark,
-                        fontSize: 9.5,
-                      ),
+                      style: const TextStyle(color: lmMutedDark, fontSize: 9.5),
                     ),
                   ),
                 ],
@@ -882,4 +952,15 @@ Color _deltaColor(num value) {
   if (value > 0) return lmGreen;
   if (value < 0) return const Color(0xFFEF6B6B);
   return lmMutedDark;
+}
+
+String _historyRatingLabel(int rating) {
+  return switch (rating) {
+    1 => 'Bardzo źle',
+    2 => 'Źle',
+    3 => 'W porządku',
+    4 => 'Dobrze',
+    5 => 'Bardzo dobrze',
+    _ => '',
+  };
 }

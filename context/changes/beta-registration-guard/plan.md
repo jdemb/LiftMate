@@ -466,15 +466,15 @@ Skonfigurować produkcyjny sekret poza repozytorium, wdrożyć backend przed apl
 
 #### Automated
 
-- [x] 1.1 Poprawny kod beta tworzy konto trenera i podopiecznego.
-- [x] 1.2 Brak, błędny kod i kod o innej wielkości liter nie tworzą konta.
-- [x] 1.3 Brak konfiguracji zwraca przyjazne `503`, a login istniejącego konta nadal działa.
-- [x] 1.4 Walidacje roli, e-maila, nazwy i hasła zwracają pojedynczy polski `error` bez technicznych kodów.
-- [x] 1.5 Wspólny helper rejestracji utrzymuje pozostałe testy API bez zmian w call sites.
-- [x] 1.6 `dotnet restore LiftMate.slnx` kończy się sukcesem.
-- [x] 1.7 `dotnet build LiftMate.slnx --no-restore` przechodzi.
-- [x] 1.8 `dotnet test LiftMate.slnx --no-build --filter "FullyQualifiedName~AuthEndpointTests"` przechodzi.
-- [x] 1.9 Pełne `dotnet test LiftMate.slnx --no-build` przechodzi.
+- [x] 1.1 Poprawny kod beta tworzy konto trenera i podopiecznego. — 341fd25
+- [x] 1.2 Brak, błędny kod i kod o innej wielkości liter nie tworzą konta. — 341fd25
+- [x] 1.3 Brak konfiguracji zwraca przyjazne `503`, a login istniejącego konta nadal działa. — 341fd25
+- [x] 1.4 Walidacje roli, e-maila, nazwy i hasła zwracają pojedynczy polski `error` bez technicznych kodów. — 341fd25
+- [x] 1.5 Wspólny helper rejestracji utrzymuje pozostałe testy API bez zmian w call sites. — 341fd25
+- [x] 1.6 `dotnet restore LiftMate.slnx` kończy się sukcesem. — 341fd25
+- [x] 1.7 `dotnet build LiftMate.slnx --no-restore` przechodzi. — 341fd25
+- [x] 1.8 `dotnet test LiftMate.slnx --no-build --filter "FullyQualifiedName~AuthEndpointTests"` przechodzi. — 341fd25
+- [x] 1.9 Pełne `dotnet test LiftMate.slnx --no-build` przechodzi. — 341fd25
 
 #### Manual
 
@@ -485,18 +485,18 @@ Skonfigurować produkcyjny sekret poza repozytorium, wdrożyć backend przed apl
 
 #### Automated
 
-- [ ] 2.1 Klient wysyła kod beta w pełnym payloadzie rejestracji dla obu ról.
-- [ ] 2.2 Formularz blokuje pusty kod beta i pokazuje polski komunikat.
-- [ ] 2.3 Kod beta zachowuje wielkość liter i spacje zgodnie z dokładnym kontraktem.
-- [ ] 2.4 `Pokaż` i `Ukryj` działają osobno dla loginu oraz signup.
-- [ ] 2.5 Znane błędy rejestracji i parowania w onboardingu są czytelne po polsku, a błędy techniczne są zastąpione neutralnym tekstem.
-- [ ] 2.6 Kod trenera jest ograniczony do sześciu dozwolonych znaków i payload odpowiada widocznym polom.
-- [ ] 2.7 Podopieczny nie może opuścić bieżącego onboardingu przed sukcesem parowania, również po restarcie lub ponownym logowaniu.
-- [ ] 2.8 Jawne single-flight guardy sprawiają, że podwójne tapnięcie nie wysyła dwóch rejestracji ani dwóch requestów parowania.
-- [ ] 2.9 Widget test na małym viewportcie nie raportuje overflow po wklejeniu kodu i otwarciu klawiatury.
-- [ ] 2.10 `flutter test --reporter compact test/auth_api_client_test.dart test/auth_screen_test.dart test/onboarding_state_store_test.dart` przechodzi.
-- [ ] 2.11 Pełne `flutter test --reporter compact` przechodzi.
-- [ ] 2.12 `flutter analyze` przechodzi.
+- [x] 2.1 Klient wysyła kod beta w pełnym payloadzie rejestracji dla obu ról.
+- [x] 2.2 Formularz blokuje pusty kod beta i pokazuje polski komunikat.
+- [x] 2.3 Kod beta zachowuje wielkość liter i spacje zgodnie z dokładnym kontraktem.
+- [x] 2.4 `Pokaż` i `Ukryj` działają osobno dla loginu oraz signup.
+- [x] 2.5 Znane błędy rejestracji i parowania w onboardingu są czytelne po polsku, a błędy techniczne są zastąpione neutralnym tekstem.
+- [x] 2.6 Kod trenera jest ograniczony do sześciu dozwolonych znaków i payload odpowiada widocznym polom.
+- [x] 2.7 Podopieczny nie może opuścić bieżącego onboardingu przed sukcesem parowania, również po restarcie lub ponownym logowaniu.
+- [x] 2.8 Jawne single-flight guardy sprawiają, że podwójne tapnięcie nie wysyła dwóch rejestracji ani dwóch requestów parowania.
+- [x] 2.9 Widget test na małym viewportcie nie raportuje overflow po wklejeniu kodu i otwarciu klawiatury.
+- [x] 2.10 `flutter test --reporter compact test/auth_api_client_test.dart test/auth_screen_test.dart test/onboarding_state_store_test.dart` przechodzi.
+- [x] 2.11 Pełne `flutter test --reporter compact` przechodzi.
+- [x] 2.12 `flutter analyze` przechodzi.
 
 #### Manual
 

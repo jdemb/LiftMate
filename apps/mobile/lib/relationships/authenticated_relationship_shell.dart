@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../auth/auth_controller.dart';
 import '../auth/auth_models.dart';
@@ -228,6 +229,7 @@ class _AuthenticatedRelationshipShellState
               _loadWorkoutSets();
             },
             onReload: _relationshipController.reload,
+            onCopyInviteCode: _copyTrainerInviteCode,
             onLogout: widget.onLogout,
           );
         }
@@ -494,6 +496,29 @@ class _AuthenticatedRelationshipShellState
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Zapisano wartości na następny trening.')),
     );
+  }
+
+  Future<void> _copyTrainerInviteCode(String code) async {
+    if (code.trim().isEmpty) {
+      return;
+    }
+
+    try {
+      await Clipboard.setData(ClipboardData(text: code));
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kod zaproszenia skopiowany.')),
+      );
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nie udało się skopiować kodu.')),
+      );
+    }
   }
 }
 

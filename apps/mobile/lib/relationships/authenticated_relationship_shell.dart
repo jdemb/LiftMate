@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../auth/auth_controller.dart';
 import '../auth/auth_models.dart';
+import '../post_workout_feedback/post_workout_feedback_api_client.dart';
 import '../shared_sessions/shared_session_api_client.dart';
 import '../shared_sessions/shared_session_controller.dart';
 import '../shared_sessions/live_session_screen.dart';
@@ -31,6 +32,7 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
     required this.workoutSetApiClient,
     required this.sharedSessionApiClient,
     required this.trainingHistoryApiClient,
+    required this.postWorkoutFeedbackApiClient,
     required this.sharedSessionRealtimeClientFactory,
     required this.onLogout,
     super.key,
@@ -42,6 +44,7 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
   final WorkoutSetApiClient workoutSetApiClient;
   final SharedSessionApiClient sharedSessionApiClient;
   final TrainingHistoryApiClient trainingHistoryApiClient;
+  final PostWorkoutFeedbackApiClient postWorkoutFeedbackApiClient;
   final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
   final Future<void> Function() onLogout;
 

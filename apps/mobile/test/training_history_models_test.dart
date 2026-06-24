@@ -12,8 +12,19 @@ void main() {
     expect(page.nextCursor, 'cursor-2');
     expect(detail.exercises.single.type, ExerciseValueType.repsWeight);
     expect(detail.exercises.single.series, hasLength(2));
+    expect(detail.feedback?.wellbeingRating, 4);
+    expect(detail.feedback?.comment, 'Ciężko, ale dobrze');
     expect(progress.points.last.delta, 5);
     expect(progress.currentValue, 45);
+  });
+
+  test('detail accepts missing feedback and explicit null feedback', () {
+    final withoutKey = Map<String, Object?>.from(_detailJson())
+      ..remove('feedback');
+    final withNull = {..._detailJson(), 'feedback': null};
+
+    expect(TrainingHistorySession.fromJson(withoutKey).feedback, isNull);
+    expect(TrainingHistorySession.fromJson(withNull).feedback, isNull);
   });
 
   test('models reject missing and type-invalid fields', () {
@@ -37,6 +48,17 @@ void main() {
     expect(
       () =>
           ExerciseProgress.fromJson({..._progressJson(), 'currentValue': null}),
+      throwsFormatException,
+    );
+    expect(
+      () => TrainingHistorySession.fromJson({
+        ..._detailJson(),
+        'feedback': {
+          'wellbeingRating': 6,
+          'comment': null,
+          'submittedAt': '2026-06-18T11:01:00Z',
+        },
+      }),
       throwsFormatException,
     );
   });
@@ -65,6 +87,11 @@ Map<String, Object?> _detailJson() => {
   'durationSeconds': 2700,
   'exerciseCount': 1,
   'seriesCount': 2,
+  'feedback': {
+    'wellbeingRating': 4,
+    'comment': 'Ciężko, ale dobrze',
+    'submittedAt': '2026-06-18T10:46:00Z',
+  },
   'exercises': [
     {
       'exerciseId': 'exercise-1',

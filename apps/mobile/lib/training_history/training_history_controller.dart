@@ -175,6 +175,14 @@ class TrainingHistoryController extends ChangeNotifier {
     );
   }
 
+  Future<void> refreshOpenSession() async {
+    final sessionId = _state.detail?.id;
+    if (sessionId == null) {
+      return;
+    }
+    await openSession(sessionId);
+  }
+
   Future<void> openProgress(String exerciseId) async {
     final token = accessTokenProvider();
     if (token == null) return;

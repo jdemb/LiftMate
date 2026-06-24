@@ -61,6 +61,7 @@ class TrainingHistorySession {
     required this.exerciseCount,
     required this.seriesCount,
     required this.exercises,
+    this.feedback,
   });
 
   final String id;
@@ -70,10 +71,12 @@ class TrainingHistorySession {
   final int durationSeconds;
   final int exerciseCount;
   final int seriesCount;
+  final TrainingHistoryFeedback? feedback;
   final List<TrainingHistoryExercise> exercises;
 
   factory TrainingHistorySession.fromJson(Map<String, dynamic> json) {
     final exercises = json['exercises'];
+    final feedback = json['feedback'];
     if (exercises is! List) {
       throw const FormatException('Invalid training history session.');
     }
@@ -85,7 +88,39 @@ class TrainingHistorySession {
       durationSeconds: _int(json, 'durationSeconds'),
       exerciseCount: _int(json, 'exerciseCount'),
       seriesCount: _int(json, 'seriesCount'),
+      feedback: feedback == null
+          ? null
+          : _parseObject(feedback, TrainingHistoryFeedback.fromJson),
       exercises: _parseList(exercises, TrainingHistoryExercise.fromJson),
+    );
+  }
+}
+
+class TrainingHistoryFeedback {
+  const TrainingHistoryFeedback({
+    required this.wellbeingRating,
+    required this.comment,
+    required this.submittedAt,
+  });
+
+  final int wellbeingRating;
+  final String? comment;
+  final DateTime submittedAt;
+
+  factory TrainingHistoryFeedback.fromJson(Map<String, dynamic> json) {
+    final wellbeingRating = json['wellbeingRating'];
+    final comment = json['comment'];
+    if (wellbeingRating is! int ||
+        wellbeingRating < 1 ||
+        wellbeingRating > 5 ||
+        (comment != null && comment is! String)) {
+      throw const FormatException('Invalid training history feedback.');
+    }
+
+    return TrainingHistoryFeedback(
+      wellbeingRating: wellbeingRating,
+      comment: comment,
+      submittedAt: _date(json, 'submittedAt'),
     );
   }
 }
@@ -244,6 +279,13 @@ List<T> _parseList<T>(List values, T Function(Map<String, dynamic>) parser) {
         return parser(value);
       })
       .toList(growable: false);
+}
+
+T _parseObject<T>(Object value, T Function(Map<String, dynamic>) parser) {
+  if (value is! Map<String, dynamic>) {
+    throw const FormatException('Invalid training history object.');
+  }
+  return parser(value);
 }
 
 String _string(Map<String, dynamic> json, String key) {

@@ -7,6 +7,13 @@ public sealed record RegisterRequest(
     string DisplayName,
     string? RegistrationInviteCode);
 
+public sealed record RegisterTraineeRequest(
+    string Email,
+    string Password,
+    string DisplayName,
+    string? RegistrationInviteCode,
+    string TrainerInviteCode);
+
 public sealed record LoginRequest(string Email, string Password);
 
 public sealed record RefreshRequest(string RefreshToken);

@@ -184,17 +184,6 @@ void main() {
         _testApp(
           httpClient: MockClient((request) async {
             seenPaths.add(request.url.path);
-            if (request.url.path == '/auth/register') {
-              expect(jsonDecode(request.body), {
-                'email': 'trainee@example.test',
-                'password': 'Password123!',
-                'role': 'trainee',
-                'displayName': 'Test Trainee',
-                'registrationInviteCode': '  Beta-Code  ',
-              });
-              return http.Response(jsonEncode(_authResponse(role: 'trainee')), 201);
-            }
-
             fail('Unexpected request: ${request.method} ${request.url}');
           }),
         ),
@@ -215,7 +204,7 @@ void main() {
       expect(find.text('Kod trenera'), findsNothing);
       expect(find.byKey(const ValueKey('field-Kod trenera')), findsOneWidget);
       expect(find.text('Kod rejestracji'), findsNothing);
-      expect(seenPaths, ['/auth/register']);
+      expect(seenPaths, isEmpty);
     });
 
     testWidgets('trainer signup displays generated invite code on separate design screen',
@@ -272,15 +261,17 @@ void main() {
           httpClient: MockClient((request) async {
             seenPaths.add(request.url.path);
 
-            if (request.url.path == '/auth/register') {
-              return http.Response(jsonEncode(_authResponse(role: 'trainee')), 201);
-            }
-            if (request.url.path == '/trainee/trainer-link') {
-              expect(request.headers['Authorization'], 'Bearer access-token');
-              expect(jsonDecode(request.body), {'code': '7F2K9D'});
+            if (request.url.path == '/auth/register/trainee') {
+              expect(jsonDecode(request.body), {
+                'email': 'trainee@example.test',
+                'password': 'Password123!',
+                'displayName': 'Test Trainee',
+                'registrationInviteCode': '  Beta-Code  ',
+                'trainerInviteCode': '7F2K9D',
+              });
               return http.Response(
-                jsonEncode(_userResponse(role: 'trainee', trainerUserId: 'trainer-1')),
-                200,
+                jsonEncode(_authResponse(role: 'trainee')),
+                201,
               );
             }
             if (request.url.path == '/trainee/relationship') {
@@ -319,8 +310,7 @@ void main() {
       expect(find.text('TWÓJ TRENER'), findsOneWidget);
       expect(find.text('Test Trainer'), findsOneWidget);
       expect(seenPaths, [
-        '/auth/register',
-        '/trainee/trainer-link',
+        '/auth/register/trainee',
         '/trainee/relationship',
         '/trainee/workout-sets',
       ]);
@@ -328,24 +318,24 @@ void main() {
 
     testWidgets('trainer code paste filters, uppercases, limits and submits once',
         (tester) async {
-      final claimCompleter = Completer<http.Response>();
-      var claimCount = 0;
+      final registerCompleter = Completer<http.Response>();
+      var registerCount = 0;
       await tester.binding.setSurfaceSize(const Size(320, 568));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
         _testApp(
           httpClient: MockClient((request) async {
-            if (request.url.path == '/auth/register') {
-              return http.Response(
-                jsonEncode(_authResponse(role: 'trainee')),
-                201,
-              );
-            }
-            if (request.url.path == '/trainee/trainer-link') {
-              claimCount += 1;
-              expect(jsonDecode(request.body), {'code': '7F2K9D'});
-              return claimCompleter.future;
+            if (request.url.path == '/auth/register/trainee') {
+              registerCount += 1;
+              expect(jsonDecode(request.body), {
+                'email': 'trainee@example.test',
+                'password': 'Password123!',
+                'displayName': 'Test Trainee',
+                'registrationInviteCode': '  Beta-Code  ',
+                'trainerInviteCode': '7F2K9D',
+              });
+              return registerCompleter.future;
             }
             if (request.url.path == '/trainee/relationship') {
               return http.Response(
@@ -389,25 +379,27 @@ void main() {
       await tester.tap(connect);
       await tester.tap(connect);
       await tester.pump();
-      expect(claimCount, 1);
+      expect(registerCount, 1);
 
-      claimCompleter.complete(
+      registerCompleter.complete(
         http.Response(
           jsonEncode(
-            _userResponse(role: 'trainee', trainerUserId: 'trainer-1'),
+            _authResponse(role: 'trainee'),
           ),
-          200,
+          201,
         ),
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('trainee pairing does not render a dead back button',
+    testWidgets('trainee pairing back button returns to signup before account creation',
         (tester) async {
+      final seenPaths = <String>[];
       await tester.pumpWidget(
         _testApp(
           httpClient: MockClient((request) async {
+            seenPaths.add(request.url.path);
             if (request.url.path == '/auth/register') {
               return http.Response(
                 jsonEncode(_authResponse(role: 'trainee')),
@@ -430,28 +422,24 @@ void main() {
 
       expect(find.text('Połącz się\nz trenerem'), findsOneWidget);
       expect(find.text('Cześć,'), findsNothing);
-      expect(find.byIcon(Icons.chevron_left), findsNothing);
+      expect(seenPaths, isEmpty);
+
+      await tester.tap(find.byIcon(Icons.chevron_left));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Załóż konto'), findsOneWidget);
+      expect(find.text('Test Trainee'), findsOneWidget);
+      expect(find.text('Połącz się\nz trenerem'), findsNothing);
+      expect(seenPaths, isEmpty);
     });
 
-    testWidgets('pending trainee pairing is restored after app restart',
+    testWidgets('pending trainee pairing before account creation is not persisted',
         (tester) async {
       final tokenStore = _InMemoryTokenStore();
       final onboardingStore = _InMemoryOnboardingStateStore();
       final seenPaths = <String>[];
       final httpClient = MockClient((request) async {
         seenPaths.add(request.url.path);
-        if (request.url.path == '/auth/register') {
-          return http.Response(
-            jsonEncode(_authResponse(role: 'trainee')),
-            201,
-          );
-        }
-        if (request.url.path == '/auth/me') {
-          return http.Response(
-            jsonEncode(_userResponse(role: 'trainee')),
-            200,
-          );
-        }
         fail('Unexpected request: ${request.method} ${request.url}');
       });
 
@@ -470,7 +458,7 @@ void main() {
         email: 'trainee@example.test',
       );
       await _tapButton(tester, 'Utwórz konto');
-      expect(await onboardingStore.readPendingTraineeUserId(), 'user-1');
+      expect(await onboardingStore.readPendingTraineeUserId(), isNull);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
@@ -483,9 +471,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Połącz się\nz trenerem'), findsOneWidget);
+      expect(find.text('Załóż konto'), findsOneWidget);
+      expect(find.text('Połącz się\nz trenerem'), findsNothing);
       expect(find.text('Cześć,'), findsNothing);
-      expect(seenPaths, ['/auth/register', '/auth/me']);
+      expect(seenPaths, isEmpty);
     });
 
     testWidgets('failed trainer code is shown as friendly Polish message',
@@ -493,15 +482,9 @@ void main() {
       await tester.pumpWidget(
         _testApp(
           httpClient: MockClient((request) async {
-            if (request.url.path == '/auth/register') {
+            if (request.url.path == '/auth/register/trainee') {
               return http.Response(
-                jsonEncode(_authResponse(role: 'trainee')),
-                201,
-              );
-            }
-            if (request.url.path == '/trainee/trainer-link') {
-              return http.Response(
-                '{"error":"Trainer invite code was not found."}',
+                '{"error":"Nie znaleziono trenera dla podanego kodu. Sprawdź kod i spróbuj ponownie."}',
                 404,
               );
             }

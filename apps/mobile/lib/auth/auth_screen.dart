@@ -19,6 +19,7 @@ const _lmBlueDark = Color(0xFF2F6FD6);
 const _lmText = Color(0xFFF3F4F6);
 const _lmMuted = Color(0xFF969BA3);
 const _lmDim = Color(0xFF686D75);
+
 enum _AuthStep { welcome, role, login, signup }
 
 class AuthScreen extends StatefulWidget {
@@ -212,6 +213,30 @@ class _AuthScreenState extends State<AuthScreen> {
     });
   }
 
+  Future<void> _copyTrainerInviteCode() async {
+    final code = _trainerInviteCode;
+    if (_isPairing || code == null || code.trim().isEmpty) {
+      return;
+    }
+
+    try {
+      await Clipboard.setData(ClipboardData(text: code));
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kod zaproszenia skopiowany.')),
+      );
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nie udało się skopiować kodu.')),
+      );
+    }
+  }
+
   Future<void> _claimTrainerCode() async {
     if (_isPairing) {
       return;
@@ -350,9 +375,7 @@ class _AuthScreenState extends State<AuthScreen> {
         state.status == AuthControllerStatus.authenticated && user != null;
 
     if (!_isOnboardingStateReady) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (isAuthenticated && _pendingPairRole == null) {
@@ -399,6 +422,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       isLoading: _isPairing,
                       errorMessage: _pairingError,
                       onRetryTrainerCode: _generateTrainerCode,
+                      onCopyTrainerCode: _copyTrainerInviteCode,
                       onClaimTrainerCode: _claimTrainerCode,
                       onContinue: _finishPairing,
                       onBack: _pendingPairRole == UserRole.trainer
@@ -840,6 +864,7 @@ class _PairingPanel extends StatelessWidget {
     required this.trainerCodeController,
     required this.isLoading,
     required this.onRetryTrainerCode,
+    required this.onCopyTrainerCode,
     required this.onClaimTrainerCode,
     required this.onContinue,
     required this.onTrainerCodeChanged,
@@ -852,6 +877,7 @@ class _PairingPanel extends StatelessWidget {
   final TextEditingController trainerCodeController;
   final bool isLoading;
   final Future<void> Function() onRetryTrainerCode;
+  final Future<void> Function() onCopyTrainerCode;
   final Future<void> Function() onClaimTrainerCode;
   final Future<void> Function() onContinue;
   final VoidCallback? onBack;
@@ -876,6 +902,7 @@ class _PairingPanel extends StatelessWidget {
             isLoading: isLoading,
             errorMessage: errorMessage,
             onRetryTrainerCode: onRetryTrainerCode,
+            onCopyTrainerCode: onCopyTrainerCode,
             onContinue: onContinue,
           )
         else
@@ -895,6 +922,7 @@ class _TrainerInvitePanel extends StatelessWidget {
   const _TrainerInvitePanel({
     required this.isLoading,
     required this.onRetryTrainerCode,
+    required this.onCopyTrainerCode,
     required this.onContinue,
     this.code,
     this.errorMessage,
@@ -902,6 +930,7 @@ class _TrainerInvitePanel extends StatelessWidget {
 
   final bool isLoading;
   final Future<void> Function() onRetryTrainerCode;
+  final Future<void> Function() onCopyTrainerCode;
   final Future<void> Function() onContinue;
   final String? code;
   final String? errorMessage;
@@ -917,7 +946,11 @@ class _TrainerInvitePanel extends StatelessWidget {
               'Przekaż ten kod podopiecznemu. Po wpisaniu pojawi się na Twojej liście.',
         ),
         const SizedBox(height: 24),
-        _InviteCodeCard(code: code, isLoading: isLoading),
+        _InviteCodeCard(
+          code: code,
+          isLoading: isLoading,
+          onCopy: onCopyTrainerCode,
+        ),
         _ErrorText(message: errorMessage),
         const SizedBox(height: 22),
         if (code == null && !isLoading)
@@ -1275,9 +1308,7 @@ class _TrainerCodeInput extends StatelessWidget {
                     textCapitalization: TextCapitalization.characters,
                     textInputAction: TextInputAction.done,
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'[A-Za-z0-9]'),
-                      ),
+                      FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
                       _UpperCaseTextFormatter(),
                       LengthLimitingTextInputFormatter(6),
                     ],
@@ -1334,13 +1365,17 @@ class _CodeBox extends StatelessWidget {
 }
 
 class _InviteCodeCard extends StatelessWidget {
-  const _InviteCodeCard({required this.isLoading, this.code});
+  const _InviteCodeCard({required this.isLoading, this.code, this.onCopy});
 
   final bool isLoading;
   final String? code;
+  final Future<void> Function()? onCopy;
 
   @override
   Widget build(BuildContext context) {
+    final canCopy =
+        !isLoading && code != null && code!.trim().isNotEmpty && onCopy != null;
+
     return _InfoPanel(
       children: [
         const Text(
@@ -1366,19 +1401,27 @@ class _InviteCodeCard extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-            decoration: BoxDecoration(
-              color: _lmBlue.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: const Text(
-              '⧉ Kopiuj kod',
-              style: TextStyle(
-                color: Color(0xFF9CC1FB),
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
+          child: Tooltip(
+            message: 'Kopiuj kod zaproszenia',
+            child: TextButton(
+              key: const ValueKey('copy-trainer-invite-code-onboarding'),
+              onPressed: canCopy ? onCopy : null,
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF9CC1FB),
+                backgroundColor: _lmBlue.withValues(alpha: 0.16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 9,
+                ),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: const StadiumBorder(),
+                textStyle: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
+              child: const Text('⧉ Kopiuj kod'),
             ),
           ),
         ),

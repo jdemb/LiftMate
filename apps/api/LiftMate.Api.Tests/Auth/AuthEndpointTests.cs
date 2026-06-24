@@ -93,6 +93,59 @@ public sealed class AuthEndpointTests(TestApplicationFactory factory)
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
+    [Fact]
+    public async Task RegisterTraineeWithTrainerCodeCreatesLinkedAccount()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await Register(client, "trainer");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", trainer.AccessToken);
+        var inviteResponse = await client.PostAsync("/trainer/invite-code", null);
+        var invite = await inviteResponse.Content.ReadFromJsonAsync<TrainerInviteCodeResponse>();
+        client.DefaultRequestHeaders.Authorization = null;
+        var email = TestEmail();
+
+        var response = await client.PostAsJsonAsync(
+            "/auth/register/trainee",
+            new RegisterTraineeRequest(
+                email,
+                "Pass123$Strong",
+                "Test Trainee",
+                TestRegistrationInviteCode,
+                invite!.Code.ToLowerInvariant()));
+        var registered = await response.Content.ReadFromJsonAsync<AuthResponse>();
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.NotNull(registered);
+        Assert.Equal(email, registered.User.Email);
+        Assert.Equal("trainee", registered.User.Role);
+        Assert.Equal(trainer.User.Id, registered.User.TrainerUserId);
+    }
+
+    [Fact]
+    public async Task RegisterTraineeWithInvalidTrainerCodeDoesNotCreateUser()
+    {
+        using var client = factory.CreateClient();
+        var email = TestEmail();
+
+        var response = await client.PostAsJsonAsync(
+            "/auth/register/trainee",
+            new RegisterTraineeRequest(
+                email,
+                "Pass123$Strong",
+                "Test Trainee",
+                TestRegistrationInviteCode,
+                "WRONG1"));
+        var error = await ReadSingleError(response);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("Nie znaleziono trenera dla podanego kodu. Sprawdź kod i spróbuj ponownie.", error);
+
+        var loginResponse = await client.PostAsJsonAsync(
+            "/auth/login",
+            new LoginRequest(email, "Pass123$Strong"));
+        Assert.Equal(HttpStatusCode.Unauthorized, loginResponse.StatusCode);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -350,6 +403,13 @@ public sealed class AuthEndpointTests(TestApplicationFactory factory)
         string Role,
         string DisplayName,
         string? RegistrationInviteCode);
+
+    internal sealed record RegisterTraineeRequest(
+        string Email,
+        string Password,
+        string DisplayName,
+        string? RegistrationInviteCode,
+        string TrainerInviteCode);
 
     internal sealed record LoginRequest(string Email, string Password);
 

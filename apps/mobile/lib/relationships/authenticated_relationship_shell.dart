@@ -13,6 +13,8 @@ import '../shared_sessions/shared_session_realtime_client.dart';
 import '../training_history/training_history_api_client.dart';
 import '../training_history/training_history_controller.dart';
 import '../training_history/training_history_flow.dart';
+import '../trainer_guidance/trainer_guidance_api_client.dart';
+import '../trainer_guidance/trainer_guidance_controller.dart';
 import '../workout_sets/assign_workout_set_screen.dart';
 import '../workout_sets/workout_set_api_client.dart';
 import '../workout_sets/workout_set_builder_screen.dart';
@@ -34,6 +36,7 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
     required this.workoutSetApiClient,
     required this.sharedSessionApiClient,
     required this.trainingHistoryApiClient,
+    required this.trainerGuidanceApiClient,
     required this.postWorkoutFeedbackApiClient,
     required this.sharedSessionRealtimeClientFactory,
     required this.onLogout,
@@ -46,6 +49,7 @@ class AuthenticatedRelationshipShell extends StatefulWidget {
   final WorkoutSetApiClient workoutSetApiClient;
   final SharedSessionApiClient sharedSessionApiClient;
   final TrainingHistoryApiClient trainingHistoryApiClient;
+  final TrainerGuidanceApiClient trainerGuidanceApiClient;
   final PostWorkoutFeedbackApiClient postWorkoutFeedbackApiClient;
   final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
   final Future<void> Function() onLogout;
@@ -62,6 +66,7 @@ class _AuthenticatedRelationshipShellState
   late final SharedSessionController _sharedSessionController;
   late final TrainingHistoryController _selfHistoryController;
   TrainingHistoryController? _trainerHistoryController;
+  TrainerGuidanceController? _trainerGuidanceController;
   PostWorkoutFeedbackController? _feedbackController;
   _FeedbackOrigin? _feedbackOrigin;
   TrainerTraineeSummary? _selectedTrainee;
@@ -117,6 +122,7 @@ class _AuthenticatedRelationshipShellState
       _disposeFeedbackController();
       _trainerHistoryController?.dispose();
       _trainerHistoryController = null;
+      _disposeTrainerGuidanceController();
       _relationshipController.loadForUser(widget.user);
     }
   }
@@ -129,6 +135,7 @@ class _AuthenticatedRelationshipShellState
     _sharedSessionController.dispose();
     _selfHistoryController.dispose();
     _trainerHistoryController?.dispose();
+    _trainerGuidanceController?.dispose();
     _feedbackController?.dispose();
     super.dispose();
   }
@@ -172,11 +179,15 @@ class _AuthenticatedRelationshipShellState
           if (selected != null) {
             return TrainerTraineeDetailScreen(
               trainee: selected,
-              onBack: () => setState(() => _selectedTrainee = null),
+              onBack: () {
+                _disposeTrainerGuidanceController();
+                setState(() => _selectedTrainee = null);
+              },
               onLogout: widget.onLogout,
               onOpenWorkoutSets: _openWorkoutSetsFromDetail,
               onOpenHistory: () => _openTrainerHistory(selected),
               assignedSets: selected.assignedWorkoutSets,
+              guidanceController: _trainerGuidanceController,
               onStartSession: (set) => _startTrainerSession(selected, set),
               onJoinActiveSession: selected.activeSession == null
                   ? null
@@ -359,11 +370,19 @@ class _AuthenticatedRelationshipShellState
       _openingTraineeId = null;
       if (refreshed != null) {
         _selectedTrainee = refreshed;
+        _trainerGuidanceController?.dispose();
+        _trainerGuidanceController = TrainerGuidanceController(
+          apiClient: widget.trainerGuidanceApiClient,
+          accessTokenProvider: () => widget.authController.tokens?.accessToken,
+          traineeUserId: refreshed.id,
+        );
       }
     });
+    _trainerGuidanceController?.load();
   }
 
   void _openWorkoutSetsFromDetail() {
+    _disposeTrainerGuidanceController();
     setState(() {
       _selectedTrainee = null;
       _trainerView = _TrainerView.sets;
@@ -602,6 +621,11 @@ class _AuthenticatedRelationshipShellState
     _feedbackController?.dispose();
     _feedbackController = null;
     _feedbackOrigin = null;
+  }
+
+  void _disposeTrainerGuidanceController() {
+    _trainerGuidanceController?.dispose();
+    _trainerGuidanceController = null;
   }
 
   void _showProgressSavedConfirmation() {

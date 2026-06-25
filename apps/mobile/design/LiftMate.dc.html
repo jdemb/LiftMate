@@ -254,6 +254,33 @@
                   <div style="flex:1;padding:14px;border-radius:15px;background:#191c22;border:1px solid rgba(255,255,255,.07);text-align:center;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;color:#fff;">18</div><div style="font-size:11.5px;color:#969ba3;margin-top:2px;">treningów</div></div>
                   <div style="flex:1;padding:14px;border-radius:15px;background:#191c22;border:1px solid rgba(255,255,255,.07);text-align:center;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;color:#fff;">🔥6</div><div style="font-size:11.5px;color:#969ba3;margin-top:2px;">seria</div></div>
                 </div>
+                <div style="margin-top:22px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                  <div style="font-size:13px;font-weight:700;letter-spacing:.5px;color:#686d75;text-transform:uppercase;">Podpowiedzi</div>
+                  <div style="font-size:11.5px;color:#686d75;">Na podstawie 3 ostatnich treningów</div>
+                </div>
+                <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px;">
+                  <div style="padding:15px;border-radius:17px;background:rgba(58,130,246,.10);border:1px solid rgba(58,130,246,.28);">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+                      <div>
+                        <div style="font-family:'Space Grotesk';font-weight:700;font-size:16px;">Warto sprawdzić ciężar w ćwiczeniu Wyciskanie sztangi</div>
+                        <div style="font-size:12.5px;color:#9cc1fb;margin-top:6px;">40 kg → 45 kg → 40 kg · trzeci wynik nie jest wyższy od pierwszego</div>
+                      </div>
+                      <span style="font-size:11px;font-weight:800;color:#9cc1fb;background:rgba(58,130,246,.15);border:1px solid rgba(58,130,246,.28);border-radius:999px;padding:5px 8px;white-space:nowrap;">stagnacja</span>
+                    </div>
+                    <button style="margin-top:12px;height:34px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#191c22;color:#f3f4f6;font-family:'Manrope';font-weight:700;font-size:12.5px;padding:0 12px;cursor:pointer;">Oznacz jako przeczytaną</button>
+                  </div>
+                  <div style="padding:15px;border-radius:17px;background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.24);">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+                      <div>
+                        <div style="font-family:'Space Grotesk';font-weight:700;font-size:16px;">Średnia ocena samopoczucia z ostatnich treningów wynosi 3.0/5</div>
+                        <div style="font-size:12.5px;color:#d7b36a;margin-top:6px;">Oceny: 3, 2, 4 · informacyjna podpowiedź dla trenera</div>
+                      </div>
+                      <span style="font-size:11px;font-weight:800;color:#d7b36a;background:rgba(255,193,7,.12);border:1px solid rgba(255,193,7,.24);border-radius:999px;padding:5px 8px;white-space:nowrap;">samopoczucie</span>
+                    </div>
+                    <button style="margin-top:12px;height:34px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#191c22;color:#f3f4f6;font-family:'Manrope';font-weight:700;font-size:12.5px;padding:0 12px;cursor:pointer;">Oznacz jako przeczytaną</button>
+                  </div>
+                  <div style="padding:12px 14px;border-radius:14px;background:#191c22;border:1px dashed rgba(255,255,255,.12);font-size:12.5px;color:#969ba3;">Stan ładowania: sprawdzanie podpowiedzi… · Brak aktywnych podpowiedzi · Nie udało się pobrać podpowiedzi, spróbuj ponownie</div>
+                </div>
                 <div style="margin-top:22px;font-size:13px;font-weight:700;letter-spacing:.5px;color:#686d75;text-transform:uppercase;">Przypisany zestaw</div>
                 <div style="margin-top:12px;padding:18px;border-radius:18px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
                   <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -921,7 +948,7 @@ class Component extends DCLogic {
     signup:    { title: 'Rejestracja', note: 'Minimalny formularz konta, świadomy wybranej roli. Pełna walidacja po stronie .NET API.', refs: ['FR-001'] },
     pair:      { title: 'Parowanie kont', note: 'Trener udostępnia kod; podopieczny go wpisuje. Model: 1 trener → wielu podopiecznych, podopieczny → 1 trener.', refs: ['FR-002', 'FR-003'] },
     t_dash:    { title: 'Pulpit trenera', note: 'Lista podopiecznych ze statusem i progresem. Punkt startowy dla codziennej pracy trenera.', refs: ['FR-002', 'FR-004'] },
-    t_trainee: { title: 'Podopieczny — szczegóły', note: 'Wgląd w dane treningowe i przypisany zestaw. Stąd trener startuje wspólny trening.', refs: ['FR-004', 'FR-010'] },
+    t_trainee: { title: 'Podopieczny — szczegóły', note: 'Wgląd w dane treningowe, podpowiedzi z historii i przypisany zestaw. Stąd trener startuje wspólny trening.', refs: ['FR-004', 'FR-010', 'US-02'] },
     t_sets:    { title: 'Biblioteka zestawów', note: 'Globalne szablony zestawów, które można przypisać wielu podopiecznym.', refs: ['FR-008'] },
     t_builder: { title: 'Kreator zestawu', note: 'Budowanie zestawu z ćwiczeń i ich parametrów (serie, powtórzenia, ciężar).', refs: ['FR-007', 'FR-008'] },
     t_addex:   { title: 'Dodaj ćwiczenie', note: 'Ćwiczenie ma nazwę i typ: powtórzenia+waga, same powtórzenia, czas. Typ wyznacza parametry.', refs: ['FR-007'] },

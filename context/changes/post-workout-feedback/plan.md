@@ -622,8 +622,8 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Manual
 
-- [ ] 1.3 Formularz, dialog pominięcia, błąd i sekcja historii są czytelne na telefonowym viewportcie bez overflow.
-- [ ] 1.4 Copy i hierarchia wizualna są spójne z istniejącymi ekranami LiftMate.
+- [x] 1.3 Formularz, dialog pominięcia, błąd i sekcja historii są czytelne na telefonowym viewportcie bez overflow.
+- [x] 1.4 Copy i hierarchia wizualna są spójne z istniejącymi ekranami LiftMate.
 
 ### Phase 2: Additive Feedback Persistence And API Contract
 
@@ -646,8 +646,8 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Manual
 
-- [ ] 2.15 Migracja aplikuje się do disposable SQL Server z istniejącymi sesjami bez utraty historii.
-- [ ] 2.16 Ręczne żądanie identycznego retry zwraca ten sam wpis, a próba zmiany zapisanej oceny zostaje odrzucona.
+- [x] 2.15 Migracja aplikuje się do disposable SQL Server z istniejącymi sesjami bez utraty historii.
+- [x] 2.16 Ręczne żądanie identycznego retry zwraca ten sam wpis, a próba zmiany zapisanej oceny zostaje odrzucona.
 
 ### Phase 3: Flutter Feedback Data Flow And Completion Signal
 
@@ -669,8 +669,8 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Manual
 
-- [ ] 3.14 Symulowany błąd sieci zachowuje ocenę i komentarz po ponownym renderze.
-- [ ] 3.15 Zakończenie wspólnej sesji przez trenera nie otwiera formularza więcej niż raz u podopiecznego.
+- [x] 3.14 Symulowany błąd sieci zachowuje ocenę i komentarz po ponownym renderze.
+- [x] 3.15 Zakończenie wspólnej sesji przez trenera nie otwiera formularza więcej niż raz u podopiecznego.
 
 ### Phase 4: Feedback Form And Role-Aware History UI
 
@@ -693,10 +693,10 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Manual
 
-- [ ] 4.15 Formularz odpowiada zatwierdzonemu `LiftMate.dc.html` na telefonowym viewportcie.
-- [ ] 4.16 Klawiatura, pole komentarza, licznik i przyciski nie powodują overflow.
-- [ ] 4.17 Pomiń, retry i sukces prowadzą do właściwych ekranów z czytelnym copy.
-- [ ] 4.18 Trener i podopieczny widzą właściwe warianty sekcji historii.
+- [x] 4.15 Formularz odpowiada zatwierdzonemu `LiftMate.dc.html` na telefonowym viewportcie.
+- [x] 4.16 Klawiatura, pole komentarza, licznik i przyciski nie powodują overflow.
+- [x] 4.17 Pomiń, retry i sukces prowadzą do właściwych ekranów z czytelnym copy.
+- [x] 4.18 Trener i podopieczny widzą właściwe warianty sekcji historii.
 
 ### Phase 5: Cross-Stack Verification And Change Closure
 
@@ -713,13 +713,13 @@ Zweryfikować migrację, autoryzację, oba rodzaje treningu, retry, nawigację i
 
 #### Manual
 
-- [ ] 5.9 Podopieczny kończy trening samodzielny, wysyła ocenę i widzi zapis w swojej historii.
-- [ ] 5.10 Trener widzi ten sam read-only feedback przy właściwej sesji.
-- [ ] 5.11 Trener kończy trening wspólny, a podopieczny otrzymuje formularz dokładnie raz.
-- [ ] 5.12 Pominięty lub przerwany feedback można później dodać z historii.
-- [ ] 5.13 Błąd sieci zachowuje ocenę i komentarz, a retry zapisuje wpis bez duplikatu.
-- [ ] 5.14 Próba ponownej zmiany wysłanego feedbacku nie jest dostępna w UI i jest odrzucana przez API.
-- [ ] 5.15 Były i obcy trener nie widzą historii ani feedbacku podopiecznego.
-- [ ] 5.16 Istniejące sesje bez feedbacku pozostają czytelne.
-- [ ] 5.17 Formularz i sekcja historii odpowiadają zatwierdzonemu Design.
-- [ ] 5.18 Po wszystkich kontrolach użytkownik zatwierdza zamknięcie S-09.
+- [x] 5.9 Podopieczny kończy trening samodzielny, wysyła ocenę i widzi zapis w swojej historii.
+- [x] 5.10 Trener widzi ten sam read-only feedback przy właściwej sesji.
+- [x] 5.11 Trener kończy trening wspólny, a podopieczny otrzymuje formularz dokładnie raz.
+- [x] 5.12 Pominięty lub przerwany feedback można później dodać z historii.
+- [x] 5.13 Błąd sieci zachowuje ocenę i komentarz, a retry zapisuje wpis bez duplikatu.
+- [x] 5.14 Próba ponownej zmiany wysłanego feedbacku nie jest dostępna w UI i jest odrzucana przez API.
+- [x] 5.15 Były i obcy trener nie widzą historii ani feedbacku podopiecznego.
+- [x] 5.16 Istniejące sesje bez feedbacku pozostają czytelne.
+- [x] 5.17 Formularz i sekcja historii odpowiadają zatwierdzonemu Design.
+- [x] 5.18 Po wszystkich kontrolach użytkownik zatwierdza zamknięcie S-09.

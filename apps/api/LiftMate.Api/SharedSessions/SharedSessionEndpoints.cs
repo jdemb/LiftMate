@@ -2,6 +2,7 @@ using System.Data;
 using System.Security.Claims;
 using LiftMate.Api.Auth;
 using LiftMate.Api.Data;
+using LiftMate.Api.TrainerGuidance;
 using LiftMate.Api.TrainingProgress;
 using LiftMate.Api.WorkoutSets;
 using Microsoft.AspNetCore.Identity;
@@ -427,6 +428,7 @@ public static class SharedSessionEndpoints
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
         WorkoutProgressProjector projector,
+        TrainerGuidanceEvaluator guidanceEvaluator,
         SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
@@ -472,8 +474,10 @@ public static class SharedSessionEndpoints
             session.UpdatedAt = completedAt;
             session.ClosedAt = completedAt;
 
+            await dbContext.SaveChangesAsync(cancellationToken);
             await projector.ProjectAsync(session, completedAt, cancellationToken);
             await dbContext.SaveChangesAsync(cancellationToken);
+            await guidanceEvaluator.EvaluateWeightStagnationAsync(session.TraineeUserId, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             completedSession = session;
         });

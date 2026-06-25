@@ -11,6 +11,7 @@ import 'relationships/relationship_api_client.dart';
 import 'shared_sessions/shared_session_api_client.dart';
 import 'shared_sessions/shared_session_realtime_client.dart';
 import 'training_history/training_history_api_client.dart';
+import 'trainer_guidance/trainer_guidance_api_client.dart';
 import 'workout_sets/workout_set_api_client.dart';
 
 Future<void> main() async {
@@ -31,6 +32,9 @@ Future<void> main() async {
   final postWorkoutFeedbackApiClient = PostWorkoutFeedbackApiClient(
     baseUrl: config.apiBaseUrl,
   );
+  final trainerGuidanceApiClient = TrainerGuidanceApiClient(
+    baseUrl: config.apiBaseUrl,
+  );
   runApp(
     MainApp(
       authController: AuthController(
@@ -42,6 +46,7 @@ Future<void> main() async {
       workoutSetApiClient: workoutSetApiClient,
       sharedSessionApiClient: sharedSessionApiClient,
       trainingHistoryApiClient: trainingHistoryApiClient,
+      trainerGuidanceApiClient: trainerGuidanceApiClient,
       postWorkoutFeedbackApiClient: postWorkoutFeedbackApiClient,
       sharedSessionRealtimeClientFactory: () {
         return SignalRSharedSessionRealtimeClient(baseUrl: config.apiBaseUrl);
@@ -58,6 +63,7 @@ class MainApp extends StatelessWidget {
     required this.workoutSetApiClient,
     required this.sharedSessionApiClient,
     required this.trainingHistoryApiClient,
+    required this.trainerGuidanceApiClient,
     required this.postWorkoutFeedbackApiClient,
     required this.sharedSessionRealtimeClientFactory,
     super.key,
@@ -69,6 +75,7 @@ class MainApp extends StatelessWidget {
   final WorkoutSetApiClient workoutSetApiClient;
   final SharedSessionApiClient sharedSessionApiClient;
   final TrainingHistoryApiClient trainingHistoryApiClient;
+  final TrainerGuidanceApiClient trainerGuidanceApiClient;
   final PostWorkoutFeedbackApiClient postWorkoutFeedbackApiClient;
   final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
 
@@ -83,6 +90,7 @@ class MainApp extends StatelessWidget {
         workoutSetApiClient: workoutSetApiClient,
         sharedSessionApiClient: sharedSessionApiClient,
         trainingHistoryApiClient: trainingHistoryApiClient,
+        trainerGuidanceApiClient: trainerGuidanceApiClient,
         postWorkoutFeedbackApiClient: postWorkoutFeedbackApiClient,
         sharedSessionRealtimeClientFactory: sharedSessionRealtimeClientFactory,
       ),

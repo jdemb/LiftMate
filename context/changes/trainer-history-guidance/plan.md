@@ -516,17 +516,17 @@ flutter analyze
 
 ### Phase 3: API Endpoints and Access Control
 
-- [x] 3.1 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainerGuidance"` przechodzi.
-- [x] 3.2 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainingHistory"` przechodzi.
-- [x] 3.3 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~PostWorkoutFeedback"` przechodzi.
+- [x] 3.1 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainerGuidance"` przechodzi. — bd10090
+- [x] 3.2 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainingHistory"` przechodzi. — bd10090
+- [x] 3.3 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~PostWorkoutFeedback"` przechodzi. — bd10090
 - [ ] 3.4 Manual: Endpointy nie materializują nowych podpowiedzi przy samym `GET`.
 - [ ] 3.5 Manual: Autoryzacja używa aktualnej relacji, nie historycznego trenera z momentu utworzenia sesji.
 
 ### Phase 4: Mobile Data Flow and Trainee Detail UI
 
-- [ ] 4.1 Automated: `flutter test test/trainer_guidance_models_test.dart test/trainer_guidance_api_client_test.dart test/trainer_guidance_controller_test.dart` przechodzi.
-- [ ] 4.2 Automated: `flutter test test/trainer_trainee_detail_screen_test.dart test/post_auth_relationship_screen_test.dart test/training_history_flow_test.dart` przechodzi.
-- [ ] 4.3 Automated: `flutter analyze` przechodzi.
+- [x] 4.1 Automated: `flutter test test/trainer_guidance_models_test.dart test/trainer_guidance_api_client_test.dart test/trainer_guidance_controller_test.dart` przechodzi.
+- [x] 4.2 Automated: `flutter test test/trainer_trainee_detail_screen_test.dart test/post_auth_relationship_screen_test.dart test/training_history_flow_test.dart` przechodzi.
+- [x] 4.3 Automated: `flutter analyze` przechodzi.
 - [ ] 4.4 Manual: Trener widzi maksymalnie 3 podpowiedzi na detalu podopiecznego.
 - [ ] 4.5 Manual: Oznaczenie jako przeczytane usuwa kartę bez opuszczania ekranu.
 - [ ] 4.6 Manual: Błąd podpowiedzi nie psuje akcji `Historia` i `Zmień zestaw`.

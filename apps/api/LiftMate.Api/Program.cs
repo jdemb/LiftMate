@@ -3,6 +3,7 @@ using System.Text;
 using LiftMate.Api.Auth;
 using LiftMate.Api.Data;
 using LiftMate.Api.SharedSessions;
+using LiftMate.Api.TrainerGuidance;
 using LiftMate.Api.TrainingProgress;
 using LiftMate.Api.TrainingHistory;
 using LiftMate.Api.WorkoutSets;
@@ -35,6 +36,7 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<RegistrationGate>();
 builder.Services.AddScoped<SharedSessionBroadcaster>();
 builder.Services.AddScoped<WorkoutProgressProjector>();
+builder.Services.AddScoped<TrainerGuidanceEvaluator>();
 builder.Services.AddSignalR();
 
 builder.Services

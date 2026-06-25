@@ -53,4 +53,32 @@ public sealed class MigrationScriptTests
         Assert.Contains("nvarchar(1000)", script, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("FK_PostWorkoutFeedbacks_SharedSessions_SharedSessionId", script, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void TrainerGuidanceMigrationGeneratesAdditiveTableWithDeduplicationIndex()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=LiftMateMigrationScript;Trusted_Connection=True")
+            .Options;
+
+        using var dbContext = new ApplicationDbContext(options);
+        var migrator = dbContext.GetService<IMigrator>();
+        var script = migrator.GenerateScript(
+            options: MigrationsSqlGenerationOptions.Idempotent);
+
+        Assert.Contains("AddTrainerGuidance", script, StringComparison.Ordinal);
+        Assert.Contains("TrainerGuidance", script, StringComparison.Ordinal);
+        Assert.Contains("TraineeUserId", script, StringComparison.Ordinal);
+        Assert.Contains("Fingerprint", script, StringComparison.Ordinal);
+        Assert.Contains("EvidenceJson", script, StringComparison.Ordinal);
+        Assert.Contains("ReadAt", script, StringComparison.Ordinal);
+        Assert.Contains("CK_TrainerGuidance_Type", script, StringComparison.Ordinal);
+        Assert.Contains("weight_stagnation", script, StringComparison.Ordinal);
+        Assert.Contains("low_wellbeing", script, StringComparison.Ordinal);
+        Assert.Contains(
+            "IX_TrainerGuidance_TraineeUserId_Type_ExerciseId_Fingerprint",
+            script,
+            StringComparison.Ordinal);
+        Assert.Contains("CREATE UNIQUE INDEX", script, StringComparison.OrdinalIgnoreCase);
+    }
 }

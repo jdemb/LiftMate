@@ -499,18 +499,18 @@ flutter analyze
 
 ### Phase 1: Design Contract and S-09 Design Reconciliation
 
-- [x] 1.1 Automated: `rg` potwierdza obecność copy feedbacku S-09 i podpowiedzi S-10 w `LiftMate.dc.html` oraz `LiftMate.html`.
-- [x] 1.2 Automated: workflow source/artefakt designu został potwierdzony przez znaczniki bundlera albo opisany w notatce fazy.
+- [x] 1.1 Automated: `rg` potwierdza obecność copy feedbacku S-09 i podpowiedzi S-10 w `LiftMate.dc.html` oraz `LiftMate.html`. — 24c1ceb
+- [x] 1.2 Automated: workflow source/artefakt designu został potwierdzony przez znaczniki bundlera albo opisany w notatce fazy. — 24c1ceb
 - [ ] 1.3 Manual: Detal podopiecznego zachowuje czytelną hierarchię na telefonowym viewportcie.
 - [ ] 1.4 Manual: Karty podpowiedzi nie wypychają kluczowych akcji poza sensowny pierwszy ekran przy 1-3 kartach.
 - [ ] 1.5 Manual: Feedback S-09 jest obecny w `LiftMate.html` i `LiftMate.dc.html`.
 
 ### Phase 2: API Data Model and Guidance Evaluation
 
-- [ ] 2.1 Automated: `dotnet restore LiftMate.slnx` przechodzi z katalogu `apps/api`.
-- [ ] 2.2 Automated: `dotnet build LiftMate.slnx --no-restore` przechodzi z katalogu `apps/api`.
-- [ ] 2.3 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainerGuidance"` przechodzi.
-- [ ] 2.4 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~MigrationScript"` przechodzi.
+- [x] 2.1 Automated: `dotnet restore LiftMate.slnx` przechodzi z katalogu `apps/api`.
+- [x] 2.2 Automated: `dotnet build LiftMate.slnx --no-restore` przechodzi z katalogu `apps/api`.
+- [x] 2.3 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainerGuidance"` przechodzi.
+- [x] 2.4 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~MigrationScript"` przechodzi.
 - [ ] 2.5 Manual: Migracja jest addytywna i nie dotyka istniejących tabel historii poza relacjami/indeksami wymaganymi do odczytu.
 - [ ] 2.6 Manual: Ewaluator nie wymaga ręcznego backfillu starych danych w MVP.
 

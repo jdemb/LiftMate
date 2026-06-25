@@ -524,17 +524,17 @@ flutter analyze
 
 ### Phase 4: Mobile Data Flow and Trainee Detail UI
 
-- [x] 4.1 Automated: `flutter test test/trainer_guidance_models_test.dart test/trainer_guidance_api_client_test.dart test/trainer_guidance_controller_test.dart` przechodzi.
-- [x] 4.2 Automated: `flutter test test/trainer_trainee_detail_screen_test.dart test/post_auth_relationship_screen_test.dart test/training_history_flow_test.dart` przechodzi.
-- [x] 4.3 Automated: `flutter analyze` przechodzi.
+- [x] 4.1 Automated: `flutter test test/trainer_guidance_models_test.dart test/trainer_guidance_api_client_test.dart test/trainer_guidance_controller_test.dart` przechodzi. — 23c8c20
+- [x] 4.2 Automated: `flutter test test/trainer_trainee_detail_screen_test.dart test/post_auth_relationship_screen_test.dart test/training_history_flow_test.dart` przechodzi. — 23c8c20
+- [x] 4.3 Automated: `flutter analyze` przechodzi. — 23c8c20
 - [ ] 4.4 Manual: Trener widzi maksymalnie 3 podpowiedzi na detalu podopiecznego.
 - [ ] 4.5 Manual: Oznaczenie jako przeczytane usuwa kartę bez opuszczania ekranu.
 - [ ] 4.6 Manual: Błąd podpowiedzi nie psuje akcji `Historia` i `Zmień zestaw`.
 
 ### Phase 5: Cross-Feature Verification and Closeout
 
-- [ ] 5.1 Automated: Pełny zestaw komend API z Phase 5 przechodzi z katalogu `apps/api`.
-- [ ] 5.2 Automated: Pełny zestaw komend mobile z Phase 5 przechodzi z katalogu `apps/mobile`.
+- [x] 5.1 Automated: Pełny zestaw komend API z Phase 5 przechodzi z katalogu `apps/api`.
+- [x] 5.2 Automated: Pełny zestaw komend mobile z Phase 5 przechodzi z katalogu `apps/mobile`.
 - [ ] 5.3 Manual: Trener widzi podpowiedź stagnacji po 3 zakończonych sesjach z tym samym `ExerciseId`, gdy trzeci maksymalny ciężar nie jest wyższy od pierwszego.
 - [ ] 5.4 Manual: Trener nie widzi podpowiedzi stagnacji dla ćwiczeń bez `ExerciseId`, typów innych niż `repsWeight`, ani dla mniej niż 3 sesji.
 - [ ] 5.5 Manual: Trener widzi podpowiedź wellbeing przy średniej feedbacku `<= 3.0` z 3 ostatnich zakończonych sesji z feedbackiem.

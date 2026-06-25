@@ -533,8 +533,8 @@ flutter analyze
 
 ### Phase 5: Cross-Feature Verification and Closeout
 
-- [x] 5.1 Automated: Pełny zestaw komend API z Phase 5 przechodzi z katalogu `apps/api`.
-- [x] 5.2 Automated: Pełny zestaw komend mobile z Phase 5 przechodzi z katalogu `apps/mobile`.
+- [x] 5.1 Automated: Pełny zestaw komend API z Phase 5 przechodzi z katalogu `apps/api`. — 6d7d25f
+- [x] 5.2 Automated: Pełny zestaw komend mobile z Phase 5 przechodzi z katalogu `apps/mobile`. — 6d7d25f
 - [ ] 5.3 Manual: Trener widzi podpowiedź stagnacji po 3 zakończonych sesjach z tym samym `ExerciseId`, gdy trzeci maksymalny ciężar nie jest wyższy od pierwszego.
 - [ ] 5.4 Manual: Trener nie widzi podpowiedzi stagnacji dla ćwiczeń bez `ExerciseId`, typów innych niż `repsWeight`, ani dla mniej niż 3 sesji.
 - [ ] 5.5 Manual: Trener widzi podpowiedź wellbeing przy średniej feedbacku `<= 3.0` z 3 ostatnich zakończonych sesji z feedbackiem.

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using LiftMate.Api.Auth;
 using LiftMate.Api.Data;
+using LiftMate.Api.TrainerGuidance;
 using Microsoft.EntityFrameworkCore;
 
 namespace LiftMate.Api.SharedSessions;
@@ -21,6 +22,7 @@ public static class PostWorkoutFeedbackEndpoints
         CreatePostWorkoutFeedbackRequest request,
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
+        TrainerGuidanceEvaluator guidanceEvaluator,
         CancellationToken cancellationToken)
     {
         var validationError = NormalizeAndValidate(request, out var normalizedComment);
@@ -88,6 +90,7 @@ public static class PostWorkoutFeedbackEndpoints
             return ReplayResult(existing, request.WellbeingRating, normalizedComment);
         }
 
+        await guidanceEvaluator.EvaluateLowWellbeingAsync(session.TraineeUserId, cancellationToken);
         return Results.Created($"/shared-sessions/{sessionId}/feedback", ToResponse(feedback));
     }
 

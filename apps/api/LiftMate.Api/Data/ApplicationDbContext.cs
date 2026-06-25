@@ -1,5 +1,6 @@
 using LiftMate.Api.Auth;
 using LiftMate.Api.SharedSessions;
+using LiftMate.Api.TrainerGuidance;
 using LiftMate.Api.TrainingProgress;
 using LiftMate.Api.WorkoutSets;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -19,6 +20,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<SharedSessionValue> SharedSessionValues => Set<SharedSessionValue>();
 
     public DbSet<PostWorkoutFeedback> PostWorkoutFeedbacks => Set<PostWorkoutFeedback>();
+
+    public DbSet<TrainerGuidance.TrainerGuidance> TrainerGuidance => Set<TrainerGuidance.TrainerGuidance>();
 
     public DbSet<WorkoutSet> WorkoutSets => Set<WorkoutSet>();
 
@@ -205,6 +208,55 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             entity.ToTable(table => table.HasCheckConstraint(
                 "CK_PostWorkoutFeedbacks_WellbeingRating",
                 "[WellbeingRating] BETWEEN 1 AND 5"));
+        });
+
+        builder.Entity<TrainerGuidance.TrainerGuidance>(entity =>
+        {
+            entity.HasKey(guidance => guidance.Id);
+
+            entity.Property(guidance => guidance.TraineeUserId)
+                .HasMaxLength(450)
+                .IsRequired();
+
+            entity.Property(guidance => guidance.Type)
+                .HasMaxLength(64)
+                .IsRequired();
+
+            entity.Property(guidance => guidance.ExerciseName)
+                .HasMaxLength(200);
+
+            entity.Property(guidance => guidance.Fingerprint)
+                .HasMaxLength(128)
+                .IsRequired();
+
+            entity.Property(guidance => guidance.Message)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.Property(guidance => guidance.EvidenceJson)
+                .IsRequired();
+
+            entity.Property(guidance => guidance.CreatedAt)
+                .IsRequired();
+
+            entity.HasIndex(guidance => new
+                {
+                    guidance.TraineeUserId,
+                    guidance.Type,
+                    guidance.ExerciseId,
+                    guidance.Fingerprint,
+                })
+                .IsUnique();
+            entity.HasIndex(guidance => new
+            {
+                guidance.TraineeUserId,
+                guidance.ReadAt,
+                guidance.CreatedAt,
+            });
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_TrainerGuidance_Type",
+                "[Type] IN ('weight_stagnation', 'low_wellbeing')"));
         });
 
         builder.Entity<SharedSessionValue>(entity =>

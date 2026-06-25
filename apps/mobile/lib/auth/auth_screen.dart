@@ -7,6 +7,7 @@ import '../relationships/relationship_api_client.dart';
 import '../shared_sessions/shared_session_api_client.dart';
 import '../shared_sessions/shared_session_realtime_client.dart';
 import '../training_history/training_history_api_client.dart';
+import '../trainer_guidance/trainer_guidance_api_client.dart';
 import '../workout_sets/workout_set_api_client.dart';
 import 'auth_api_client.dart';
 import 'auth_controller.dart';
@@ -31,6 +32,7 @@ class AuthScreen extends StatefulWidget {
     required this.workoutSetApiClient,
     SharedSessionApiClient? sharedSessionApiClient,
     TrainingHistoryApiClient? trainingHistoryApiClient,
+    TrainerGuidanceApiClient? trainerGuidanceApiClient,
     PostWorkoutFeedbackApiClient? postWorkoutFeedbackApiClient,
     SharedSessionRealtimeClientFactory? sharedSessionRealtimeClientFactory,
     super.key,
@@ -38,6 +40,8 @@ class AuthScreen extends StatefulWidget {
            sharedSessionApiClient ?? SharedSessionApiClient(),
        trainingHistoryApiClient =
            trainingHistoryApiClient ?? TrainingHistoryApiClient(),
+       trainerGuidanceApiClient =
+           trainerGuidanceApiClient ?? TrainerGuidanceApiClient(),
        postWorkoutFeedbackApiClient =
            postWorkoutFeedbackApiClient ?? PostWorkoutFeedbackApiClient(),
        sharedSessionRealtimeClientFactory =
@@ -50,6 +54,7 @@ class AuthScreen extends StatefulWidget {
   final WorkoutSetApiClient workoutSetApiClient;
   final SharedSessionApiClient sharedSessionApiClient;
   final TrainingHistoryApiClient trainingHistoryApiClient;
+  final TrainerGuidanceApiClient trainerGuidanceApiClient;
   final PostWorkoutFeedbackApiClient postWorkoutFeedbackApiClient;
   final SharedSessionRealtimeClientFactory sharedSessionRealtimeClientFactory;
 
@@ -398,6 +403,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   workoutSetApiClient: widget.workoutSetApiClient,
                   sharedSessionApiClient: widget.sharedSessionApiClient,
                   trainingHistoryApiClient: widget.trainingHistoryApiClient,
+                  trainerGuidanceApiClient: widget.trainerGuidanceApiClient,
                   postWorkoutFeedbackApiClient:
                       widget.postWorkoutFeedbackApiClient,
                   sharedSessionRealtimeClientFactory:

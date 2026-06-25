@@ -507,18 +507,18 @@ flutter analyze
 
 ### Phase 2: API Data Model and Guidance Evaluation
 
-- [x] 2.1 Automated: `dotnet restore LiftMate.slnx` przechodzi z katalogu `apps/api`.
-- [x] 2.2 Automated: `dotnet build LiftMate.slnx --no-restore` przechodzi z katalogu `apps/api`.
-- [x] 2.3 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainerGuidance"` przechodzi.
-- [x] 2.4 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~MigrationScript"` przechodzi.
+- [x] 2.1 Automated: `dotnet restore LiftMate.slnx` przechodzi z katalogu `apps/api`. — 99747b6
+- [x] 2.2 Automated: `dotnet build LiftMate.slnx --no-restore` przechodzi z katalogu `apps/api`. — 99747b6
+- [x] 2.3 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainerGuidance"` przechodzi. — 99747b6
+- [x] 2.4 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~MigrationScript"` przechodzi. — 99747b6
 - [ ] 2.5 Manual: Migracja jest addytywna i nie dotyka istniejących tabel historii poza relacjami/indeksami wymaganymi do odczytu.
 - [ ] 2.6 Manual: Ewaluator nie wymaga ręcznego backfillu starych danych w MVP.
 
 ### Phase 3: API Endpoints and Access Control
 
-- [ ] 3.1 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainerGuidance"` przechodzi.
-- [ ] 3.2 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainingHistory"` przechodzi.
-- [ ] 3.3 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~PostWorkoutFeedback"` przechodzi.
+- [x] 3.1 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainerGuidance"` przechodzi.
+- [x] 3.2 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~TrainingHistory"` przechodzi.
+- [x] 3.3 Automated: `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~PostWorkoutFeedback"` przechodzi.
 - [ ] 3.4 Manual: Endpointy nie materializują nowych podpowiedzi przy samym `GET`.
 - [ ] 3.5 Manual: Autoryzacja używa aktualnej relacji, nie historycznego trenera z momentu utworzenia sesji.
 

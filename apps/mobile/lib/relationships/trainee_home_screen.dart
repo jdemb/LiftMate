@@ -254,8 +254,6 @@ class _LinkedTrainerCard extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 14),
-        _WeeklyStreakCard(summary: weeklyStreak),
         const SizedBox(height: 18),
         _AssignedSetsSection(
           controller: workoutSetController,
@@ -263,6 +261,8 @@ class _LinkedTrainerCard extends StatelessWidget {
           onStartWorkout: onStartWorkout,
           onJoinActiveWorkout: onJoinActiveWorkout,
         ),
+        const SizedBox(height: 14),
+        _WeeklyStreakCard(summary: weeklyStreak),
         const SizedBox(height: 22),
         _TrainerCodeForm(
           controller: controller,

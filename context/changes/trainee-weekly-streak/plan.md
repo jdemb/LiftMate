@@ -577,8 +577,8 @@ flutter analyze
 
 #### Automated
 
-- [x] 5.1 Pelny zestaw komend API z Phase 5 przechodzi z katalogu `apps/api`.
-- [x] 5.2 Pelny zestaw komend mobile z Phase 5 przechodzi z katalogu `apps/mobile`.
+- [x] 5.1 Pelny zestaw komend API z Phase 5 przechodzi z katalogu `apps/api`. — e7afa9d
+- [x] 5.2 Pelny zestaw komend mobile z Phase 5 przechodzi z katalogu `apps/mobile`. — e7afa9d
 
 #### Manual
 

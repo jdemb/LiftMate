@@ -537,17 +537,17 @@ flutter analyze
 
 #### Automated
 
-- [x] 3.1 Po zakonczeniu sesji samodzielnej snapshot tworzy sie lub aktualizuje.
-- [x] 3.2 Po zakonczeniu sesji wspolnej snapshot tworzy sie lub aktualizuje.
-- [x] 3.3 Dwie sesje w tym samym tygodniu nie zwiekszaja serii ponad jeden tydzien.
-- [x] 3.4 Tydzien przerwy zeruje current w response, ale nie best.
-- [x] 3.5 Relationship summary trenera zawiera weekly streak dla kazdego aktualnego podopiecznego.
-- [x] 3.6 Relationship summary podopiecznego zawiera weekly streak zalogowanego podopiecznego.
-- [x] 3.7 Obcy trener nie moze dostac cudzej serii przez relationship endpoint.
-- [x] 3.8 Read-through inicjalizacja tworzy sensowny wynik dla istniejacych zakonczonych sesji.
-- [x] 3.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~WeeklyStreak"` przechodzi.
-- [x] 3.10 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~PairingEndpoint"` przechodzi.
-- [x] 3.11 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~SharedSessionEndpoint"` przechodzi.
+- [x] 3.1 Po zakonczeniu sesji samodzielnej snapshot tworzy sie lub aktualizuje. — b27fc21
+- [x] 3.2 Po zakonczeniu sesji wspolnej snapshot tworzy sie lub aktualizuje. — b27fc21
+- [x] 3.3 Dwie sesje w tym samym tygodniu nie zwiekszaja serii ponad jeden tydzien. — b27fc21
+- [x] 3.4 Tydzien przerwy zeruje current w response, ale nie best. — b27fc21
+- [x] 3.5 Relationship summary trenera zawiera weekly streak dla kazdego aktualnego podopiecznego. — b27fc21
+- [x] 3.6 Relationship summary podopiecznego zawiera weekly streak zalogowanego podopiecznego. — b27fc21
+- [x] 3.7 Obcy trener nie moze dostac cudzej serii przez relationship endpoint. — b27fc21
+- [x] 3.8 Read-through inicjalizacja tworzy sensowny wynik dla istniejacych zakonczonych sesji. — b27fc21
+- [x] 3.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~WeeklyStreak"` przechodzi. — b27fc21
+- [x] 3.10 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~PairingEndpoint"` przechodzi. — b27fc21
+- [x] 3.11 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~SharedSessionEndpoint"` przechodzi. — b27fc21
 
 #### Manual
 
@@ -558,14 +558,14 @@ flutter analyze
 
 #### Automated
 
-- [ ] 4.1 Mobile modele parsuja `weeklyStreak` dla trenera i podopiecznego.
-- [ ] 4.2 Formatter poprawnie odmienia `tydzień/tygodnie/tygodni`.
-- [ ] 4.3 Formatter ostatniego treningu obsluguje null, dzisiaj, wczoraj i kilka dni temu.
-- [ ] 4.4 Ekran "Dzis" pokazuje aktualna i najlepsza serie.
-- [ ] 4.5 Lista trenera pokazuje `ostatnio ...` i `🔥 N` dla podopiecznego.
-- [ ] 4.6 Detal podopiecznego pokazuje kafel serii bez usuwania `Podpowiedzi`.
-- [ ] 4.7 `flutter test test/relationship_api_client_test.dart test/relationship_controller_test.dart test/post_auth_relationship_screen_test.dart test/trainer_trainee_detail_screen_test.dart` przechodzi.
-- [ ] 4.8 `flutter analyze` przechodzi.
+- [x] 4.1 Mobile modele parsuja `weeklyStreak` dla trenera i podopiecznego.
+- [x] 4.2 Formatter poprawnie odmienia `tydzień/tygodnie/tygodni`.
+- [x] 4.3 Formatter ostatniego treningu obsluguje null, dzisiaj, wczoraj i kilka dni temu.
+- [x] 4.4 Ekran "Dzis" pokazuje aktualna i najlepsza serie.
+- [x] 4.5 Lista trenera pokazuje `ostatnio ...` i `🔥 N` dla podopiecznego.
+- [x] 4.6 Detal podopiecznego pokazuje kafel serii bez usuwania `Podpowiedzi`.
+- [x] 4.7 `flutter test test/relationship_api_client_test.dart test/relationship_controller_test.dart test/post_auth_relationship_screen_test.dart test/trainer_trainee_detail_screen_test.dart` przechodzi.
+- [x] 4.8 `flutter analyze` przechodzi.
 
 #### Manual
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_models.dart';
 import 'relationship_controller.dart';
+import 'relationship_formatters.dart';
 import 'relationship_models.dart';
 import 'relationship_screen_styles.dart';
 
@@ -394,6 +395,39 @@ class _TraineeListItem extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 78,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        trainee.weeklyStreak.lastCompletedWorkoutAt == null
+                            ? 'nie zaczął'
+                            : 'ostatnio ${formatLastWorkout(trainee.weeklyStreak.lastCompletedWorkoutAt)}',
+                        maxLines: 2,
+                        textAlign: TextAlign.right,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: lmMuted,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        formatWeeklyStreakFlame(
+                          trainee.weeklyStreak.currentStreak,
+                        ),
+                        style: const TextStyle(
+                          color: lmMutedDark,
+                          fontSize: 11.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
                 if (isOpening)
                   const SizedBox.square(
                     dimension: 22,

@@ -518,15 +518,15 @@ flutter analyze
 
 #### Automated
 
-- [x] 2.1 Kalkulator zwraca `1` dla jednej sesji w aktualnym tygodniu.
-- [x] 2.2 Dwie sesje w tym samym tygodniu nadal daja `1`.
-- [x] 2.3 Kolejne aktywne tygodnie zwiekszaja current i best.
-- [x] 2.4 Pusty tydzien zeruje current przy odczycie, ale best pozostaje.
-- [x] 2.5 Niedziela i poniedzialek Europe/Warsaw trafiaja do wlasciwych tygodni.
-- [x] 2.6 Przejscie grudzien/styczen zachowuje kolejnosc tygodni.
-- [x] 2.7 Idempotentny skrypt migracji SQL Server zawiera addytywna tabele i ograniczenia.
-- [x] 2.8 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~WeeklyStreak"` przechodzi.
-- [x] 2.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~MigrationScript"` przechodzi.
+- [x] 2.1 Kalkulator zwraca `1` dla jednej sesji w aktualnym tygodniu. — d032684
+- [x] 2.2 Dwie sesje w tym samym tygodniu nadal daja `1`. — d032684
+- [x] 2.3 Kolejne aktywne tygodnie zwiekszaja current i best. — d032684
+- [x] 2.4 Pusty tydzien zeruje current przy odczycie, ale best pozostaje. — d032684
+- [x] 2.5 Niedziela i poniedzialek Europe/Warsaw trafiaja do wlasciwych tygodni. — d032684
+- [x] 2.6 Przejscie grudzien/styczen zachowuje kolejnosc tygodni. — d032684
+- [x] 2.7 Idempotentny skrypt migracji SQL Server zawiera addytywna tabele i ograniczenia. — d032684
+- [x] 2.8 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~WeeklyStreak"` przechodzi. — d032684
+- [x] 2.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~MigrationScript"` przechodzi. — d032684
 
 #### Manual
 
@@ -537,17 +537,17 @@ flutter analyze
 
 #### Automated
 
-- [ ] 3.1 Po zakonczeniu sesji samodzielnej snapshot tworzy sie lub aktualizuje.
-- [ ] 3.2 Po zakonczeniu sesji wspolnej snapshot tworzy sie lub aktualizuje.
-- [ ] 3.3 Dwie sesje w tym samym tygodniu nie zwiekszaja serii ponad jeden tydzien.
-- [ ] 3.4 Tydzien przerwy zeruje current w response, ale nie best.
-- [ ] 3.5 Relationship summary trenera zawiera weekly streak dla kazdego aktualnego podopiecznego.
-- [ ] 3.6 Relationship summary podopiecznego zawiera weekly streak zalogowanego podopiecznego.
-- [ ] 3.7 Obcy trener nie moze dostac cudzej serii przez relationship endpoint.
-- [ ] 3.8 Read-through inicjalizacja tworzy sensowny wynik dla istniejacych zakonczonych sesji.
-- [ ] 3.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~WeeklyStreak"` przechodzi.
-- [ ] 3.10 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~PairingEndpoint"` przechodzi.
-- [ ] 3.11 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~SharedSessionEndpoint"` przechodzi.
+- [x] 3.1 Po zakonczeniu sesji samodzielnej snapshot tworzy sie lub aktualizuje.
+- [x] 3.2 Po zakonczeniu sesji wspolnej snapshot tworzy sie lub aktualizuje.
+- [x] 3.3 Dwie sesje w tym samym tygodniu nie zwiekszaja serii ponad jeden tydzien.
+- [x] 3.4 Tydzien przerwy zeruje current w response, ale nie best.
+- [x] 3.5 Relationship summary trenera zawiera weekly streak dla kazdego aktualnego podopiecznego.
+- [x] 3.6 Relationship summary podopiecznego zawiera weekly streak zalogowanego podopiecznego.
+- [x] 3.7 Obcy trener nie moze dostac cudzej serii przez relationship endpoint.
+- [x] 3.8 Read-through inicjalizacja tworzy sensowny wynik dla istniejacych zakonczonych sesji.
+- [x] 3.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~WeeklyStreak"` przechodzi.
+- [x] 3.10 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~PairingEndpoint"` przechodzi.
+- [x] 3.11 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~SharedSessionEndpoint"` przechodzi.
 
 #### Manual
 

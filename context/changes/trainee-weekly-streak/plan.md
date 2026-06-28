@@ -505,8 +505,8 @@ flutter analyze
 
 #### Automated
 
-- [x] 1.1 `rg -n "🔥|seria|streak|ostatnio|nie zaczął" apps/mobile/design/LiftMate.dc.html apps/mobile/design/LiftMate.html` potwierdza obecny kontrakt.
-- [x] 1.2 `rg -n "Bundled Page|<x-dc|support.js" apps/mobile/design/LiftMate.dc.html apps/mobile/design/LiftMate.html` zostal uzyty do potwierdzenia workflow source/artefakt albo opisany w notatce fazy.
+- [x] 1.1 `rg -n "🔥|seria|streak|ostatnio|nie zaczął" apps/mobile/design/LiftMate.dc.html apps/mobile/design/LiftMate.html` potwierdza obecny kontrakt. — 96090fb
+- [x] 1.2 `rg -n "Bundled Page|<x-dc|support.js" apps/mobile/design/LiftMate.dc.html apps/mobile/design/LiftMate.html` zostal uzyty do potwierdzenia workflow source/artefakt albo opisany w notatce fazy. — 96090fb
 
 #### Manual
 
@@ -518,15 +518,15 @@ flutter analyze
 
 #### Automated
 
-- [ ] 2.1 Kalkulator zwraca `1` dla jednej sesji w aktualnym tygodniu.
-- [ ] 2.2 Dwie sesje w tym samym tygodniu nadal daja `1`.
-- [ ] 2.3 Kolejne aktywne tygodnie zwiekszaja current i best.
-- [ ] 2.4 Pusty tydzien zeruje current przy odczycie, ale best pozostaje.
-- [ ] 2.5 Niedziela i poniedzialek Europe/Warsaw trafiaja do wlasciwych tygodni.
-- [ ] 2.6 Przejscie grudzien/styczen zachowuje kolejnosc tygodni.
-- [ ] 2.7 Idempotentny skrypt migracji SQL Server zawiera addytywna tabele i ograniczenia.
-- [ ] 2.8 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~WeeklyStreak"` przechodzi.
-- [ ] 2.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~MigrationScript"` przechodzi.
+- [x] 2.1 Kalkulator zwraca `1` dla jednej sesji w aktualnym tygodniu.
+- [x] 2.2 Dwie sesje w tym samym tygodniu nadal daja `1`.
+- [x] 2.3 Kolejne aktywne tygodnie zwiekszaja current i best.
+- [x] 2.4 Pusty tydzien zeruje current przy odczycie, ale best pozostaje.
+- [x] 2.5 Niedziela i poniedzialek Europe/Warsaw trafiaja do wlasciwych tygodni.
+- [x] 2.6 Przejscie grudzien/styczen zachowuje kolejnosc tygodni.
+- [x] 2.7 Idempotentny skrypt migracji SQL Server zawiera addytywna tabele i ograniczenia.
+- [x] 2.8 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~WeeklyStreak"` przechodzi.
+- [x] 2.9 `dotnet test LiftMate.slnx --no-restore --filter "FullyQualifiedName~MigrationScript"` przechodzi.
 
 #### Manual
 

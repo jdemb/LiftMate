@@ -2,6 +2,7 @@ using LiftMate.Api.Auth;
 using LiftMate.Api.SharedSessions;
 using LiftMate.Api.TrainerGuidance;
 using LiftMate.Api.TrainingProgress;
+using LiftMate.Api.WeeklyStreaks;
 using LiftMate.Api.WorkoutSets;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<WorkoutProgress> WorkoutProgresses => Set<WorkoutProgress>();
 
     public DbSet<WorkoutProgressValue> WorkoutProgressValues => Set<WorkoutProgressValue>();
+
+    public DbSet<TraineeWeeklyStreak> TraineeWeeklyStreaks => Set<TraineeWeeklyStreak>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -424,6 +427,35 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             entity.ToTable(table => table.HasCheckConstraint(
                 "CK_WorkoutProgressValues_ExerciseType",
                 "[ExerciseType] IN ('repsWeight', 'repsOnly', 'time')"));
+        });
+
+        builder.Entity<TraineeWeeklyStreak>(entity =>
+        {
+            entity.HasKey(streak => streak.TraineeUserId);
+
+            entity.Property(streak => streak.TraineeUserId)
+                .HasMaxLength(450);
+
+            entity.Property(streak => streak.LastActiveWeekStart)
+                .HasColumnType("date");
+
+            entity.Property(streak => streak.CalculatedAt)
+                .IsRequired();
+
+            entity.HasOne(streak => streak.TraineeUser)
+                .WithMany()
+                .HasForeignKey(streak => streak.TraineeUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_TraineeWeeklyStreaks_CurrentStreak",
+                    "[CurrentStreakAtLastActiveWeek] >= 0");
+                table.HasCheckConstraint(
+                    "CK_TraineeWeeklyStreaks_BestStreak",
+                    "[BestStreak] >= 0");
+            });
         });
     }
 }

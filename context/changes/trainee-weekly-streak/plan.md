@@ -558,14 +558,14 @@ flutter analyze
 
 #### Automated
 
-- [x] 4.1 Mobile modele parsuja `weeklyStreak` dla trenera i podopiecznego.
-- [x] 4.2 Formatter poprawnie odmienia `tydzień/tygodnie/tygodni`.
-- [x] 4.3 Formatter ostatniego treningu obsluguje null, dzisiaj, wczoraj i kilka dni temu.
-- [x] 4.4 Ekran "Dzis" pokazuje aktualna i najlepsza serie.
-- [x] 4.5 Lista trenera pokazuje `ostatnio ...` i `🔥 N` dla podopiecznego.
-- [x] 4.6 Detal podopiecznego pokazuje kafel serii bez usuwania `Podpowiedzi`.
-- [x] 4.7 `flutter test test/relationship_api_client_test.dart test/relationship_controller_test.dart test/post_auth_relationship_screen_test.dart test/trainer_trainee_detail_screen_test.dart` przechodzi.
-- [x] 4.8 `flutter analyze` przechodzi.
+- [x] 4.1 Mobile modele parsuja `weeklyStreak` dla trenera i podopiecznego. — eefd9e9
+- [x] 4.2 Formatter poprawnie odmienia `tydzień/tygodnie/tygodni`. — eefd9e9
+- [x] 4.3 Formatter ostatniego treningu obsluguje null, dzisiaj, wczoraj i kilka dni temu. — eefd9e9
+- [x] 4.4 Ekran "Dzis" pokazuje aktualna i najlepsza serie. — eefd9e9
+- [x] 4.5 Lista trenera pokazuje `ostatnio ...` i `🔥 N` dla podopiecznego. — eefd9e9
+- [x] 4.6 Detal podopiecznego pokazuje kafel serii bez usuwania `Podpowiedzi`. — eefd9e9
+- [x] 4.7 `flutter test test/relationship_api_client_test.dart test/relationship_controller_test.dart test/post_auth_relationship_screen_test.dart test/trainer_trainee_detail_screen_test.dart` przechodzi. — eefd9e9
+- [x] 4.8 `flutter analyze` przechodzi. — eefd9e9
 
 #### Manual
 
@@ -577,8 +577,8 @@ flutter analyze
 
 #### Automated
 
-- [ ] 5.1 Pelny zestaw komend API z Phase 5 przechodzi z katalogu `apps/api`.
-- [ ] 5.2 Pelny zestaw komend mobile z Phase 5 przechodzi z katalogu `apps/mobile`.
+- [x] 5.1 Pelny zestaw komend API z Phase 5 przechodzi z katalogu `apps/api`.
+- [x] 5.2 Pelny zestaw komend mobile z Phase 5 przechodzi z katalogu `apps/mobile`.
 
 #### Manual
 

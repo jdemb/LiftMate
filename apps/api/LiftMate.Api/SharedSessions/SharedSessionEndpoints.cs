@@ -5,6 +5,7 @@ using LiftMate.Api.Data;
 using LiftMate.Api.TrainerGuidance;
 using LiftMate.Api.TrainingProgress;
 using LiftMate.Api.WorkoutSets;
+using LiftMate.Api.WeeklyStreaks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -429,6 +430,7 @@ public static class SharedSessionEndpoints
         ApplicationDbContext dbContext,
         WorkoutProgressProjector projector,
         TrainerGuidanceEvaluator guidanceEvaluator,
+        WeeklyStreakService weeklyStreakService,
         SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
@@ -477,6 +479,9 @@ public static class SharedSessionEndpoints
             await dbContext.SaveChangesAsync(cancellationToken);
             await projector.ProjectAsync(session, completedAt, cancellationToken);
             await dbContext.SaveChangesAsync(cancellationToken);
+            await weeklyStreakService.RecalculateForTraineeAsync(
+                session.TraineeUserId,
+                cancellationToken);
             await guidanceEvaluator.EvaluateWeightStagnationAsync(session.TraineeUserId, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             completedSession = session;

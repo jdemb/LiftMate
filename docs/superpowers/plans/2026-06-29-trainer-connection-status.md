@@ -24,7 +24,7 @@
 - Create with EF CLI: matching timestamped `AddTrainerLinkedAt.Designer.cs` under `apps/api/LiftMate.Api/Migrations/`
 - Modify with EF CLI: `apps/api/LiftMate.Api/Migrations/ApplicationDbContextModelSnapshot.cs`
 
-- [ ] **Step 1: Write failing persistence tests**
+- [x] **Step 1: Write failing persistence tests**
 
 In `AuthEndpointTests.RegisterTraineeWithTrainerCodeCreatesLinkedAccount`, read the newly created user through `ApplicationDbContext` and assert that `TrainerLinkedAt` is between timestamps captured immediately before and after the request:
 
@@ -69,7 +69,7 @@ public void TrainerLinkedAtMigrationAddsNullableUserTimestamp()
 }
 ```
 
-- [ ] **Step 2: Run the tests and verify RED**
+- [x] **Step 2: Run the tests and verify RED**
 
 Run from `apps/api`:
 
@@ -79,7 +79,7 @@ dotnet test LiftMate.slnx --filter "FullyQualifiedName~AuthEndpointTests.Registe
 
 Expected: compilation fails because `ApplicationUser.TrainerLinkedAt` and the migration do not exist.
 
-- [ ] **Step 3: Add the nullable property and write it on every link**
+- [x] **Step 3: Add the nullable property and write it on every link**
 
 Add to `ApplicationUser`:
 
@@ -121,7 +121,7 @@ trainee.TrainerLinkedAt = linkedAt;
 inviteCode.LastUsedAt = linkedAt;
 ```
 
-- [ ] **Step 4: Generate the EF migration**
+- [x] **Step 4: Generate the EF migration**
 
 Run from `apps/api`:
 
@@ -141,11 +141,11 @@ migrationBuilder.AddColumn<DateTimeOffset>(
 
 Do not backfill this column in the migration; legacy resolution belongs to Task 2.
 
-- [ ] **Step 5: Run targeted tests and verify GREEN**
+- [x] **Step 5: Run targeted tests and verify GREEN**
 
 Run the command from Step 2 again. Expected: all three selected tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add apps/api/LiftMate.Api/Auth/ApplicationUser.cs apps/api/LiftMate.Api/Auth/AuthEndpoints.cs apps/api/LiftMate.Api/Auth/PairingEndpoints.cs apps/api/LiftMate.Api/Data/ApplicationDbContext.cs apps/api/LiftMate.Api/Migrations apps/api/LiftMate.Api.Tests/Auth/AuthEndpointTests.cs apps/api/LiftMate.Api.Tests/Auth/PairingEndpointTests.cs apps/api/LiftMate.Api.Tests/Migrations/MigrationScriptTests.cs

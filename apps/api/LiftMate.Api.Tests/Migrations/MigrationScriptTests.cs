@@ -103,4 +103,20 @@ public sealed class MigrationScriptTests
         Assert.Contains("CHECK ([CurrentStreakAtLastActiveWeek] >= 0)", script, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("CHECK ([BestStreak] >= 0)", script, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void TrainerLinkedAtMigrationAddsNullableUserTimestamp()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=LiftMateMigrationScript;Trusted_Connection=True")
+            .Options;
+
+        using var dbContext = new ApplicationDbContext(options);
+        var script = dbContext.GetService<IMigrator>().GenerateScript(
+            options: MigrationsSqlGenerationOptions.Idempotent);
+
+        Assert.Contains("AddTrainerLinkedAt", script, StringComparison.Ordinal);
+        Assert.Contains("TrainerLinkedAt", script, StringComparison.Ordinal);
+        Assert.Contains("datetimeoffset", script, StringComparison.OrdinalIgnoreCase);
+    }
 }

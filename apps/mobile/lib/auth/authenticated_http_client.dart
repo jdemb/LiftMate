@@ -5,20 +5,16 @@ import 'package:http/http.dart' as http;
 import 'auth_controller.dart';
 
 class AuthenticatedHttpClient extends http.BaseClient {
-  AuthenticatedHttpClient({
-    required AuthController authController,
-    required http.Client inner,
-  })  : _authController = authController,
-        _inner = inner;
+  AuthenticatedHttpClient({required this.authController, required this.inner});
 
-  final AuthController _authController;
-  final http.Client _inner;
+  final AuthController authController;
+  final http.Client inner;
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final authorization = request.headers['Authorization'];
     if (authorization == null || !authorization.startsWith('Bearer ')) {
-      return _inner.send(request);
+      return inner.send(request);
     }
     if (request is! http.Request) {
       throw UnsupportedError(
@@ -27,30 +23,30 @@ class AuthenticatedHttpClient extends http.BaseClient {
     }
 
     final bodyBytes = request.bodyBytes;
-    final accessToken = await _authController.getValidAccessToken();
+    final accessToken = await authController.getValidAccessToken();
     if (accessToken == null) {
       return _unauthorized(request);
     }
 
-    final first = await _inner.send(_copy(request, bodyBytes, accessToken));
+    final first = await inner.send(_copy(request, bodyBytes, accessToken));
     if (first.statusCode != 401) {
       return first;
     }
 
     await first.stream.drain<void>();
-    final refreshed = await _authController.getValidAccessToken(
+    final refreshed = await authController.getValidAccessToken(
       rejectedAccessToken: accessToken,
     );
     if (refreshed == null || refreshed == accessToken) {
       return _unauthorized(request);
     }
 
-    return _inner.send(_copy(request, bodyBytes, refreshed));
+    return inner.send(_copy(request, bodyBytes, refreshed));
   }
 
   @override
   void close() {
-    _inner.close();
+    inner.close();
     super.close();
   }
 

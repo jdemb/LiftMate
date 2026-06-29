@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import 'app_config.dart';
 import 'auth/auth_api_client.dart';
+import 'auth/authenticated_http_client.dart';
 import 'auth/auth_controller.dart';
 import 'auth/auth_screen.dart';
 import 'auth/onboarding_state_store.dart';
@@ -19,28 +21,41 @@ Future<void> main() async {
 
   final config = await AppConfig.load();
   final authApiClient = AuthApiClient(baseUrl: config.apiBaseUrl);
+  final authController = AuthController(
+    authApiClient: authApiClient,
+    tokenStore: SecureTokenStore(),
+  );
+  final authenticatedHttpClient = AuthenticatedHttpClient(
+    authController: authController,
+    inner: http.Client(),
+  );
   final relationshipApiClient = RelationshipApiClient(
+    httpClient: authenticatedHttpClient,
     baseUrl: config.apiBaseUrl,
   );
-  final workoutSetApiClient = WorkoutSetApiClient(baseUrl: config.apiBaseUrl);
+  final workoutSetApiClient = WorkoutSetApiClient(
+    httpClient: authenticatedHttpClient,
+    baseUrl: config.apiBaseUrl,
+  );
   final sharedSessionApiClient = SharedSessionApiClient(
+    httpClient: authenticatedHttpClient,
     baseUrl: config.apiBaseUrl,
   );
   final trainingHistoryApiClient = TrainingHistoryApiClient(
+    httpClient: authenticatedHttpClient,
     baseUrl: config.apiBaseUrl,
   );
   final postWorkoutFeedbackApiClient = PostWorkoutFeedbackApiClient(
+    httpClient: authenticatedHttpClient,
     baseUrl: config.apiBaseUrl,
   );
   final trainerGuidanceApiClient = TrainerGuidanceApiClient(
+    httpClient: authenticatedHttpClient,
     baseUrl: config.apiBaseUrl,
   );
   runApp(
     MainApp(
-      authController: AuthController(
-        authApiClient: authApiClient,
-        tokenStore: SecureTokenStore(),
-      ),
+      authController: authController,
       onboardingStateStore: SecureOnboardingStateStore(),
       relationshipApiClient: relationshipApiClient,
       workoutSetApiClient: workoutSetApiClient,
@@ -49,7 +64,16 @@ Future<void> main() async {
       trainerGuidanceApiClient: trainerGuidanceApiClient,
       postWorkoutFeedbackApiClient: postWorkoutFeedbackApiClient,
       sharedSessionRealtimeClientFactory: () {
-        return SignalRSharedSessionRealtimeClient(baseUrl: config.apiBaseUrl);
+        return SignalRSharedSessionRealtimeClient(
+          baseUrl: config.apiBaseUrl,
+          accessTokenProvider: () async {
+            final accessToken = await authController.getValidAccessToken();
+            if (accessToken == null) {
+              throw StateError('User is not authenticated.');
+            }
+            return accessToken;
+          },
+        );
       },
     ),
   );

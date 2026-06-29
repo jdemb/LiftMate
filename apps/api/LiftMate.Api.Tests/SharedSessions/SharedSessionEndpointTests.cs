@@ -600,6 +600,141 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task ExistingProgressProjectionUsesSetBasedReplacement()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(
+            client,
+            trainer,
+            "Set-based progress",
+            DefaultWorkoutSetRows());
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+
+        var first = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var firstComplete = await client.PostAsync(
+            $"/shared-sessions/{first.Id}/complete",
+            null);
+        Assert.Equal(HttpStatusCode.OK, firstComplete.StatusCode);
+
+        var second = await StartFromWorkoutSet(client, trainer, workoutSet.Id, trainee.User.Id);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+        var persistedSession = await dbContext.SharedSessions
+            .Include(item => item.Values)
+            .SingleAsync(item => item.Id == second.Id);
+        var projector = new WorkoutProgressProjector(dbContext);
+
+        await projector.ProjectAsync(
+            persistedSession,
+            DateTimeOffset.UtcNow.AddMinutes(1),
+            CancellationToken.None);
+
+        Assert.DoesNotContain(
+            dbContext.ChangeTracker.Entries<WorkoutProgress>(),
+            entry => entry.State is EntityState.Modified or EntityState.Deleted);
+        Assert.DoesNotContain(
+            dbContext.ChangeTracker.Entries<WorkoutProgressValue>(),
+            entry => entry.State is EntityState.Modified or EntityState.Deleted);
+        Assert.All(
+            dbContext.ChangeTracker.Entries<WorkoutProgressValue>(),
+            entry => Assert.Equal(EntityState.Added, entry.State));
+
+        await transaction.RollbackAsync();
+    }
+
+    [Fact]
+    public async Task TrainerCompletionReplacesProgressAfterWorkoutSetRowsChange()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(
+            client,
+            trainer,
+            "Changed progress rows",
+            DefaultWorkoutSetRows());
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+        var originalRow = Assert.Single(workoutSet.Rows);
+
+        var first = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var firstComplete = await client.PostAsync(
+            $"/shared-sessions/{first.Id}/complete",
+            null);
+        Assert.Equal(HttpStatusCode.OK, firstComplete.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var updateResponse = await client.PutAsJsonAsync(
+            $"/workout-sets/{workoutSet.Id}",
+            new UpdateWorkoutSetRequest(
+                workoutSet.Name,
+                [
+                    new WorkoutSetRowRequest(
+                        1,
+                        1,
+                        "Bench press",
+                        "repsWeight",
+                        8,
+                        45m,
+                        null,
+                        null,
+                        originalRow.ExerciseId),
+                    new WorkoutSetRowRequest(
+                        1,
+                        2,
+                        "Bench press",
+                        "repsWeight",
+                        6,
+                        50m,
+                        null,
+                        null,
+                        originalRow.ExerciseId),
+                ]));
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+
+        var second = await StartFromWorkoutSet(client, trainer, workoutSet.Id, trainee.User.Id);
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var secondComplete = await client.PostAsync(
+            $"/shared-sessions/{second.Id}/complete",
+            null);
+        var completionBody = await secondComplete.Content.ReadAsStringAsync();
+
+        Assert.True(secondComplete.StatusCode == HttpStatusCode.OK, completionBody);
+        var completed = await secondComplete.Content.ReadFromJsonAsync<SharedSessionResponse>();
+        Assert.NotNull(completed);
+        Assert.Equal("completed", completed.Status);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var progressItems = await dbContext.WorkoutProgresses
+            .Include(item => item.Values)
+            .Where(item =>
+                item.TraineeUserId == trainee.User.Id &&
+                item.WorkoutSetId == workoutSet.Id)
+            .ToListAsync();
+        var progress = Assert.Single(progressItems);
+        var expectedRowIds = second.Values
+            .Select(value => value.WorkoutSetRowId!.Value)
+            .Order()
+            .ToArray();
+        var actualRowIds = progress.Values
+            .Select(value => value.WorkoutSetRowId)
+            .Order()
+            .ToArray();
+
+        Assert.Equal(second.Id, progress.SourceSessionId);
+        Assert.Equal(expectedRowIds, actualRowIds);
+        Assert.DoesNotContain(originalRow.Id, actualRowIds);
+    }
+
+    [Fact]
     public async Task UnassignmentKeepsProgressAndReassignmentRestoresIt()
     {
         using var client = factory.CreateClient();

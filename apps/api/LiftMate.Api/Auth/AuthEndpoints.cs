@@ -129,6 +129,7 @@ public static class AuthEndpoints
             return Results.BadRequest(new { error = "Podaj imię i nazwisko." });
         }
 
+        var linkedAt = DateTimeOffset.UtcNow;
         var user = new ApplicationUser
         {
             Email = email,
@@ -136,6 +137,7 @@ public static class AuthEndpoints
             DisplayName = displayName,
             LiftMateRole = UserRole.Trainee,
             TrainerUserId = inviteCode.TrainerUserId,
+            TrainerLinkedAt = linkedAt,
         };
 
         var result = await userManager.CreateAsync(user, request.Password ?? string.Empty);
@@ -147,7 +149,7 @@ public static class AuthEndpoints
                 : Results.BadRequest(new { error = message });
         }
 
-        inviteCode.LastUsedAt = DateTimeOffset.UtcNow;
+        inviteCode.LastUsedAt = linkedAt;
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var response = await tokenService.CreateTokenPairAsync(user, cancellationToken);

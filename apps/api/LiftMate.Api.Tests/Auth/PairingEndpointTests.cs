@@ -34,14 +34,22 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
         var inviteCode = await GenerateTrainerInviteCode(client, trainer);
 
         client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var startedAt = DateTimeOffset.UtcNow;
         var claimResponse = await client.PostAsJsonAsync(
             "/trainee/trainer-link",
             new ClaimTrainerInviteCodeRequest($"  {inviteCode.Code.ToLowerInvariant()}  "));
+        var completedAt = DateTimeOffset.UtcNow;
         var linked = await claimResponse.Content.ReadFromJsonAsync<AuthEndpointTests.UserResponse>();
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await dbContext.Users.SingleAsync(user => user.Id == trainee.User.Id);
 
         Assert.Equal(HttpStatusCode.OK, claimResponse.StatusCode);
         Assert.NotNull(linked);
         Assert.Equal(trainer.User.Id, linked.TrainerUserId);
+        Assert.NotNull(persisted.TrainerLinkedAt);
+        Assert.InRange(persisted.TrainerLinkedAt.Value, startedAt, completedAt);
 
         var meResponse = await client.GetAsync("/auth/me");
         var me = await meResponse.Content.ReadFromJsonAsync<AuthEndpointTests.UserResponse>();

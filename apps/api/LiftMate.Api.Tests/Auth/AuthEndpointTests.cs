@@ -2,7 +2,9 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using LiftMate.Api.Auth;
+using LiftMate.Api.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LiftMate.Api.Tests.Auth;
@@ -104,6 +106,7 @@ public sealed class AuthEndpointTests(TestApplicationFactory factory)
         client.DefaultRequestHeaders.Authorization = null;
         var email = TestEmail();
 
+        var startedAt = DateTimeOffset.UtcNow;
         var response = await client.PostAsJsonAsync(
             "/auth/register/trainee",
             new RegisterTraineeRequest(
@@ -112,13 +115,20 @@ public sealed class AuthEndpointTests(TestApplicationFactory factory)
                 "Test Trainee",
                 TestRegistrationInviteCode,
                 invite!.Code.ToLowerInvariant()));
+        var completedAt = DateTimeOffset.UtcNow;
         var registered = await response.Content.ReadFromJsonAsync<AuthResponse>();
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await dbContext.Users.SingleAsync(user => user.Email == email);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.NotNull(registered);
         Assert.Equal(email, registered.User.Email);
         Assert.Equal("trainee", registered.User.Role);
         Assert.Equal(trainer.User.Id, registered.User.TrainerUserId);
+        Assert.NotNull(persisted.TrainerLinkedAt);
+        Assert.InRange(persisted.TrainerLinkedAt.Value, startedAt, completedAt);
     }
 
     [Fact]

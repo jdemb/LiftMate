@@ -261,9 +261,11 @@ public static class PairingEndpoints
             return Results.BadRequest(new { error = "A trainee cannot link to themselves." });
         }
 
+        var linkedAt = DateTimeOffset.UtcNow;
         var previousTrainerUserId = trainee.TrainerUserId;
         trainee.TrainerUserId = inviteCode.TrainerUserId;
-        inviteCode.LastUsedAt = DateTimeOffset.UtcNow;
+        trainee.TrainerLinkedAt = linkedAt;
+        inviteCode.LastUsedAt = linkedAt;
         List<SharedSession> cancelledSessions = [];
         List<WorkoutSetAssignment> staleAssignments = [];
         if (previousTrainerUserId is not null &&

@@ -553,7 +553,7 @@ git commit -m "mobile: refine trainee relationship detail"
 **Files:**
 - No source changes expected.
 
-- [ ] **Step 1: Verify API build and complete test suite**
+- [x] **Step 1: Verify API build and complete test suite**
 
 Run from `apps/api`:
 
@@ -565,7 +565,7 @@ dotnet test LiftMate.slnx --no-build --verbosity minimal
 
 Expected: restore, build, and all API tests succeed with zero failures.
 
-- [ ] **Step 2: Verify complete Flutter suite and analysis**
+- [x] **Step 2: Verify complete Flutter suite and analysis**
 
 Run from `apps/mobile`:
 
@@ -576,7 +576,7 @@ flutter analyze
 
 Expected: all Flutter tests pass and analyzer reports `No issues found!`.
 
-- [ ] **Step 3: Verify scope and workspace hygiene**
+- [x] **Step 3: Verify scope and workspace hygiene**
 
 Run from repository root:
 

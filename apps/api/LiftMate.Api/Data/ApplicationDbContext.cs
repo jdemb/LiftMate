@@ -53,6 +53,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             entity.Property(user => user.TrainerUserId)
                 .HasMaxLength(450);
 
+            entity.Property(user => user.TrainerLinkedAt);
+
             entity.HasIndex(user => user.TrainerUserId);
 
             entity.HasOne(user => user.TrainerUser)

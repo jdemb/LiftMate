@@ -39,6 +39,7 @@ class TrainerTraineeSummary {
     required this.id,
     required this.email,
     required this.displayName,
+    this.connectedAt,
     this.assignedWorkoutSets = const <AssignedWorkoutSetSummary>[],
     this.activeSession,
     this.weeklyStreak = WeeklyStreakSummary.zero,
@@ -47,6 +48,7 @@ class TrainerTraineeSummary {
   final String id;
   final String email;
   final String displayName;
+  final DateTime? connectedAt;
   final List<AssignedWorkoutSetSummary> assignedWorkoutSets;
   final ActiveSharedSessionSummary? activeSession;
   final WeeklyStreakSummary weeklyStreak;
@@ -55,6 +57,7 @@ class TrainerTraineeSummary {
     final id = json['id'];
     final email = json['email'];
     final displayName = json['displayName'];
+    final connectedAt = json['connectedAt'];
     final activeSession = json['activeSession'];
     final assignedWorkoutSets = json['assignedWorkoutSets'];
     final weeklyStreak = json['weeklyStreak'];
@@ -62,6 +65,7 @@ class TrainerTraineeSummary {
     if (id is! String ||
         email is! String ||
         displayName is! String ||
+        (connectedAt != null && connectedAt is! String) ||
         (activeSession != null && activeSession is! Map<String, dynamic>) ||
         (assignedWorkoutSets != null && assignedWorkoutSets is! List) ||
         (weeklyStreak != null && weeklyStreak is! Map<String, dynamic>)) {
@@ -72,6 +76,9 @@ class TrainerTraineeSummary {
       id: id,
       email: email,
       displayName: displayName,
+      connectedAt: connectedAt == null
+          ? null
+          : DateTime.parse(connectedAt).toUtc(),
       assignedWorkoutSets: assignedWorkoutSets == null
           ? const <AssignedWorkoutSetSummary>[]
           : assignedWorkoutSets

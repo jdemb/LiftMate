@@ -10,6 +10,8 @@ public sealed class ApplicationUser : IdentityUser
 
     public string? TrainerUserId { get; set; }
 
+    public DateTimeOffset? TrainerLinkedAt { get; set; }
+
     public ApplicationUser? TrainerUser { get; set; }
 
     public ICollection<ApplicationUser> Trainees { get; } = new List<ApplicationUser>();

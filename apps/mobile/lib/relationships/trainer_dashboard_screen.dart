@@ -118,10 +118,6 @@ class TrainerDashboardScreen extends StatelessWidget {
               label: 'Zestawy',
               onTap: onOpenWorkoutSets,
             ),
-            const RelationshipBottomNavItem(
-              icon: Icons.play_circle_rounded,
-              label: 'Trening',
-            ),
             RelationshipBottomNavItem(
               icon: Icons.logout_rounded,
               label: 'Wyloguj',
@@ -404,7 +400,9 @@ class _TraineeListItem extends StatelessWidget {
                       Text(
                         trainee.weeklyStreak.lastCompletedWorkoutAt == null
                             ? 'nie zaczął'
-                            : 'ostatnio ${formatLastWorkout(trainee.weeklyStreak.lastCompletedWorkoutAt)}',
+                            : formatLastWorkout(
+                                trainee.weeklyStreak.lastCompletedWorkoutAt,
+                              ),
                         maxLines: 2,
                         textAlign: TextAlign.right,
                         overflow: TextOverflow.ellipsis,

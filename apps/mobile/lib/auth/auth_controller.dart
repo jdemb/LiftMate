@@ -47,9 +47,36 @@ class AuthController extends ChangeNotifier {
 
   AuthControllerState _state = const AuthControllerState.loading();
   StoredAuthTokens? _tokens;
+  Future<void>? _refreshInFlight;
 
   AuthControllerState get state => _state;
   StoredAuthTokens? get tokens => _tokens;
+
+  Future<String?> getValidAccessToken({String? rejectedAccessToken}) async {
+    final currentTokens = _tokens;
+    if (currentTokens == null) {
+      return null;
+    }
+
+    final mustRefresh = rejectedAccessToken == null
+        ? _shouldRefresh(currentTokens)
+        : currentTokens.accessToken == rejectedAccessToken;
+    if (!mustRefresh) {
+      return currentTokens.accessToken;
+    }
+
+    final refresh = _refreshInFlight ??=
+        _refreshStoredSession(currentTokens.refreshToken);
+    try {
+      await refresh;
+    } finally {
+      if (identical(_refreshInFlight, refresh)) {
+        _refreshInFlight = null;
+      }
+    }
+
+    return _tokens?.accessToken;
+  }
 
   Future<void> initialize() async {
     _setState(const AuthControllerState.loading());
@@ -64,7 +91,9 @@ class AuthController extends ChangeNotifier {
     _tokens = storedTokens;
 
     if (_shouldRefresh(storedTokens)) {
-      await _refreshStoredSession(storedTokens.refreshToken);
+      await getValidAccessToken(
+        rejectedAccessToken: storedTokens.accessToken,
+      );
       return;
     }
 
@@ -75,7 +104,9 @@ class AuthController extends ChangeNotifier {
     }
 
     if (meResult.status == AuthApiStatus.unauthorized) {
-      await _refreshStoredSession(storedTokens.refreshToken);
+      await getValidAccessToken(
+        rejectedAccessToken: storedTokens.accessToken,
+      );
       return;
     }
 

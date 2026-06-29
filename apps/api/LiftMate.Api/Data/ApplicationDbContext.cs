@@ -318,6 +318,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .IsRequired();
 
             entity.HasIndex(workoutSet => workoutSet.TrainerUserId);
+            entity.HasIndex(workoutSet => new { workoutSet.TrainerUserId, workoutSet.DeletedAt });
 
             entity.HasOne(workoutSet => workoutSet.TrainerUser)
                 .WithMany()

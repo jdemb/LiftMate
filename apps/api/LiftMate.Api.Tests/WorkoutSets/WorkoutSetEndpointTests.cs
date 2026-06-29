@@ -197,6 +197,35 @@ public sealed class WorkoutSetEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task TrainerCanArchiveAssignedWorkoutSetAndRepeatedDeleteIsIdempotent()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(client, trainer, "Push A", DefaultRows());
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var deleted = await client.DeleteAsync($"/workout-sets/{workoutSet.Id}");
+        var repeated = await client.DeleteAsync($"/workout-sets/{workoutSet.Id}");
+        var trainerList = await client.GetFromJsonAsync<IReadOnlyList<WorkoutSetSummaryResponse>>("/workout-sets");
+        var trainerDetail = await client.GetAsync($"/workout-sets/{workoutSet.Id}");
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var traineeList = await client.GetFromJsonAsync<IReadOnlyList<TraineeAssignedWorkoutSetResponse>>(
+            "/trainee/workout-sets");
+        var traineeDetail = await client.GetAsync($"/trainee/workout-sets/{workoutSet.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, repeated.StatusCode);
+        Assert.DoesNotContain(trainerList ?? [], set => set.Id == workoutSet.Id);
+        Assert.Equal(HttpStatusCode.NotFound, trainerDetail.StatusCode);
+        Assert.DoesNotContain(traineeList ?? [], set => set.Id == workoutSet.Id);
+        Assert.Equal(HttpStatusCode.NotFound, traineeDetail.StatusCode);
+    }
+
+    [Fact]
     public async Task UnrelatedUsersCannotReadOrMutateWorkoutSets()
     {
         using var client = factory.CreateClient();
@@ -218,22 +247,26 @@ public sealed class WorkoutSetEndpointTests(TestApplicationFactory factory)
             new AssignWorkoutSetRequest([trainee.User.Id]));
         var otherTrainerUnassign = await client.DeleteAsync(
             $"/workout-sets/{workoutSet.Id}/assignments/{trainee.User.Id}");
+        var otherTrainerDelete = await client.DeleteAsync($"/workout-sets/{workoutSet.Id}");
 
         client.DefaultRequestHeaders.Authorization = Bearer(unrelatedTrainee.AccessToken);
         var unrelatedTraineeList = await client.GetAsync("/trainee/workout-sets");
         var unrelatedTraineeSets = await unrelatedTraineeList.Content.ReadFromJsonAsync<IReadOnlyList<TraineeAssignedWorkoutSetResponse>>();
         var unrelatedTraineeRead = await client.GetAsync($"/trainee/workout-sets/{workoutSet.Id}");
         var traineeManagementAttempt = await client.GetAsync($"/workout-sets/{workoutSet.Id}");
+        var traineeDeleteAttempt = await client.DeleteAsync($"/workout-sets/{workoutSet.Id}");
 
         Assert.Equal(HttpStatusCode.NotFound, otherTrainerRead.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, otherTrainerUpdate.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, otherTrainerAssign.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, otherTrainerUnassign.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, otherTrainerDelete.StatusCode);
         Assert.Equal(HttpStatusCode.OK, unrelatedTraineeList.StatusCode);
         Assert.NotNull(unrelatedTraineeSets);
         Assert.Empty(unrelatedTraineeSets);
         Assert.Equal(HttpStatusCode.NotFound, unrelatedTraineeRead.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, traineeManagementAttempt.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, traineeDeleteAttempt.StatusCode);
     }
 
     [Fact]

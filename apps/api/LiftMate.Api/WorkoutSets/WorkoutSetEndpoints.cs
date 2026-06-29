@@ -1,6 +1,8 @@
+using System.Data;
 using System.Security.Claims;
 using LiftMate.Api.Auth;
 using LiftMate.Api.Data;
+using LiftMate.Api.SharedSessions;
 using Microsoft.EntityFrameworkCore;
 
 namespace LiftMate.Api.WorkoutSets;
@@ -15,6 +17,7 @@ public static class WorkoutSetEndpoints
         trainerGroup.MapPost("/", Create).RequireAuthorization("TrainerOnly");
         trainerGroup.MapGet("/{setId:guid}", GetTrainerSet).RequireAuthorization("TrainerOnly");
         trainerGroup.MapPut("/{setId:guid}", Update).RequireAuthorization("TrainerOnly");
+        trainerGroup.MapDelete("/{setId:guid}", Delete).RequireAuthorization("TrainerOnly");
         trainerGroup.MapPost("/{setId:guid}/assignments", Assign).RequireAuthorization("TrainerOnly");
         trainerGroup.MapDelete("/{setId:guid}/assignments/{traineeUserId}", Unassign).RequireAuthorization("TrainerOnly");
 
@@ -221,6 +224,64 @@ public static class WorkoutSetEndpoints
         return Results.Ok(WorkoutSetMapping.ToDetail(reloaded ?? workoutSet));
     }
 
+    private static async Task<IResult> Delete(
+        Guid setId,
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var trainerUserId = UserId(principal);
+        if (trainerUserId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        IResult? result = null;
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+
+        await executionStrategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken);
+            dbContext.ChangeTracker.Clear();
+
+            var workoutSet = await dbContext.WorkoutSets
+                .Include(set => set.Assignments)
+                .SingleOrDefaultAsync(
+                    set => set.Id == setId && set.TrainerUserId == trainerUserId,
+                    cancellationToken);
+            if (workoutSet is null)
+            {
+                result = Results.NotFound();
+                return;
+            }
+
+            if (workoutSet.DeletedAt is not null)
+            {
+                result = Results.NoContent();
+                return;
+            }
+
+            var hasActiveSession = await dbContext.SharedSessions.AnyAsync(
+                session => session.WorkoutSetId == setId && session.Status == SharedSessionStatus.Active,
+                cancellationToken);
+            if (hasActiveSession)
+            {
+                result = Results.Conflict(new { error = "Workout set cannot be deleted during an active session." });
+                return;
+            }
+
+            workoutSet.DeletedAt = DateTimeOffset.UtcNow;
+            dbContext.WorkoutSetAssignments.RemoveRange(workoutSet.Assignments);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            result = Results.NoContent();
+        });
+
+        return result ?? Results.Problem("Workout set deletion did not complete.");
+    }
+
     private static async Task<IResult> Unassign(
         Guid setId,
         string traineeUserId,
@@ -290,7 +351,8 @@ public static class WorkoutSetEndpoints
         return dbContext.WorkoutSets
             .Include(set => set.Rows)
             .Include(set => set.Assignments)
-            .ThenInclude(assignment => assignment.TraineeUser);
+            .ThenInclude(assignment => assignment.TraineeUser)
+            .Where(set => set.DeletedAt == null);
     }
 
     private static Task<WorkoutSet?> FindTrainerSet(
@@ -321,6 +383,7 @@ public static class WorkoutSetEndpoints
             .Where(assignment =>
                 assignment.TraineeUserId == traineeUserId &&
                 assignment.WorkoutSet != null &&
+                assignment.WorkoutSet.DeletedAt == null &&
                 assignment.WorkoutSet.TrainerUserId == assignment.TraineeUser!.TrainerUserId);
     }
 

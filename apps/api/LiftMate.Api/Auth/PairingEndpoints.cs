@@ -97,6 +97,7 @@ public static class PairingEndpoints
             .Where(assignment =>
                 traineeIds.Contains(assignment.TraineeUserId) &&
                 assignment.WorkoutSet != null &&
+                assignment.WorkoutSet.DeletedAt == null &&
                 assignment.WorkoutSet.TrainerUserId == trainerUserId)
             .ToListAsync(cancellationToken);
         var assignedSetsByTrainee = assignedSetRows

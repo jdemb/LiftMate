@@ -45,6 +45,7 @@ public sealed record TrainerTraineeResponse(
     string Id,
     string Email,
     string DisplayName,
+    DateTimeOffset? ConnectedAt,
     ActiveSharedSessionSummaryResponse? ActiveSession,
     IReadOnlyList<AssignedWorkoutSetSummaryResponse> AssignedWorkoutSets,
     WeeklyStreakResponse WeeklyStreak);

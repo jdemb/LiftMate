@@ -159,7 +159,7 @@ git commit -m "api: persist trainer connection timestamp"
 - Modify: `apps/api/LiftMate.Api/Auth/AuthContracts.cs`
 - Modify: `apps/api/LiftMate.Api/Auth/PairingEndpoints.cs`
 
-- [ ] **Step 1: Write failing endpoint tests for persisted, legacy, and missing dates**
+- [x] **Step 1: Write failing endpoint tests for persisted, legacy, and missing dates**
 
 Extend the private test response record with a nullable timestamp after `DisplayName`:
 
@@ -199,7 +199,7 @@ Assert.Equal(registeredAt, Assert.Single(summary!.Trainees).ConnectedAt);
 
 Add `TrainerRelationshipSummaryReturnsNullConnectionTimestampWithoutLegacyToken`. Null `TrainerLinkedAt`, remove only the trainee's refresh tokens with `dbContext.RefreshTokens.RemoveRange(...)`, save, call the endpoint as trainer, and assert `Assert.Null(Assert.Single(summary!.Trainees).ConnectedAt)`. The trainer's access token remains valid for the GET request.
 
-- [ ] **Step 2: Run the endpoint tests and verify RED**
+- [x] **Step 2: Run the endpoint tests and verify RED**
 
 Run from `apps/api`:
 
@@ -209,7 +209,7 @@ dotnet test LiftMate.slnx --filter "FullyQualifiedName~PairingEndpointTests.Trai
 
 Expected: new assertions fail because the response does not contain `connectedAt`.
 
-- [ ] **Step 3: Extend the API contract and resolve legacy dates in one query**
+- [x] **Step 3: Extend the API contract and resolve legacy dates in one query**
 
 Add `ConnectedAt` to `TrainerTraineeResponse`:
 
@@ -251,11 +251,11 @@ user.TrainerLinkedAt ??
         : null)
 ```
 
-- [ ] **Step 4: Run targeted tests and verify GREEN**
+- [x] **Step 4: Run targeted tests and verify GREEN**
 
 Run the command from Step 2. Expected: all trainer relationship summary tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/api/LiftMate.Api/Auth/AuthContracts.cs apps/api/LiftMate.Api/Auth/PairingEndpoints.cs apps/api/LiftMate.Api.Tests/Auth/PairingEndpointTests.cs

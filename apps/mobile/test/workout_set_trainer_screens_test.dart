@@ -48,6 +48,7 @@ void main() {
       await _tapButton(tester, 'Zestawy');
 
       expect(find.text('Moje zestawy'), findsOneWidget);
+      expect(find.text('Trening'), findsNothing);
       expect(find.text('Push A'), findsOneWidget);
       expect(find.text('Nowy zestaw'), findsOneWidget);
 

@@ -252,6 +252,97 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task ArchiveRejectsActiveSessionButPreservesCompletedHistoryAndProgress()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(client, trainer, "Push A", DefaultWorkoutSetRows());
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+        var active = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var blockedDelete = await client.DeleteAsync($"/workout-sets/{workoutSet.Id}");
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var completed = await client.PostAsync($"/shared-sessions/{active.Id}/complete", null);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var archived = await client.DeleteAsync($"/workout-sets/{workoutSet.Id}");
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var restart = await client.PostAsJsonAsync(
+            "/shared-sessions/from-workout-set",
+            new StartSharedSessionFromWorkoutSetRequest(workoutSet.Id, null));
+
+        Assert.Equal(HttpStatusCode.Conflict, blockedDelete.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, completed.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, archived.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, restart.StatusCode);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var savedSet = await dbContext.WorkoutSets
+            .Include(set => set.Rows)
+            .Include(set => set.Assignments)
+            .SingleAsync(set => set.Id == workoutSet.Id);
+        var savedSession = await dbContext.SharedSessions.SingleAsync(session => session.Id == active.Id);
+        var savedProgress = await dbContext.WorkoutProgresses.SingleAsync(
+            progress => progress.SourceSessionId == active.Id);
+
+        Assert.NotNull(savedSet.DeletedAt);
+        Assert.NotEmpty(savedSet.Rows);
+        Assert.Empty(savedSet.Assignments);
+        Assert.Equal("completed", savedSession.Status);
+        Assert.Equal(workoutSet.Id, savedProgress.WorkoutSetId);
+    }
+
+    [Fact]
+    public async Task ConcurrentStartAndArchiveNeverLeaveActiveSessionForArchivedSet()
+    {
+        using var setupClient = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(setupClient, "trainer");
+        var trainee = await AuthEndpointTests.Register(setupClient, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(setupClient, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(setupClient, trainer, "Concurrent A", DefaultWorkoutSetRows());
+        await AssignWorkoutSet(setupClient, trainer, workoutSet.Id, [trainee.User.Id]);
+
+        using var startClient = factory.CreateClient();
+        startClient.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        using var deleteClient = factory.CreateClient();
+        deleteClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+
+        var startTask = startClient.PostAsJsonAsync(
+            "/shared-sessions/from-workout-set",
+            new StartSharedSessionFromWorkoutSetRequest(workoutSet.Id, null));
+        var deleteTask = deleteClient.DeleteAsync($"/workout-sets/{workoutSet.Id}");
+        await Task.WhenAll(startTask, deleteTask);
+
+        var startResponse = await startTask;
+        var deleteResponse = await deleteTask;
+        var startBody = await startResponse.Content.ReadAsStringAsync();
+        var deleteBody = await deleteResponse.Content.ReadAsStringAsync();
+        Assert.True(
+            startResponse.StatusCode is HttpStatusCode.Created or HttpStatusCode.NotFound,
+            $"Unexpected start response: {(int)startResponse.StatusCode} {startBody}");
+        Assert.True(
+            deleteResponse.StatusCode is HttpStatusCode.NoContent or HttpStatusCode.Conflict,
+            $"Unexpected delete response: {(int)deleteResponse.StatusCode} {deleteBody}");
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var deletedAt = await dbContext.WorkoutSets
+            .Where(set => set.Id == workoutSet.Id)
+            .Select(set => set.DeletedAt)
+            .SingleAsync();
+        var hasActiveSession = await dbContext.SharedSessions.AnyAsync(
+            session => session.WorkoutSetId == workoutSet.Id && session.Status == "active");
+
+        Assert.False(deletedAt is not null && hasActiveSession);
+    }
+
+    [Fact]
     public async Task UnrelatedTrainerCannotReadSelfStartedSession()
     {
         using var client = factory.CreateClient();

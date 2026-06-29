@@ -94,10 +94,6 @@ class TrainerWorkoutSetsScreen extends StatelessWidget {
                   label: 'Zestawy',
                   active: true,
                 ),
-                const RelationshipBottomNavItem(
-                  icon: Icons.play_circle_rounded,
-                  label: 'Trening',
-                ),
                 RelationshipBottomNavItem(
                   icon: Icons.logout_rounded,
                   label: 'Wyloguj',

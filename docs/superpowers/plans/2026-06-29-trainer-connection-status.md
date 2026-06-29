@@ -270,7 +270,7 @@ git commit -m "api: expose trainee connection date"
 - Modify: `apps/mobile/test/relationship_api_client_test.dart`
 - Create: `apps/mobile/test/relationship_connection_formatter_test.dart`
 
-- [ ] **Step 1: Write failing model and formatter tests**
+- [x] **Step 1: Write failing model and formatter tests**
 
 In the trainer relationship API-client test, include:
 
@@ -348,7 +348,7 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run from `apps/mobile`:
 
@@ -358,7 +358,7 @@ flutter test --reporter compact test/relationship_api_client_test.dart test/rela
 
 Expected: compilation fails because `connectedAt` and `formatTraineeConnectionStatus` do not exist.
 
-- [ ] **Step 3: Parse nullable `connectedAt`**
+- [x] **Step 3: Parse nullable `connectedAt`**
 
 Extend `TrainerTraineeSummary`:
 
@@ -388,7 +388,7 @@ final connectedAt = json['connectedAt'];
 connectedAt: connectedAt == null ? null : DateTime.parse(connectedAt).toUtc(),
 ```
 
-- [ ] **Step 4: Implement the focused formatter**
+- [x] **Step 4: Implement the focused formatter**
 
 Append to `relationship_formatters.dart`:
 
@@ -448,11 +448,11 @@ String formatTraineeConnectionStatus(
 
 Do not add a package dependency or collection extension for name parsing.
 
-- [ ] **Step 5: Run tests and verify GREEN**
+- [x] **Step 5: Run tests and verify GREEN**
 
 Run the command from Step 2. Expected: all selected tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add apps/mobile/lib/relationships/relationship_models.dart apps/mobile/lib/relationships/relationship_formatters.dart apps/mobile/test/relationship_api_client_test.dart apps/mobile/test/relationship_connection_formatter_test.dart

@@ -29,6 +29,7 @@ void main() {
                     'id': 'trainee-1',
                     'email': 'trainee@example.test',
                     'displayName': 'Test Trainee',
+                    'connectedAt': '2026-03-08T10:00:00Z',
                     'weeklyStreak': {
                       'currentStreak': 6,
                       'bestStreak': 11,
@@ -51,6 +52,10 @@ void main() {
         expect(result.status, RelationshipApiStatus.success);
         expect(result.data?.inviteCode, '7F2K9D');
         expect(result.data?.trainees.single.displayName, 'Test Trainee');
+        expect(
+          result.data?.trainees.single.connectedAt,
+          DateTime.utc(2026, 3, 8, 10),
+        );
         expect(result.data?.trainees.single.weeklyStreak.currentStreak, 6);
       },
     );

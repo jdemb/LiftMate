@@ -83,9 +83,15 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 3),
-                        const Text(
-                          'Połączona',
-                          style: TextStyle(color: lmMuted, fontSize: 13.5),
+                        Text(
+                          formatTraineeConnectionStatus(
+                            trainee.displayName,
+                            trainee.connectedAt,
+                          ),
+                          style: const TextStyle(
+                            color: lmMuted,
+                            fontSize: 13.5,
+                          ),
                         ),
                         if (trainee.activeSession != null) ...[
                           const SizedBox(height: 8),
@@ -143,19 +149,6 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                 _GuidanceSection(controller: guidanceController!),
               ],
               const SizedBox(height: 20),
-              RelationshipCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const RelationshipSectionLabel('Dane relacji'),
-                    const SizedBox(height: 12),
-                    _DetailRow(label: 'E-mail', value: trainee.email),
-                    const SizedBox(height: 10),
-                    const _DetailRow(label: 'Status', value: 'Aktywna relacja'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
               const RelationshipSectionLabel('Przypisane zestawy'),
               const SizedBox(height: 12),
               if (assignedSets.isEmpty)
@@ -565,33 +558,6 @@ class _ActiveStatusPill extends StatelessWidget {
           fontWeight: FontWeight.w700,
         ),
       ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 72,
-          child: Text(label, style: const TextStyle(color: lmMuted)),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -465,7 +465,7 @@ git commit -m "mobile: format trainee connection status"
 - Modify: `apps/mobile/lib/relationships/trainer_trainee_detail_screen.dart`
 - Modify: `apps/mobile/test/trainer_trainee_detail_screen_test.dart`
 
-- [ ] **Step 1: Write the failing widget regression test**
+- [x] **Step 1: Write the failing widget regression test**
 
 Add a focused test:
 
@@ -500,7 +500,7 @@ testWidgets('shows connection status and omits redundant relationship data', (
 });
 ```
 
-- [ ] **Step 2: Run the widget test and verify RED**
+- [x] **Step 2: Run the widget test and verify RED**
 
 Run from `apps/mobile`:
 
@@ -510,7 +510,7 @@ flutter test --reporter compact test/trainer_trainee_detail_screen_test.dart
 
 Expected: the new status is absent and `Dane relacji` is still present.
 
-- [ ] **Step 3: Replace static status and remove the relationship card**
+- [x] **Step 3: Replace static status and remove the relationship card**
 
 Replace the static `const Text('Połączona')` with:
 
@@ -528,11 +528,11 @@ Delete the `RelationshipCard` containing `Dane relacji`, `E-mail`, and `Aktywna 
 
 Delete the now-unused private `_DetailRow` widget from the bottom of the file.
 
-- [ ] **Step 4: Run the widget test and verify GREEN**
+- [x] **Step 4: Run the widget test and verify GREEN**
 
 Run the command from Step 2. Expected: all trainee-detail widget tests pass.
 
-- [ ] **Step 5: Run mobile regression tests**
+- [x] **Step 5: Run mobile regression tests**
 
 ```powershell
 flutter test --reporter compact test/relationship_api_client_test.dart test/relationship_connection_formatter_test.dart test/trainer_trainee_detail_screen_test.dart test/weekly_streak_screen_test.dart test/workout_set_trainer_screens_test.dart
@@ -541,7 +541,7 @@ flutter analyze
 
 Expected: all selected tests pass and analyzer reports `No issues found!`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add apps/mobile/lib/relationships/trainer_trainee_detail_screen.dart apps/mobile/test/trainer_trainee_detail_screen_test.dart

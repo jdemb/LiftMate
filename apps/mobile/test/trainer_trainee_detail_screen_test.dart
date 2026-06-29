@@ -6,6 +6,35 @@ import 'package:liftmate/trainer_guidance/trainer_guidance_controller.dart';
 import 'package:liftmate/trainer_guidance/trainer_guidance_models.dart';
 
 void main() {
+  testWidgets('shows connection status and omits redundant relationship data', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TrainerTraineeDetailScreen(
+          trainee: TrainerTraineeSummary(
+            id: 'trainee-1',
+            email: 'anna@example.test',
+            displayName: 'Anna Nowak',
+            connectedAt: DateTime(2026, 3, 8),
+          ),
+          assignedSets: const [],
+          onBack: () {},
+          onLogout: () async {},
+          onOpenWorkoutSets: () {},
+          onOpenHistory: () {},
+        ),
+      ),
+    );
+
+    expect(find.text('Połączona od marca 2026'), findsOneWidget);
+    expect(find.text('Dane relacji'), findsNothing);
+    expect(find.text('E-mail'), findsNothing);
+    expect(find.text('Aktywna relacja'), findsNothing);
+    expect(find.text('PRZYPISANE ZESTAWY'), findsOneWidget);
+    expect(find.text('Historia'), findsOneWidget);
+  });
+
   testWidgets('trainee detail does not flash guidance loading panel', (
     tester,
   ) async {

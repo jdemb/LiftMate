@@ -33,15 +33,19 @@ abstract class SharedSessionRealtimeClient {
 }
 
 typedef SharedSessionRealtimeClientFactory = SharedSessionRealtimeClient Function();
+typedef AccessTokenProvider = Future<String> Function();
 
 class SignalRSharedSessionRealtimeClient implements SharedSessionRealtimeClient {
   SignalRSharedSessionRealtimeClient({
     required String? baseUrl,
+    AccessTokenProvider? accessTokenProvider,
     HubConnectionFactory? hubConnectionFactory,
   })  : _baseUrl = _resolveBaseUrl(baseUrl),
+        _accessTokenProvider = accessTokenProvider,
         _hubConnectionFactory = hubConnectionFactory ?? _defaultHubConnectionFactory;
 
   final String? _baseUrl;
+  final AccessTokenProvider? _accessTokenProvider;
   final HubConnectionFactory _hubConnectionFactory;
   final _updatesController = StreamController<SharedSession>.broadcast();
   final _statusController = StreamController<SharedSessionConnectionStatus>.broadcast();
@@ -71,7 +75,8 @@ class SignalRSharedSessionRealtimeClient implements SharedSessionRealtimeClient 
     _emitStatus(SharedSessionConnectionStatus.connecting);
 
     final hubUrl = '$baseUrl/hubs/shared-sessions';
-    final connection = _hubConnectionFactory(hubUrl, accessToken);
+    final tokenProvider = _accessTokenProvider ?? () async => accessToken;
+    final connection = _hubConnectionFactory(hubUrl, tokenProvider);
     _connection = connection;
     connection.onSessionUpdated(_handleSessionUpdated);
     connection.onSessionStarted(_handleSessionUpdated);
@@ -153,7 +158,10 @@ class SignalRSharedSessionRealtimeClient implements SharedSessionRealtimeClient 
   }
 }
 
-typedef HubConnectionFactory = HubConnectionAdapter Function(String hubUrl, String accessToken);
+typedef HubConnectionFactory = HubConnectionAdapter Function(
+  String hubUrl,
+  AccessTokenProvider accessTokenProvider,
+);
 
 abstract class HubConnectionAdapter {
   Future<void> start();
@@ -169,12 +177,15 @@ abstract class HubConnectionAdapter {
   void onStatusChanged(void Function(SharedSessionConnectionStatus status) handler);
 }
 
-HubConnectionAdapter _defaultHubConnectionFactory(String hubUrl, String accessToken) {
+HubConnectionAdapter _defaultHubConnectionFactory(
+  String hubUrl,
+  AccessTokenProvider accessTokenProvider,
+) {
   final connection = HubConnectionBuilder()
       .withUrl(
         hubUrl,
         options: HttpConnectionOptions(
-          accessTokenFactory: () async => accessToken,
+          accessTokenFactory: accessTokenProvider,
         ),
       )
       .withAutomaticReconnect()

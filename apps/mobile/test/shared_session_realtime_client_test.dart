@@ -6,10 +6,12 @@ void main() {
   group('SignalRSharedSessionRealtimeClient', () {
     test('connect starts connection, joins session, and exposes start/update payloads', () async {
       late _FakeHubConnectionAdapter fakeConnection;
+      late AccessTokenProvider tokenProvider;
       final client = SignalRSharedSessionRealtimeClient(
         baseUrl: 'https://api.example.test/',
-        hubConnectionFactory: (hubUrl, accessToken) {
-          fakeConnection = _FakeHubConnectionAdapter(hubUrl, accessToken);
+        hubConnectionFactory: (hubUrl, provider) {
+          tokenProvider = provider;
+          fakeConnection = _FakeHubConnectionAdapter(hubUrl, 'unused');
           return fakeConnection;
         },
       );
@@ -26,7 +28,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(fakeConnection.hubUrl, 'https://api.example.test/hubs/shared-sessions');
-      expect(fakeConnection.accessToken, 'access-token');
+      expect(await tokenProvider(), 'access-token');
       expect(fakeConnection.started, isTrue);
       expect(fakeConnection.invocations, hasLength(1));
       expect(fakeConnection.invocations.single.$1, 'JoinSession');
@@ -47,8 +49,8 @@ void main() {
       late _FakeHubConnectionAdapter fakeConnection;
       final client = SignalRSharedSessionRealtimeClient(
         baseUrl: 'https://api.example.test',
-        hubConnectionFactory: (hubUrl, accessToken) {
-          fakeConnection = _FakeHubConnectionAdapter(hubUrl, accessToken);
+        hubConnectionFactory: (hubUrl, _) {
+          fakeConnection = _FakeHubConnectionAdapter(hubUrl, 'unused');
           return fakeConnection;
         },
       );
@@ -72,10 +74,10 @@ void main() {
       late _FakeHubConnectionAdapter fakeConnection;
       final client = SignalRSharedSessionRealtimeClient(
         baseUrl: 'https://api.example.test',
-        hubConnectionFactory: (hubUrl, accessToken) {
+        hubConnectionFactory: (hubUrl, _) {
           fakeConnection = _FakeHubConnectionAdapter(
             hubUrl,
-            accessToken,
+            'unused',
             joinError: StateError('join denied'),
           );
           return fakeConnection;
@@ -106,10 +108,10 @@ void main() {
     test('surfaces start failures before reporting disconnected', () async {
       final client = SignalRSharedSessionRealtimeClient(
         baseUrl: 'https://api.example.test',
-        hubConnectionFactory: (hubUrl, accessToken) {
+        hubConnectionFactory: (hubUrl, _) {
           return _FakeHubConnectionAdapter(
             hubUrl,
-            accessToken,
+            'unused',
             startError: StateError('host lookup failed'),
           );
         },
@@ -135,6 +137,25 @@ void main() {
 
       await errorSubscription.cancel();
       await statusSubscription.cancel();
+    });
+
+    test('hub token provider reads the current token for every handshake', () async {
+      var currentToken = 'access-token-1';
+      late Future<String> Function() capturedProvider;
+      final client = SignalRSharedSessionRealtimeClient(
+        baseUrl: 'https://api.example.test/',
+        accessTokenProvider: () async => currentToken,
+        hubConnectionFactory: (hubUrl, accessTokenProvider) {
+          capturedProvider = accessTokenProvider;
+          return _FakeHubConnectionAdapter(hubUrl, 'unused');
+        },
+      );
+
+      await client.connect(accessToken: 'initial-fallback');
+
+      expect(await capturedProvider(), 'access-token-1');
+      currentToken = 'access-token-2';
+      expect(await capturedProvider(), 'access-token-2');
     });
   });
 }

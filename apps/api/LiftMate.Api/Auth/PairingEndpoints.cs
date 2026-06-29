@@ -57,6 +57,19 @@ public static class PairingEndpoints
             .ToListAsync(cancellationToken);
 
         var traineeIds = traineeUsers.Select(user => user.Id).ToArray();
+        var legacyTraineeIds = traineeUsers
+            .Where(user => user.TrainerLinkedAt is null)
+            .Select(user => user.Id)
+            .ToArray();
+        var legacyTokenRows = await dbContext.RefreshTokens
+            .Where(token => legacyTraineeIds.Contains(token.UserId))
+            .Select(token => new { token.UserId, token.CreatedAt })
+            .ToListAsync(cancellationToken);
+        var legacyConnectedAt = legacyTokenRows
+            .GroupBy(token => token.UserId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Min(token => token.CreatedAt));
         var weeklyStreaks = await weeklyStreakService.GetResponsesForTraineesAsync(
             traineeIds,
             cancellationToken);
@@ -110,6 +123,10 @@ public static class PairingEndpoints
                 user.Id,
                 user.Email ?? string.Empty,
                 user.DisplayName,
+                user.TrainerLinkedAt ??
+                    (legacyConnectedAt.TryGetValue(user.Id, out var registeredAt)
+                        ? registeredAt
+                        : null),
                 activeSessions.GetValueOrDefault(user.Id),
                 assignedSetsByTrainee.GetValueOrDefault(user.Id) ?? [],
                 weeklyStreaks[user.Id]))
@@ -261,9 +278,11 @@ public static class PairingEndpoints
             return Results.BadRequest(new { error = "A trainee cannot link to themselves." });
         }
 
+        var linkedAt = DateTimeOffset.UtcNow;
         var previousTrainerUserId = trainee.TrainerUserId;
         trainee.TrainerUserId = inviteCode.TrainerUserId;
-        inviteCode.LastUsedAt = DateTimeOffset.UtcNow;
+        trainee.TrainerLinkedAt = linkedAt;
+        inviteCode.LastUsedAt = linkedAt;
         List<SharedSession> cancelledSessions = [];
         List<WorkoutSetAssignment> staleAssignments = [];
         if (previousTrainerUserId is not null &&

@@ -213,6 +213,7 @@ void main() {
                       'id': 'trainee-1',
                       'email': 'trainee@example.test',
                       'displayName': 'Anna Nowak',
+                      'connectedAt': '2026-03-08T10:00:00Z',
                     },
                   ],
                 }),
@@ -231,8 +232,8 @@ void main() {
 
       expect(find.text('Podopieczny'), findsOneWidget);
       expect(find.text('Anna Nowak'), findsWidgets);
-      expect(find.text('trainee@example.test'), findsOneWidget);
-      expect(find.text('Aktywna relacja'), findsOneWidget);
+      expect(find.text('trainee@example.test'), findsNothing);
+      expect(find.text('Połączona od marca 2026'), findsOneWidget);
     });
 
     testWidgets('trainer history targets the selected linked trainee', (
@@ -257,6 +258,7 @@ void main() {
                       'id': 'trainee-1',
                       'email': 'trainee@example.test',
                       'displayName': 'Anna Nowak',
+                      'connectedAt': '2026-03-08T10:00:00Z',
                     },
                   ],
                 }),
@@ -292,7 +294,7 @@ void main() {
 
       expect(find.text('Podopieczny'), findsOneWidget);
       expect(find.text('Anna Nowak'), findsWidgets);
-      expect(find.text('Aktywna relacja'), findsOneWidget);
+      expect(find.text('Połączona od marca 2026'), findsOneWidget);
     });
 
     testWidgets('trainee history opens from bottom navigation', (tester) async {
@@ -1544,6 +1546,7 @@ Map<String, Object?> _trainerRelationshipWithAssignedSet({
         'id': 'trainee-1',
         'email': 'trainee@example.test',
         'displayName': 'Anna Nowak',
+        'connectedAt': '2026-03-08T10:00:00Z',
         if (activeSession)
           'activeSession': {
             'sessionId': 'session-1',

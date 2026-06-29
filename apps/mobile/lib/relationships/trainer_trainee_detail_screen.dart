@@ -83,9 +83,15 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 3),
-                        const Text(
-                          'Połączona',
-                          style: TextStyle(color: lmMuted, fontSize: 13.5),
+                        Text(
+                          formatTraineeConnectionStatus(
+                            trainee.displayName,
+                            trainee.connectedAt,
+                          ),
+                          style: const TextStyle(
+                            color: lmMuted,
+                            fontSize: 13.5,
+                          ),
                         ),
                         if (trainee.activeSession != null) ...[
                           const SizedBox(height: 8),
@@ -143,19 +149,6 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                 _GuidanceSection(controller: guidanceController!),
               ],
               const SizedBox(height: 20),
-              RelationshipCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const RelationshipSectionLabel('Dane relacji'),
-                    const SizedBox(height: 12),
-                    _DetailRow(label: 'E-mail', value: trainee.email),
-                    const SizedBox(height: 10),
-                    const _DetailRow(label: 'Status', value: 'Aktywna relacja'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
               const RelationshipSectionLabel('Przypisane zestawy'),
               const SizedBox(height: 12),
               if (assignedSets.isEmpty)
@@ -204,10 +197,6 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
               onTap: onOpenWorkoutSets,
             ),
             const RelationshipBottomNavItem(
-              icon: Icons.play_circle_rounded,
-              label: 'Trening',
-            ),
-            const RelationshipBottomNavItem(
               icon: Icons.menu_rounded,
               label: 'Profil',
             ),
@@ -238,8 +227,6 @@ class _WeeklyStreakStats extends StatelessWidget {
               fontSize: 16,
             ),
           ),
-          const SizedBox(height: 1),
-          const Text('seria', style: TextStyle(color: lmMuted, fontSize: 11.5)),
           const SizedBox(height: 2),
           Text(
             'najlepsza ${summary.bestStreak}',
@@ -270,22 +257,7 @@ class _GuidanceSection extends StatelessWidget {
 
         if (state.status == TrainerGuidanceStatus.loading ||
             state.status == TrainerGuidanceStatus.idle) {
-          return const RelationshipCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Podpowiedzi',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  'Sprawdzam ostatnie treningi podopiecznego...',
-                  style: TextStyle(color: lmMuted, height: 1.45),
-                ),
-              ],
-            ),
-          );
+          return const SizedBox.shrink();
         }
 
         if (state.status == TrainerGuidanceStatus.error) {
@@ -364,8 +336,11 @@ class _GuidanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final evidenceText = _evidenceText(guidance);
+    final style = _GuidanceVisualStyle.forType(guidance.type);
     return RelationshipCard(
       margin: const EdgeInsets.only(bottom: 10),
+      color: style.cardColor,
+      borderColor: style.borderColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -384,7 +359,7 @@ class _GuidanceCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              _GuidanceBadge(type: guidance.type),
+              _GuidanceBadge(style: style),
             ],
           ),
           const SizedBox(height: 8),
@@ -448,34 +423,77 @@ class _GuidanceCard extends StatelessWidget {
 }
 
 class _GuidanceBadge extends StatelessWidget {
-  const _GuidanceBadge({required this.type});
+  const _GuidanceBadge({required this.style});
 
-  final TrainerGuidanceType type;
+  final _GuidanceVisualStyle style;
 
   @override
   Widget build(BuildContext context) {
-    final label = switch (type) {
-      TrainerGuidanceType.weightStagnation => 'ciężar',
-      TrainerGuidanceType.lowWellbeing => 'feedback',
-      TrainerGuidanceType.unknown => 'info',
-    };
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: lmBlue.withValues(alpha: 0.14),
+        color: style.badgeColor,
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: style.badgeBorderColor),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
         child: Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF9CC1FB),
+          style.label,
+          style: TextStyle(
+            color: style.badgeTextColor,
             fontSize: 12,
             fontWeight: FontWeight.w700,
           ),
         ),
       ),
     );
+  }
+}
+
+class _GuidanceVisualStyle {
+  const _GuidanceVisualStyle({
+    required this.label,
+    required this.cardColor,
+    required this.borderColor,
+    required this.badgeColor,
+    required this.badgeBorderColor,
+    required this.badgeTextColor,
+  });
+
+  final String label;
+  final Color cardColor;
+  final Color borderColor;
+  final Color badgeColor;
+  final Color badgeBorderColor;
+  final Color badgeTextColor;
+
+  static _GuidanceVisualStyle forType(TrainerGuidanceType type) {
+    return switch (type) {
+      TrainerGuidanceType.weightStagnation => _GuidanceVisualStyle(
+        label: 'stagnacja',
+        cardColor: const Color(0x1A3A82F6),
+        borderColor: const Color(0x473A82F6),
+        badgeColor: const Color(0x263A82F6),
+        badgeBorderColor: const Color(0x473A82F6),
+        badgeTextColor: lmBlueSoft,
+      ),
+      TrainerGuidanceType.lowWellbeing => const _GuidanceVisualStyle(
+        label: 'samopoczucie',
+        cardColor: Color(0x14FFC107),
+        borderColor: Color(0x3DFFC107),
+        badgeColor: Color(0x1FFFC107),
+        badgeBorderColor: Color(0x3DFFC107),
+        badgeTextColor: Color(0xFFD7B36A),
+      ),
+      TrainerGuidanceType.unknown => _GuidanceVisualStyle(
+        label: 'info',
+        cardColor: lmSurface,
+        borderColor: Colors.white.withValues(alpha: 0.07),
+        badgeColor: lmBlue.withValues(alpha: 0.14),
+        badgeBorderColor: lmBlue.withValues(alpha: 0.28),
+        badgeTextColor: lmBlueSoft,
+      ),
+    };
   }
 }
 
@@ -540,33 +558,6 @@ class _ActiveStatusPill extends StatelessWidget {
           fontWeight: FontWeight.w700,
         ),
       ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 72,
-          child: Text(label, style: const TextStyle(color: lmMuted)),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
-      ],
     );
   }
 }

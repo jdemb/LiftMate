@@ -95,9 +95,11 @@ void main() {
       ),
     );
 
-    expect(find.text('ostatnio wczoraj'), findsOneWidget);
+    expect(find.text('wczoraj'), findsOneWidget);
+    expect(find.text('ostatnio wczoraj'), findsNothing);
+    expect(find.text('Trening'), findsNothing);
     expect(find.text('🔥 6'), findsOneWidget);
-    final lastWorkoutTop = tester.getTopLeft(find.text('ostatnio wczoraj')).dy;
+    final lastWorkoutTop = tester.getTopLeft(find.text('wczoraj')).dy;
     final flameTop = tester.getTopLeft(find.text('🔥 6')).dy;
     expect(flameTop, greaterThan(lastWorkoutTop));
   });
@@ -131,8 +133,9 @@ void main() {
     );
 
     expect(find.text('🔥 6'), findsOneWidget);
-    expect(find.text('seria'), findsOneWidget);
+    expect(find.text('seria'), findsNothing);
     expect(find.text('najlepsza 11'), findsOneWidget);
+    expect(find.text('Trening'), findsNothing);
     expect(find.text('Historia'), findsOneWidget);
     expect(find.text('Zmień zestaw'), findsOneWidget);
   });

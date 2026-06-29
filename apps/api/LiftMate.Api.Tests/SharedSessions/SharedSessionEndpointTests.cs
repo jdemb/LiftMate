@@ -441,6 +441,16 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         Assert.Equal(HttpStatusCode.Conflict, cancelCompletedResponse.StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, updateCompletedResponse.StatusCode);
 
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var streak = await dbContext.TraineeWeeklyStreaks.SingleAsync(
+                item => item.TraineeUserId == trainee.User.Id);
+            Assert.Equal(1, streak.CurrentStreakAtLastActiveWeek);
+            Assert.Equal(1, streak.BestStreak);
+            Assert.Equal(completed.ClosedAt, streak.LastCompletedSessionAt);
+        }
+
         var cancelledSession = await CreateSession(client, trainer, trainee);
         var cancelResponse = await client.PostAsync($"/shared-sessions/{cancelledSession.Id}/cancel", null);
         var cancelled = await cancelResponse.Content.ReadFromJsonAsync<SharedSessionResponse>();

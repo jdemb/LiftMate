@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using LiftMate.Api.Data;
 using LiftMate.Api.SharedSessions;
 using LiftMate.Api.WorkoutSets;
+using LiftMate.Api.WeeklyStreaks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,6 +35,7 @@ public static class PairingEndpoints
     private static async Task<IResult> GetTrainerRelationship(
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
+        WeeklyStreakService weeklyStreakService,
         CancellationToken cancellationToken)
     {
         var trainerUserId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -55,6 +57,9 @@ public static class PairingEndpoints
             .ToListAsync(cancellationToken);
 
         var traineeIds = traineeUsers.Select(user => user.Id).ToArray();
+        var weeklyStreaks = await weeklyStreakService.GetResponsesForTraineesAsync(
+            traineeIds,
+            cancellationToken);
         var activeSessions = await dbContext.SharedSessions
             .Where(session =>
                 session.TrainerUserId == trainerUserId &&
@@ -106,7 +111,8 @@ public static class PairingEndpoints
                 user.Email ?? string.Empty,
                 user.DisplayName,
                 activeSessions.GetValueOrDefault(user.Id),
-                assignedSetsByTrainee.GetValueOrDefault(user.Id) ?? []))
+                assignedSetsByTrainee.GetValueOrDefault(user.Id) ?? [],
+                weeklyStreaks[user.Id]))
             .ToArray();
 
         return Results.Ok(new TrainerRelationshipSummaryResponse(inviteCode.Code, trainees));
@@ -132,6 +138,7 @@ public static class PairingEndpoints
     private static async Task<IResult> GetTraineeRelationship(
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
+        WeeklyStreakService weeklyStreakService,
         CancellationToken cancellationToken)
     {
         var traineeUserId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -155,7 +162,11 @@ public static class PairingEndpoints
                 trainee.TrainerUser.Email ?? string.Empty,
                 trainee.TrainerUser.DisplayName);
 
-        return Results.Ok(new TraineeRelationshipSummaryResponse(trainer));
+        var weeklyStreak = await weeklyStreakService.GetResponseForTraineeAsync(
+            traineeUserId,
+            cancellationToken);
+
+        return Results.Ok(new TraineeRelationshipSummaryResponse(trainer, weeklyStreak));
     }
 
     private static async Task<TrainerInviteCode?> GetOrCreateInviteCode(

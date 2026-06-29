@@ -81,4 +81,26 @@ public sealed class MigrationScriptTests
             StringComparison.Ordinal);
         Assert.Contains("CREATE UNIQUE INDEX", script, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void TraineeWeeklyStreakMigrationGeneratesAdditiveTableWithConstraints()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=LiftMateMigrationScript;Trusted_Connection=True")
+            .Options;
+
+        using var dbContext = new ApplicationDbContext(options);
+        var migrator = dbContext.GetService<IMigrator>();
+        var script = migrator.GenerateScript(
+            options: MigrationsSqlGenerationOptions.Idempotent);
+
+        Assert.Contains("AddTraineeWeeklyStreaks", script, StringComparison.Ordinal);
+        Assert.Contains("TraineeWeeklyStreaks", script, StringComparison.Ordinal);
+        Assert.Contains("LastActiveWeekStart", script, StringComparison.Ordinal);
+        Assert.Contains("date", script, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("CK_TraineeWeeklyStreaks_CurrentStreak", script, StringComparison.Ordinal);
+        Assert.Contains("CK_TraineeWeeklyStreaks_BestStreak", script, StringComparison.Ordinal);
+        Assert.Contains("CHECK ([CurrentStreakAtLastActiveWeek] >= 0)", script, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("CHECK ([BestStreak] >= 0)", script, StringComparison.OrdinalIgnoreCase);
+    }
 }

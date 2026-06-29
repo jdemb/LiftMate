@@ -5,6 +5,7 @@ import '../trainer_guidance/trainer_guidance_controller.dart';
 import '../trainer_guidance/trainer_guidance_models.dart';
 import '../workout_sets/workout_set_text.dart';
 import 'relationship_models.dart';
+import 'relationship_formatters.dart';
 import 'relationship_screen_styles.dart';
 
 class TrainerTraineeDetailScreen extends StatelessWidget {
@@ -93,6 +94,8 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  _WeeklyStreakStats(summary: trainee.weeklyStreak),
                 ],
               ),
               if (trainee.activeSession != null &&
@@ -211,6 +214,40 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _WeeklyStreakStats extends StatelessWidget {
+  const _WeeklyStreakStats({required this.summary});
+
+  final WeeklyStreakSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 76,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            formatWeeklyStreakFlame(summary.currentStreak),
+            style: const TextStyle(
+              fontFamily: 'Space Grotesk',
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 1),
+          const Text('seria', style: TextStyle(color: lmMuted, fontSize: 11.5)),
+          const SizedBox(height: 2),
+          Text(
+            'najlepsza ${summary.bestStreak}',
+            maxLines: 1,
+            style: const TextStyle(color: lmMutedDark, fontSize: 10.5),
+          ),
+        ],
+      ),
     );
   }
 }

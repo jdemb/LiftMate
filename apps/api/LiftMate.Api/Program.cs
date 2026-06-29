@@ -7,6 +7,7 @@ using LiftMate.Api.TrainerGuidance;
 using LiftMate.Api.TrainingProgress;
 using LiftMate.Api.TrainingHistory;
 using LiftMate.Api.WorkoutSets;
+using LiftMate.Api.WeeklyStreaks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,8 @@ builder.Services.AddSingleton<RegistrationGate>();
 builder.Services.AddScoped<SharedSessionBroadcaster>();
 builder.Services.AddScoped<WorkoutProgressProjector>();
 builder.Services.AddScoped<TrainerGuidanceEvaluator>();
+builder.Services.AddScoped<WeeklyStreakService>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSignalR();
 
 builder.Services

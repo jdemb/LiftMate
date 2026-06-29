@@ -39,3 +39,96 @@ String formatLastWorkout(DateTime? completedAt, {DateTime? now}) {
   }
   return '$days dni temu';
 }
+
+const _polishGenitiveMonths = <String>[
+  'stycznia',
+  'lutego',
+  'marca',
+  'kwietnia',
+  'maja',
+  'czerwca',
+  'lipca',
+  'sierpnia',
+  'września',
+  'października',
+  'listopada',
+  'grudnia',
+];
+
+const _masculineNames = <String>{
+  'adam',
+  'adrian',
+  'aleksander',
+  'andrzej',
+  'antoni',
+  'barnaba',
+  'bartosz',
+  'dawid',
+  'filip',
+  'grzegorz',
+  'jakub',
+  'jan',
+  'jarema',
+  'jerzy',
+  'kacper',
+  'karol',
+  'kosma',
+  'krzysztof',
+  'kuba',
+  'łukasz',
+  'maciej',
+  'marcin',
+  'marek',
+  'mateusz',
+  'michał',
+  'mikołaj',
+  'paweł',
+  'piotr',
+  'przemysław',
+  'rafał',
+  'robert',
+  'sebastian',
+  'szymon',
+  'tomasz',
+  'wojciech',
+  'zbigniew',
+};
+
+const _neutralNames = <String>{
+  'alex',
+  'andrea',
+  'ari',
+  'mika',
+  'nikita',
+  'noa',
+  'sasza',
+};
+
+String formatTraineeConnectionStatus(
+  String displayName,
+  DateTime? connectedAt,
+) {
+  final trimmed = displayName.trim();
+  final normalized = trimmed.isEmpty
+      ? ''
+      : trimmed.split(RegExp(r'\s+')).first.toLowerCase();
+
+  final String status;
+  if (normalized.isEmpty || _neutralNames.contains(normalized)) {
+    status = 'Połączono';
+  } else if (_masculineNames.contains(normalized)) {
+    status = 'Połączony';
+  } else if (normalized.endsWith('a')) {
+    status = 'Połączona';
+  } else {
+    status = 'Połączono';
+  }
+
+  if (connectedAt == null) {
+    return status;
+  }
+
+  final localDate = connectedAt.toLocal();
+  final month = _polishGenitiveMonths[localDate.month - 1];
+  return '$status od $month ${localDate.year}';
+}

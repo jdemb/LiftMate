@@ -242,18 +242,18 @@ Potwierdzić, że serwerowy kontrakt nie naruszył istniejącego reconnect/UI, u
 
 #### Automated
 
-- [x] 1.1 Focused concurrent endpoint regressions pass without `500`, duplicate accepted versions, or terminal-state mutation
-- [x] 1.2 Canonical SignalR broadcast regression passes and highest broadcast version matches canonical GET
-- [x] 1.3 Existing shared-session lifecycle, authorization, progress replacement and hub tests remain green
-- [x] 1.4 `dotnet build LiftMate.slnx --no-restore` passes from `apps/api` with zero errors
-- [x] 1.5 `dotnet test LiftMate.slnx --no-build --verbosity minimal` passes from `apps/api`
+- [x] 1.1 Focused concurrent endpoint regressions pass without `500`, duplicate accepted versions, or terminal-state mutation — 7aeb244
+- [x] 1.2 Canonical SignalR broadcast regression passes and highest broadcast version matches canonical GET — 7aeb244
+- [x] 1.3 Existing shared-session lifecycle, authorization, progress replacement and hub tests remain green — 7aeb244
+- [x] 1.4 `dotnet build LiftMate.slnx --no-restore` passes from `apps/api` with zero errors — 7aeb244
+- [x] 1.5 `dotnet test LiftMate.slnx --no-build --verbosity minimal` passes from `apps/api` — 7aeb244
 
 ### Phase 2: Cross-Layer Verification i Cookbook
 
 #### Automated
 
-- [ ] 2.1 Focused mobile realtime/controller/widget tests pass with no source changes required
-- [ ] 2.2 Full `flutter test --reporter compact` passes from `apps/mobile`
-- [ ] 2.3 `flutter analyze` passes from `apps/mobile`
-- [ ] 2.4 Full API build and test suite remain green after the cookbook update
-- [ ] 2.5 `context/foundation/test-plan.md` §6.1, §6.2 and §6.6 contain shipped locations, reference tests and exact run commands instead of Phase 1 placeholders
+- [x] 2.1 Focused mobile realtime/controller/widget tests pass with no source changes required
+- [x] 2.2 Full `flutter test --reporter compact` passes from `apps/mobile`
+- [x] 2.3 `flutter analyze` passes from `apps/mobile`
+- [x] 2.4 Full API build and test suite remain green after the cookbook update
+- [x] 2.5 `context/foundation/test-plan.md` §6.1, §6.2 and §6.6 contain shipped locations, reference tests and exact run commands instead of Phase 1 placeholders

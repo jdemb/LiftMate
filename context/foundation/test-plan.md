@@ -112,13 +112,56 @@ phase ships.
 
 ### 6.1 Reconnect and realtime-ordering test
 
-TBD — see §3 Phase 1 for canonical-session recovery, warning visibility, and
-stale-event rejection patterns.
+**Location:** controller behavior belongs in
+`apps/mobile/test/shared_session_controller_test.dart`; warning visibility in
+`apps/mobile/test/live_session_screen_test.dart`; shell-level read-only updates
+in `apps/mobile/test/post_auth_relationship_screen_test.dart`.
+
+**Naming:** name the user-visible transition and invariant, for example
+`reconnecting then connected rejoins loaded session without reloading it`,
+`failed rejoin preserves session and retries on next reconnect`, or
+`older realtime snapshot does not replace newer local version`.
+
+**Pattern:** inject the existing fake realtime client, emit connection states or
+snapshots, flush the event queue, and assert the canonical session ID, version,
+content, and degraded-sync banner. Exercise lower-version and foreign-session
+events independently. Do not add device e2e or UI snapshots when a controller
+or widget assertion provides the same signal.
+
+**Reference tests:** the three examples above plus
+`read-only session keeps content visible while rejoin banner retries` and
+`trainee read-only live updates from realtime without another session request`.
+
+**Run:** from `apps/mobile`:
+`flutter test --reporter compact test/shared_session_controller_test.dart test/live_session_screen_test.dart test/post_auth_relationship_screen_test.dart`.
 
 ### 6.2 Concurrent session-write API test
 
-TBD — see §3 Phase 1 for concurrent writes, defined conflict outcomes, and
-no-`500` persistence patterns.
+**Location:** HTTP and persistence invariants belong in
+`apps/api/LiftMate.Api.Tests/SharedSessions/SharedSessionEndpointTests.cs`;
+delivery invariants belong in
+`apps/api/LiftMate.Api.Tests/SharedSessions/SharedSessionHubTests.cs`.
+
+**Naming:** state the concurrent operations and contract, for example
+`ConcurrentValueUpdatesHaveDistinctVersionsAndCanonicalResult` or
+`ConcurrentValueUpdateAndCompleteHaveLinearTerminalResult`.
+
+**Pattern:** create separate authenticated `HttpClient` instances, start public
+requests together with `Task.WhenAll`, and assert allowed status combinations,
+distinct accepted versions, terminal immutability, progress consistency, and a
+canonical final `GET`. For SignalR, collect events with
+`TaskCompletionSource`/`WaitAsync`, compare by `Version`, and do not assume
+arrival order. Never coordinate the race with `Task.Delay`, a probabilistic
+retry loop, or test-only production hooks.
+
+**Reference tests:**
+`ConcurrentValueUpdatesHaveDistinctVersionsAndCanonicalResult`,
+`ConcurrentValueUpdateAndCompleteHaveLinearTerminalResult`,
+`ConcurrentValueUpdateAndCancelHaveLinearTerminalResult`, and
+`ConcurrentUpdatesBroadcastDistinctCanonicalVersions`.
+
+**Run:** from `apps/api`:
+`dotnet test LiftMate.slnx --filter "FullyQualifiedName~ConcurrentValueUpdatesHaveDistinctVersionsAndCanonicalResult|FullyQualifiedName~ConcurrentValueUpdateAndCompleteHaveLinearTerminalResult|FullyQualifiedName~ConcurrentValueUpdateAndCancelHaveLinearTerminalResult|FullyQualifiedName~ConcurrentUpdatesBroadcastDistinctCanonicalVersions" --verbosity minimal`.
 
 ### 6.3 Auth refresh and ownership test
 
@@ -137,7 +180,14 @@ of active-session warning states.
 
 ### 6.6 Per-rollout-phase notes
 
-TBD — each completed rollout phase appends its durable testing lesson here.
+- **2026-06-30 — Phase 1, realtime and concurrent writes:** the mobile guard
+  against lower versions is safe only when the server assigns distinct versions
+  to accepted mutations. Keep that guarantee at the database transaction
+  boundary and broadcast only committed canonical snapshots. SQLite integration
+  tests prove the application contract but not SQL Server locking behavior;
+  provider-realistic verification remains owned by §3 Phase 3. Existing mobile
+  reconnect, warning, stale-event, and foreign-session tests already supplied
+  the required signal, so this phase added no duplicate mobile test.
 
 ## 7. What We Deliberately Don't Test
 

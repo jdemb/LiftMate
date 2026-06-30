@@ -273,11 +273,11 @@ Ta faza dostarcza widoczną funkcję trenera: trzy kropki na karcie, zakotwiczon
 
 #### Automated
 
-- [x] 3.1 Test widgetowy potwierdza menu trzech kropek i akcję „Usuń zestaw” zgodną z kontraktem designu.
-- [x] 3.2 Test widgetowy potwierdza, że „Anuluj” zamyka dialog bez żądania HTTP.
-- [x] 3.3 Test widgetowy potwierdza pojedyncze usunięcie karty po sukcesie i pozostawienie przycisku „Nowy zestaw”.
-- [x] 3.4 Test widgetowy potwierdza zachowanie karty oraz właściwy komunikat przy aktywnej sesji i błędzie sieci.
-- [x] 3.5 `flutter test --reporter compact` i `flutter analyze` kończą się sukcesem z `apps/mobile`.
+- [x] 3.1 Test widgetowy potwierdza menu trzech kropek i akcję „Usuń zestaw” zgodną z kontraktem designu. — 2ae47e9
+- [x] 3.2 Test widgetowy potwierdza, że „Anuluj” zamyka dialog bez żądania HTTP. — 2ae47e9
+- [x] 3.3 Test widgetowy potwierdza pojedyncze usunięcie karty po sukcesie i pozostawienie przycisku „Nowy zestaw”. — 2ae47e9
+- [x] 3.4 Test widgetowy potwierdza zachowanie karty oraz właściwy komunikat przy aktywnej sesji i błędzie sieci. — 2ae47e9
+- [x] 3.5 `flutter test --reporter compact` i `flutter analyze` kończą się sukcesem z `apps/mobile`. — 2ae47e9
 
 #### Manual
 

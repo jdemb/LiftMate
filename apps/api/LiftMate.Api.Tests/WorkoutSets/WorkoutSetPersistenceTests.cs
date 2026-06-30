@@ -132,6 +132,36 @@ public sealed class WorkoutSetPersistenceTests(TestApplicationFactory factory)
         Assert.Null(WorkoutSetValidation.ValidateSetName("Leg day"));
     }
 
+    [Fact]
+    public async Task WorkoutSetDeletionTimestampIsNullableAndPersists()
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var trainer = CreateUser($"{Guid.NewGuid():N}-trainer", UserRole.Trainer);
+        var now = DateTimeOffset.UtcNow;
+        var workoutSet = new WorkoutSet
+        {
+            Id = Guid.NewGuid(),
+            TrainerUserId = trainer.Id,
+            Name = "Push A",
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
+        dbContext.Users.Add(trainer);
+        dbContext.WorkoutSets.Add(workoutSet);
+        await dbContext.SaveChangesAsync();
+
+        Assert.Null(workoutSet.DeletedAt);
+
+        workoutSet.DeletedAt = now;
+        await dbContext.SaveChangesAsync();
+        dbContext.ChangeTracker.Clear();
+
+        var persisted = await dbContext.WorkoutSets.SingleAsync(set => set.Id == workoutSet.Id);
+        Assert.Equal(now, persisted.DeletedAt);
+    }
+
     private static ApplicationUser CreateUser(string handle, string role, string? trainerUserId = null)
     {
         return new ApplicationUser

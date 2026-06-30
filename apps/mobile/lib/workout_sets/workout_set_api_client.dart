@@ -106,6 +106,21 @@ class WorkoutSetApiClient {
     );
   }
 
+  Future<WorkoutSetApiResult<void>> delete({
+    required String accessToken,
+    required String workoutSetId,
+  }) {
+    return _send<void>(
+      method: 'DELETE',
+      path: '/workout-sets/$workoutSetId',
+      accessToken: accessToken,
+      successStatusCodes: {204},
+      parse: (_) {},
+      invalidJsonMessage: 'Invalid workout set delete response JSON.',
+      expectBody: false,
+    );
+  }
+
   Future<WorkoutSetApiResult<WorkoutSetDetail>> assign({
     required String accessToken,
     required String workoutSetId,

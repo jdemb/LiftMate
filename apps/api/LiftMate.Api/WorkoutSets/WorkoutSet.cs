@@ -18,6 +18,8 @@ public sealed class WorkoutSet
 
     public DateTimeOffset UpdatedAt { get; set; }
 
+    public DateTimeOffset? DeletedAt { get; set; }
+
     public ICollection<WorkoutSetRow> Rows { get; } = new List<WorkoutSetRow>();
 
     public ICollection<WorkoutSetAssignment> Assignments { get; } = new List<WorkoutSetAssignment>();

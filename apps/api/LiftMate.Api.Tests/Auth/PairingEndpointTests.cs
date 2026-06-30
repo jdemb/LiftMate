@@ -283,6 +283,31 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task TrainerRelationshipSummaryExcludesArchivedWorkoutSets()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(client, trainer, "Push A");
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var persisted = await dbContext.WorkoutSets.SingleAsync(set => set.Id == workoutSet.Id);
+            persisted.DeletedAt = DateTimeOffset.UtcNow;
+            await dbContext.SaveChangesAsync();
+        }
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var summary = await client.GetFromJsonAsync<TrainerRelationshipSummaryResponse>("/trainer/relationship");
+
+        var linkedTrainee = Assert.Single(summary!.Trainees);
+        Assert.DoesNotContain(linkedTrainee.AssignedWorkoutSets, set => set.Id == workoutSet.Id);
+    }
+
+    [Fact]
     public async Task TrainerRelationshipSummaryReturnsEmptyListForNewTrainer()
     {
         using var client = factory.CreateClient();

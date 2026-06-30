@@ -252,8 +252,8 @@ Potwierdzić, że serwerowy kontrakt nie naruszył istniejącego reconnect/UI, u
 
 #### Automated
 
-- [x] 2.1 Focused mobile realtime/controller/widget tests pass with no source changes required
-- [x] 2.2 Full `flutter test --reporter compact` passes from `apps/mobile`
-- [x] 2.3 `flutter analyze` passes from `apps/mobile`
-- [x] 2.4 Full API build and test suite remain green after the cookbook update
-- [x] 2.5 `context/foundation/test-plan.md` §6.1, §6.2 and §6.6 contain shipped locations, reference tests and exact run commands instead of Phase 1 placeholders
+- [x] 2.1 Focused mobile realtime/controller/widget tests pass with no source changes required — f0286b7
+- [x] 2.2 Full `flutter test --reporter compact` passes from `apps/mobile` — f0286b7
+- [x] 2.3 `flutter analyze` passes from `apps/mobile` — f0286b7
+- [x] 2.4 Full API build and test suite remain green after the cookbook update — f0286b7
+- [x] 2.5 `context/foundation/test-plan.md` §6.1, §6.2 and §6.6 contain shipped locations, reference tests and exact run commands instead of Phase 1 placeholders — f0286b7

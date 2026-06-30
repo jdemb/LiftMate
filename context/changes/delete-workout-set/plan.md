@@ -264,20 +264,20 @@ Ta faza dostarcza widoczną funkcję trenera: trzy kropki na karcie, zakotwiczon
 
 #### Automated
 
-- [x] 2.1 Test klienta potwierdza `DELETE /workout-sets/{id}`, brak body oraz obsługę `204` i `409`.
-- [x] 2.2 Test kontrolera potwierdza usunięcie właściwej karty dopiero po sukcesie.
-- [x] 2.3 Testy kontrolera potwierdzają zachowanie listy i możliwość ponowienia po konflikcie, błędzie sieci lub braku tokenu.
-- [x] 2.4 `flutter test test/workout_set_api_client_test.dart test/workout_set_controller_test.dart` kończy się sukcesem z `apps/mobile`.
+- [x] 2.1 Test klienta potwierdza `DELETE /workout-sets/{id}`, brak body oraz obsługę `204` i `409`. — f64981b
+- [x] 2.2 Test kontrolera potwierdza usunięcie właściwej karty dopiero po sukcesie. — f64981b
+- [x] 2.3 Testy kontrolera potwierdzają zachowanie listy i możliwość ponowienia po konflikcie, błędzie sieci lub braku tokenu. — f64981b
+- [x] 2.4 `flutter test test/workout_set_api_client_test.dart test/workout_set_controller_test.dart` kończy się sukcesem z `apps/mobile`. — f64981b
 
 ### Phase 3: Menu i potwierdzenie zgodne z designem
 
 #### Automated
 
-- [ ] 3.1 Test widgetowy potwierdza menu trzech kropek i akcję „Usuń zestaw” zgodną z kontraktem designu.
-- [ ] 3.2 Test widgetowy potwierdza, że „Anuluj” zamyka dialog bez żądania HTTP.
-- [ ] 3.3 Test widgetowy potwierdza pojedyncze usunięcie karty po sukcesie i pozostawienie przycisku „Nowy zestaw”.
-- [ ] 3.4 Test widgetowy potwierdza zachowanie karty oraz właściwy komunikat przy aktywnej sesji i błędzie sieci.
-- [ ] 3.5 `flutter test --reporter compact` i `flutter analyze` kończą się sukcesem z `apps/mobile`.
+- [x] 3.1 Test widgetowy potwierdza menu trzech kropek i akcję „Usuń zestaw” zgodną z kontraktem designu.
+- [x] 3.2 Test widgetowy potwierdza, że „Anuluj” zamyka dialog bez żądania HTTP.
+- [x] 3.3 Test widgetowy potwierdza pojedyncze usunięcie karty po sukcesie i pozostawienie przycisku „Nowy zestaw”.
+- [x] 3.4 Test widgetowy potwierdza zachowanie karty oraz właściwy komunikat przy aktywnej sesji i błędzie sieci.
+- [x] 3.5 `flutter test --reporter compact` i `flutter analyze` kończą się sukcesem z `apps/mobile`.
 
 #### Manual
 

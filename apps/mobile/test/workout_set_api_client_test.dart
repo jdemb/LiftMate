@@ -143,6 +143,45 @@ void main() {
       },
     );
 
+    test('delete uses expected path and maps success and conflict', () async {
+      final seen = <String>[];
+      var shouldConflict = false;
+      final client = WorkoutSetApiClient(
+        baseUrl: 'https://api.example.test',
+        httpClient: MockClient((request) async {
+          seen.add('${request.method} ${request.url.path}');
+          expect(request.headers['Authorization'], 'Bearer access-token');
+          expect(request.body, isEmpty);
+          if (shouldConflict) {
+            return http.Response(
+              '{"error":"Workout set cannot be deleted during an active session."}',
+              409,
+            );
+          }
+          return http.Response('', 204);
+        }),
+      );
+
+      final success = await client.delete(
+        accessToken: 'access-token',
+        workoutSetId: 'set-1',
+      );
+      shouldConflict = true;
+      final conflict = await client.delete(
+        accessToken: 'access-token',
+        workoutSetId: 'set-1',
+      );
+
+      expect(success.status, WorkoutSetApiStatus.success);
+      expect(success.statusCode, 204);
+      expect(conflict.status, WorkoutSetApiStatus.conflict);
+      expect(conflict.message, contains('active session'));
+      expect(seen, [
+        'DELETE /workout-sets/set-1',
+        'DELETE /workout-sets/set-1',
+      ]);
+    });
+
     test(
       'maps forbidden, conflict, missing base URL, and invalid JSON',
       () async {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -132,6 +133,139 @@ void main() {
       ]);
     });
 
+    test('deleteSet removes only the confirmed set and clears selected detail', () async {
+      final seen = <String>[];
+      final httpClient = MockClient((request) async {
+        seen.add('${request.method} ${request.url.path}');
+        if (request.url.path == '/auth/me') {
+          return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+        }
+        if (request.url.path == '/workout-sets' && request.method == 'GET') {
+          return http.Response(
+            jsonEncode([
+              _summaryJson(),
+              _summaryJson(id: 'set-2', name: 'Pull B'),
+            ]),
+            200,
+          );
+        }
+        if (request.url.path == '/workout-sets/set-1' && request.method == 'GET') {
+          return http.Response(jsonEncode(_detailJson()), 200);
+        }
+        if (request.url.path == '/workout-sets/set-1' && request.method == 'DELETE') {
+          return http.Response('', 204);
+        }
+        fail('Unexpected request: ${request.method} ${request.url}');
+      });
+      final authController = await _authController(httpClient);
+      final controller = _controller(authController, httpClient);
+      await controller.loadForUser(authController.state.user!);
+      await controller.loadTrainerDetail('set-1');
+
+      final result = await controller.deleteSet('set-1');
+
+      expect(result.status, WorkoutSetApiStatus.success);
+      expect(controller.state.status, WorkoutSetControllerStatus.loaded);
+      expect(controller.state.deletingSetId, isNull);
+      expect(controller.state.selectedSet, isNull);
+      expect(controller.state.trainerSets.map((set) => set.id), ['set-2']);
+      expect(seen.where((path) => path == 'DELETE /workout-sets/set-1'), hasLength(1));
+    });
+
+    test('deleteSet preserves list and allows retry after conflict', () async {
+      var deleteCount = 0;
+      final httpClient = MockClient((request) async {
+        if (request.url.path == '/auth/me') {
+          return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+        }
+        if (request.url.path == '/workout-sets' && request.method == 'GET') {
+          return http.Response(jsonEncode([_summaryJson()]), 200);
+        }
+        if (request.url.path == '/workout-sets/set-1' && request.method == 'DELETE') {
+          deleteCount += 1;
+          return deleteCount == 1
+              ? http.Response('{"error":"Active session."}', 409)
+              : http.Response('', 204);
+        }
+        fail('Unexpected request: ${request.method} ${request.url}');
+      });
+      final authController = await _authController(httpClient);
+      final controller = _controller(authController, httpClient);
+      await controller.loadForUser(authController.state.user!);
+
+      final conflict = await controller.deleteSet('set-1');
+      expect(conflict.status, WorkoutSetApiStatus.conflict);
+      expect(controller.state.status, WorkoutSetControllerStatus.error);
+      expect(controller.state.deletingSetId, isNull);
+      expect(controller.state.trainerSets.single.id, 'set-1');
+
+      final retry = await controller.deleteSet('set-1');
+      expect(retry.status, WorkoutSetApiStatus.success);
+      expect(controller.state.trainerSets, isEmpty);
+      expect(deleteCount, 2);
+    });
+
+    test('deleteSet preserves list after a network error', () async {
+      final httpClient = MockClient((request) async {
+        if (request.url.path == '/auth/me') {
+          return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+        }
+        if (request.url.path == '/workout-sets' && request.method == 'GET') {
+          return http.Response(jsonEncode([_summaryJson()]), 200);
+        }
+        if (request.url.path == '/workout-sets/set-1' &&
+            request.method == 'DELETE') {
+          throw http.ClientException('Network unavailable');
+        }
+        fail('Unexpected request: ${request.method} ${request.url}');
+      });
+      final authController = await _authController(httpClient);
+      final controller = _controller(authController, httpClient);
+      await controller.loadForUser(authController.state.user!);
+
+      final result = await controller.deleteSet('set-1');
+
+      expect(result.status, WorkoutSetApiStatus.offline);
+      expect(controller.state.status, WorkoutSetControllerStatus.error);
+      expect(controller.state.deletingSetId, isNull);
+      expect(controller.state.trainerSets.single.id, 'set-1');
+    });
+
+    test('deleteSet rejects duplicate in-flight request', () async {
+      final deleteStarted = Completer<void>();
+      final releaseDelete = Completer<void>();
+      var deleteCount = 0;
+      final httpClient = MockClient((request) async {
+        if (request.url.path == '/auth/me') {
+          return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+        }
+        if (request.url.path == '/workout-sets' && request.method == 'GET') {
+          return http.Response(jsonEncode([_summaryJson()]), 200);
+        }
+        if (request.url.path == '/workout-sets/set-1' && request.method == 'DELETE') {
+          deleteCount += 1;
+          deleteStarted.complete();
+          await releaseDelete.future;
+          return http.Response('', 204);
+        }
+        fail('Unexpected request: ${request.method} ${request.url}');
+      });
+      final authController = await _authController(httpClient);
+      final controller = _controller(authController, httpClient);
+      await controller.loadForUser(authController.state.user!);
+
+      final first = controller.deleteSet('set-1');
+      await deleteStarted.future;
+      expect(controller.state.deletingSetId, 'set-1');
+      final duplicate = await controller.deleteSet('set-1');
+      releaseDelete.complete();
+      final success = await first;
+
+      expect(duplicate.status, WorkoutSetApiStatus.conflict);
+      expect(success.status, WorkoutSetApiStatus.success);
+      expect(deleteCount, 1);
+    });
+
     test('missing token returns authentication error without HTTP request', () async {
       final authController = AuthController(
         authApiClient: AuthApiClient(
@@ -151,8 +285,11 @@ void main() {
 
       await controller.loadForUser(_user(role: UserRole.trainer));
 
+      final result = await controller.deleteSet('set-1');
+
       expect(controller.state.status, WorkoutSetControllerStatus.error);
       expect(controller.state.message, contains('not authenticated'));
+      expect(result.status, WorkoutSetApiStatus.unauthorized);
     });
   });
 }
@@ -224,10 +361,10 @@ Map<String, Object?> _userResponse({
   };
 }
 
-Map<String, Object?> _summaryJson() {
+Map<String, Object?> _summaryJson({String id = 'set-1', String name = 'Push A'}) {
   return {
-    'id': 'set-1',
-    'name': 'Push A',
+    'id': id,
+    'name': name,
     'exerciseCount': 1,
     'rowCount': 1,
     'assignedTrainees': 0,

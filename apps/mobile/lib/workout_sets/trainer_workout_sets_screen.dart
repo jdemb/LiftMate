@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../relationships/relationship_screen_styles.dart';
+import 'workout_set_api_client.dart';
 import 'workout_set_controller.dart';
 import 'workout_set_models.dart';
 import 'workout_set_text.dart';
@@ -24,6 +25,54 @@ class TrainerWorkoutSetsScreen extends StatelessWidget {
   final ValueChanged<WorkoutSetSummary> onEditSet;
   final ValueChanged<WorkoutSetSummary> onAssignSet;
   final Future<void> Function() onLogout;
+
+  Future<void> _deleteSet(
+    BuildContext context,
+    WorkoutSetSummary workoutSet,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Usunąć zestaw „${workoutSet.name}”?'),
+        content: const Text(
+          'Zestaw zniknie z listy i nie będzie można przypisać go ponownie.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFD94A4A),
+            ),
+            child: const Text('Usuń'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) {
+      return;
+    }
+
+    final result = await controller.deleteSet(workoutSet.id);
+    if (!context.mounted) {
+      return;
+    }
+
+    final message = switch (result.status) {
+      WorkoutSetApiStatus.success =>
+        'Zestaw „${workoutSet.name}” został usunięty.',
+      WorkoutSetApiStatus.conflict =>
+        'Nie można usunąć zestawu podczas aktywnej sesji.',
+      _ => 'Nie udało się usunąć zestawu. Spróbuj ponownie.',
+    };
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,14 +104,16 @@ class TrainerWorkoutSetsScreen extends StatelessWidget {
                       style: TextStyle(color: lmMuted, fontSize: 13.5),
                     ),
                     const SizedBox(height: 18),
-                    if (state.status == WorkoutSetControllerStatus.loading && sets.isEmpty)
+                    if (state.status == WorkoutSetControllerStatus.loading &&
+                        sets.isEmpty)
                       const Center(
                         child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 32),
                           child: CircularProgressIndicator(),
                         ),
                       )
-                    else if (state.status == WorkoutSetControllerStatus.error && sets.isEmpty)
+                    else if (state.status == WorkoutSetControllerStatus.error &&
+                        sets.isEmpty)
                       RelationshipCard(
                         child: Text(
                           state.message ?? 'Nie udało się pobrać zestawów.',
@@ -75,6 +126,8 @@ class TrainerWorkoutSetsScreen extends StatelessWidget {
                           set: set,
                           onEdit: () => onEditSet(set),
                           onAssign: () => onAssignSet(set),
+                          onDelete: () => _deleteSet(context, set),
+                          isDeleting: state.deletingSetId == set.id,
                         ),
                       _NewSetButton(onPressed: onCreateSet),
                     ],
@@ -113,11 +166,15 @@ class _WorkoutSetCard extends StatelessWidget {
     required this.set,
     required this.onEdit,
     required this.onAssign,
+    required this.onDelete,
+    required this.isDeleting,
   });
 
   final WorkoutSetSummary set;
   final VoidCallback onEdit;
   final VoidCallback onAssign;
+  final VoidCallback onDelete;
+  final bool isDeleting;
 
   @override
   Widget build(BuildContext context) {
@@ -156,6 +213,49 @@ class _WorkoutSetCard extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(width: 6),
+              if (isDeleting)
+                const SizedBox.square(
+                  dimension: 30,
+                  child: Padding(
+                    padding: EdgeInsets.all(7),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              else
+                PopupMenuButton<_WorkoutSetAction>(
+                  key: ValueKey('workout-set-menu-${set.id}'),
+                  tooltip: 'Więcej',
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.more_vert_rounded),
+                  iconSize: 20,
+                  color: const Color(0xFF22262E),
+                  position: PopupMenuPosition.under,
+                  constraints: const BoxConstraints(minWidth: 168),
+                  onSelected: (_) => onDelete(),
+                  itemBuilder: (context) => const [
+                    PopupMenuItem<_WorkoutSetAction>(
+                      value: _WorkoutSetAction.delete,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.delete_outline_rounded,
+                            color: Color(0xFFFF8D8D),
+                            size: 20,
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            'Usuń zestaw',
+                            style: TextStyle(
+                              color: Color(0xFFFF8D8D),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
           const SizedBox(height: 6),
@@ -193,6 +293,8 @@ class _WorkoutSetCard extends StatelessWidget {
     );
   }
 }
+
+enum _WorkoutSetAction { delete }
 
 class _NewSetButton extends StatelessWidget {
   const _NewSetButton({required this.onPressed});

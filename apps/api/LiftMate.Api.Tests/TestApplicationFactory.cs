@@ -14,7 +14,8 @@ namespace LiftMate.Api.Tests;
 
 public sealed class TestApplicationFactory : WebApplicationFactory<Program>
 {
-    private readonly DbConnection _connection = CreateConnection();
+    private readonly string _connectionString;
+    private readonly DbConnection _connection;
     private readonly string? _registrationInviteCode;
 
     public TestApplicationFactory()
@@ -25,6 +26,8 @@ public sealed class TestApplicationFactory : WebApplicationFactory<Program>
     internal TestApplicationFactory(string? registrationInviteCode)
     {
         _registrationInviteCode = registrationInviteCode;
+        _connectionString = $"Data Source=LiftMateTests-{Guid.NewGuid():N};Mode=Memory;Cache=Shared;Default Timeout=30";
+        _connection = CreateConnection(_connectionString);
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -48,10 +51,9 @@ public sealed class TestApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>();
             services.RemoveAll<DbConnection>();
 
-            services.AddSingleton(_connection);
-            services.AddDbContext<ApplicationDbContext>((provider, options) =>
+            services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseSqlite(provider.GetRequiredService<DbConnection>());
+                options.UseSqlite(_connectionString);
             });
 
             using var scope = services.BuildServiceProvider().CreateScope();
@@ -70,9 +72,9 @@ public sealed class TestApplicationFactory : WebApplicationFactory<Program>
         }
     }
 
-    private static DbConnection CreateConnection()
+    private static DbConnection CreateConnection(string connectionString)
     {
-        var connection = new SqliteConnection("DataSource=:memory:");
+        var connection = new SqliteConnection(connectionString);
         connection.Open();
         return connection;
     }

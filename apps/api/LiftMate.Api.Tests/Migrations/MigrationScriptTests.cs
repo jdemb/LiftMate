@@ -119,4 +119,21 @@ public sealed class MigrationScriptTests
         Assert.Contains("TrainerLinkedAt", script, StringComparison.Ordinal);
         Assert.Contains("datetimeoffset", script, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void WorkoutSetDeletionMigrationAddsNullableTimestampAndActiveLookupIndex()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=LiftMateMigrationScript;Trusted_Connection=True")
+            .Options;
+
+        using var dbContext = new ApplicationDbContext(options);
+        var script = dbContext.GetService<IMigrator>().GenerateScript(
+            options: MigrationsSqlGenerationOptions.Idempotent);
+
+        Assert.Contains("AddWorkoutSetDeletedAt", script, StringComparison.Ordinal);
+        Assert.Contains("DeletedAt", script, StringComparison.Ordinal);
+        Assert.Contains("datetimeoffset", script, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("IX_WorkoutSets_TrainerUserId_DeletedAt", script, StringComparison.Ordinal);
+    }
 }

@@ -1,6 +1,6 @@
 # LiftMate
 
-**Mobilna aplikacja treningowa, która łączy trenera z podopiecznym — od przygotowania planu, przez wspólną sesję na żywo, aż po feedback i mierzalny progres.**
+**Mobilna aplikacja treningowa, która łączy trenera z podopiecznym. Wspiera cały proces, od przygotowania planu i wspólnej sesji na żywo po informację zwrotną oraz mierzalne postępy.**
 
 [**Zobacz interaktywną prezentację**](https://jdemb.github.io/liftmate-demo) · [**Pobierz aplikację na Androida**](https://github.com/jdemb/PrototypApka/releases/download/v1.0.0/LiftMate-v1.0.0-android.apk)
 
@@ -13,32 +13,32 @@
   </tr>
   <tr>
     <td align="center"><a href="docs/assets/readme/live-session.png"><img src="docs/assets/readme/live-session.png" width="480" alt="Sesja treningowa prowadzona na żywo"></a><br><strong>Sesja na żywo</strong></td>
-    <td align="center"><a href="docs/assets/readme/exercise-progress.png"><img src="docs/assets/readme/exercise-progress.png" width="480" alt="Historia progresu pojedynczego ćwiczenia"></a><br><strong>Progres ćwiczenia</strong></td>
+    <td align="center"><a href="docs/assets/readme/exercise-progress.png"><img src="docs/assets/readme/exercise-progress.png" width="480" alt="Historia postępów w wybranym ćwiczeniu"></a><br><strong>Postępy w ćwiczeniu</strong></td>
   </tr>
 </table>
 
 ## O projekcie
 
-LiftMate ogranicza liczbę decyzji podejmowanych na siłowni. Trener przygotowuje i przypisuje plan, a podopieczny wykonuje go z aktualnymi wartościami, zachowując ciągłość progresu pomiędzy kolejnymi treningami.
+LiftMate ułatwia podejmowanie decyzji podczas treningu. Trener przygotowuje i przypisuje plan, a podopieczny ćwiczy zgodnie z aktualnymi założeniami i zachowuje ciągłość postępów między kolejnymi sesjami.
 
-Projekt jest monorepo zawierającym aplikację mobilną Flutter oraz API ASP.NET Core. Obejmuje pełny przepływ od rejestracji i połączenia kont po historię treningów, feedback oraz analizę postępów.
+Projekt ma strukturę monorepo i obejmuje aplikację mobilną stworzoną we Flutterze oraz interfejs API zbudowany w ASP.NET Core. Obsługuje cały proces, od rejestracji i połączenia kont po historię treningów, informacje zwrotne oraz analizę postępów.
 
-## Dla kogo?
+## Dla kogo jest LiftMate?
 
-- **Trener personalny** — prowadzi wielu podopiecznych, zarządza planami, uruchamia wspólne sesje i analizuje historię oraz regularność.
-- **Podopieczny** — wykonuje trening prowadzony przez trenera albo samodzielnie, przekazuje feedback i obserwuje progres.
+- **Trener personalny** prowadzi wielu podopiecznych, zarządza planami, uruchamia wspólne sesje oraz analizuje historię i regularność treningów.
+- **Podopieczny** wykonuje trening pod nadzorem trenera lub samodzielnie, przekazuje informacje zwrotne i obserwuje swoje postępy.
 
 ## Główne funkcje
 
-- relacja jeden trener–wielu podopiecznych nawiązywana kodem zaproszenia;
+- współpraca jednego trenera z wieloma podopiecznymi, nawiązywana za pomocą kodu zaproszenia;
 - tworzenie, edycja, usuwanie i wielokrotne przypisywanie zestawów ćwiczeń;
-- wspólna sesja aktualizowana u trenera i podopiecznego bez ręcznego odświeżania;
-- samodzielny trening podopiecznego z edycją własnych wartości;
-- zapis wykonanych serii jako punkt startowy kolejnego treningu;
-- historia sesji i progres pojedynczych ćwiczeń;
+- dane wspólnej sesji aktualizowane u trenera i podopiecznego bez ręcznego odświeżania;
+- samodzielny trening podopiecznego z możliwością edycji własnych wyników;
+- zapisywanie wykonanych serii jako punktu wyjścia do kolejnego treningu;
+- historia sesji i postępy w poszczególnych ćwiczeniach;
 - ocena samopoczucia oraz opcjonalny komentarz po treningu;
-- aktualna i najlepsza seria kolejnych tygodni z ukończonym treningiem;
-- podpowiedzi dla trenera o stagnacji ciężaru i obniżonym samopoczuciu.
+- aktualna oraz najlepsza seria kolejnych tygodni, w których ukończono trening;
+- podpowiedzi dla trenera dotyczące braku postępów w zwiększaniu obciążenia oraz obniżonego samopoczucia podopiecznego.
 
 Rozszerzony opis znajduje się w [prezentacji funkcji](apps/mobile/design/prezentacja-funkcji.md), a powiązania z kodem, API i testami w [mapie implementacji](apps/mobile/design/mapa-implementacji.md).
 
@@ -53,10 +53,10 @@ flowchart LR
     G["GitHub Actions"] -->|"deploy"| A
 ```
 
-- **Flutter** odpowiada za interfejs obu ról, stan aplikacji, bezpieczne przechowywanie tokenów oraz klienta synchronizacji na żywo.
-- **ASP.NET Core** zapewnia uwierzytelnianie JWT, autoryzację ról i relacji, logikę treningową, REST API oraz hub SignalR.
-- **Entity Framework Core i SQL Server** przechowują konta, relacje, plany, sesje, feedback i projekcje progresu; schemat jest rozwijany migracjami.
-- **Azure App Service i Azure SQL** hostują środowisko demonstracyjne, a GitHub Actions automatyzuje migracje i wdrożenie API.
+- **Flutter** odpowiada za interfejs trenera i podopiecznego, zarządzanie stanem aplikacji, bezpieczne przechowywanie tokenów oraz synchronizację danych na żywo.
+- **ASP.NET Core** obsługuje uwierzytelnianie JWT, autoryzację ról i relacji, logikę treningową, REST API oraz komunikację przez SignalR.
+- **Entity Framework Core i SQL Server** przechowują konta, relacje, plany, sesje, informacje zwrotne oraz dane o postępach. Schemat bazy danych jest rozwijany za pomocą migracji.
+- **Azure App Service i Azure SQL** zapewniają środowisko demonstracyjne, natomiast GitHub Actions automatyzuje migracje oraz wdrażanie API.
 
 ## Struktura repozytorium
 
@@ -69,10 +69,10 @@ docs/assets/      zasoby dokumentacji
 
 ## Wymagania środowiskowe
 
-- Flutter `3.44.0` i Dart `3.12.0` — wersje użyte do końcowej weryfikacji;
-- .NET SDK `10.0` — projekty targetują `net10.0`;
+- Flutter `3.44.0` i Dart `3.12.0` w wersjach użytych do końcowej weryfikacji;
+- .NET SDK `10.0`, ponieważ projekty korzystają z platformy docelowej `net10.0`;
 - JDK 17 i Android SDK;
-- Android Emulator albo fizyczne urządzenie z Androidem;
+- emulator Androida albo fizyczne urządzenie z tym systemem;
 - SQL Server LocalDB na Windows albo dostępna instancja SQL Server;
 - `dotnet-ef` `10.0.8` do wykonywania migracji lokalnej bazy.
 
@@ -123,14 +123,14 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5257
 
 ## Testy
 
-Mobile — z katalogu `apps/mobile`:
+Testy aplikacji mobilnej należy uruchomić z katalogu `apps/mobile`:
 
 ```powershell
 flutter analyze
 flutter test
 ```
 
-API — z katalogu `apps/api`:
+Testy API należy uruchomić z katalogu `apps/api`:
 
 ```powershell
 dotnet restore LiftMate.slnx
@@ -139,7 +139,7 @@ dotnet test LiftMate.slnx --no-build --verbosity minimal
 dotnet list LiftMate.slnx package --vulnerable --include-transitive
 ```
 
-Testy mobilne obejmują logikę, klientów HTTP, kontrolery i widgety. Testy API korzystają z xUnit, `WebApplicationFactory` oraz SQLite in-memory, dzięki czemu sprawdzają rzeczywisty pipeline HTTP, autoryzację i persystencję bez zewnętrznej bazy testowej.
+Testy aplikacji mobilnej obejmują logikę, klientów HTTP, kontrolery i widgety. Testy API korzystają z xUnit, `WebApplicationFactory` oraz bazy SQLite działającej w pamięci. Pozwala to sprawdzić rzeczywistą obsługę żądań HTTP, autoryzację i trwałość danych bez zewnętrznej bazy testowej.
 
 ## Dokumentacja
 
@@ -152,7 +152,7 @@ Testy mobilne obejmują logikę, klientów HTTP, kontrolery i widgety. Testy API
 - [Prezentacja funkcji](apps/mobile/design/prezentacja-funkcji.md)
 - [Mapa implementacji i testów](apps/mobile/design/mapa-implementacji.md)
 
-## Status platform
+## Obsługiwane platformy
 
-- **Android:** główna platforma demonstracyjna; dostępny jest instalacyjny APK.
+- **Android:** główna platforma demonstracyjna; dostępny jest plik instalacyjny APK.
 - **iOS:** kod platformowy jest obecny w projekcie Flutter, ale aplikacja nie była testowana na fizycznych urządzeniach z systemem iOS z powodu braku dostępu do wymaganego środowiska Apple.

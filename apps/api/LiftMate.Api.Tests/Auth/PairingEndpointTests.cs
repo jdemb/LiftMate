@@ -2,6 +2,10 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.RegularExpressions;
+using LiftMate.Api.Data;
+using LiftMate.Api.SharedSessions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LiftMate.Api.Tests.Auth;
 
@@ -30,14 +34,22 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
         var inviteCode = await GenerateTrainerInviteCode(client, trainer);
 
         client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var startedAt = DateTimeOffset.UtcNow;
         var claimResponse = await client.PostAsJsonAsync(
             "/trainee/trainer-link",
             new ClaimTrainerInviteCodeRequest($"  {inviteCode.Code.ToLowerInvariant()}  "));
+        var completedAt = DateTimeOffset.UtcNow;
         var linked = await claimResponse.Content.ReadFromJsonAsync<AuthEndpointTests.UserResponse>();
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await dbContext.Users.SingleAsync(user => user.Id == trainee.User.Id);
 
         Assert.Equal(HttpStatusCode.OK, claimResponse.StatusCode);
         Assert.NotNull(linked);
         Assert.Equal(trainer.User.Id, linked.TrainerUserId);
+        Assert.NotNull(persisted.TrainerLinkedAt);
+        Assert.InRange(persisted.TrainerLinkedAt.Value, startedAt, completedAt);
 
         var meResponse = await client.GetAsync("/auth/me");
         var me = await meResponse.Content.ReadFromJsonAsync<AuthEndpointTests.UserResponse>();
@@ -102,6 +114,90 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
         Assert.Equal(trainee.User.Email, linkedTrainee.Email);
         Assert.Equal(trainee.User.DisplayName, linkedTrainee.DisplayName);
         Assert.Null(linkedTrainee.ActiveSession);
+    }
+
+    [Fact]
+    public async Task TrainerRelationshipSummaryReturnsPersistedConnectionTimestamp()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairTrainerAndTrainee(client, trainer, trainee);
+
+        DateTimeOffset? linkedAt;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            linkedAt = await dbContext.Users
+                .Where(user => user.Id == trainee.User.Id)
+                .Select(user => user.TrainerLinkedAt)
+                .SingleAsync();
+        }
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.GetAsync("/trainer/relationship");
+        var summary = await response.Content.ReadFromJsonAsync<TrainerRelationshipSummaryResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(linkedAt);
+        Assert.Equal(linkedAt, Assert.Single(summary!.Trainees).ConnectedAt);
+    }
+
+    [Fact]
+    public async Task TrainerRelationshipSummaryFallsBackToOldestRefreshTokenForLegacyLink()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairTrainerAndTrainee(client, trainer, trainee);
+        var registeredAt = new DateTimeOffset(2026, 3, 8, 10, 0, 0, TimeSpan.Zero);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await dbContext.Users.SingleAsync(value => value.Id == trainee.User.Id);
+            user.TrainerLinkedAt = null;
+            var oldestToken = await dbContext.RefreshTokens
+                .Where(token => token.UserId == trainee.User.Id)
+                .SingleAsync();
+            oldestToken.CreatedAt = registeredAt;
+            await dbContext.SaveChangesAsync();
+        }
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.GetAsync("/trainer/relationship");
+        var summary = await response.Content.ReadFromJsonAsync<TrainerRelationshipSummaryResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(registeredAt, Assert.Single(summary!.Trainees).ConnectedAt);
+    }
+
+    [Fact]
+    public async Task TrainerRelationshipSummaryReturnsNullConnectionTimestampWithoutLegacyToken()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairTrainerAndTrainee(client, trainer, trainee);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await dbContext.Users.SingleAsync(value => value.Id == trainee.User.Id);
+            user.TrainerLinkedAt = null;
+            var tokens = await dbContext.RefreshTokens
+                .Where(token => token.UserId == trainee.User.Id)
+                .ToListAsync();
+            dbContext.RefreshTokens.RemoveRange(tokens);
+            await dbContext.SaveChangesAsync();
+        }
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.GetAsync("/trainer/relationship");
+        var summary = await response.Content.ReadFromJsonAsync<TrainerRelationshipSummaryResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Null(Assert.Single(summary!.Trainees).ConnectedAt);
     }
 
     [Fact]
@@ -187,6 +283,31 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task TrainerRelationshipSummaryExcludesArchivedWorkoutSets()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(client, trainer, "Push A");
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var persisted = await dbContext.WorkoutSets.SingleAsync(set => set.Id == workoutSet.Id);
+            persisted.DeletedAt = DateTimeOffset.UtcNow;
+            await dbContext.SaveChangesAsync();
+        }
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var summary = await client.GetFromJsonAsync<TrainerRelationshipSummaryResponse>("/trainer/relationship");
+
+        var linkedTrainee = Assert.Single(summary!.Trainees);
+        Assert.DoesNotContain(linkedTrainee.AssignedWorkoutSets, set => set.Id == workoutSet.Id);
+    }
+
+    [Fact]
     public async Task TrainerRelationshipSummaryReturnsEmptyListForNewTrainer()
     {
         using var client = factory.CreateClient();
@@ -227,6 +348,63 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
         Assert.Equal(trainer.User.Id, linked.Trainer.Id);
         Assert.Equal(trainer.User.Email, linked.Trainer.Email);
         Assert.Equal(trainer.User.DisplayName, linked.Trainer.DisplayName);
+        Assert.Equal(0, unlinked.WeeklyStreak.CurrentStreak);
+        Assert.Equal(0, linked.WeeklyStreak.CurrentStreak);
+    }
+
+    [Fact]
+    public async Task RelationshipSummariesBackfillCompletedHistoryForCurrentPairOnly()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var otherTrainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairTrainerAndTrainee(client, trainer, trainee);
+        var completedAt = DateTimeOffset.UtcNow.AddMinutes(-5);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            dbContext.SharedSessions.Add(new SharedSession
+            {
+                Id = Guid.NewGuid(),
+                TrainerUserId = trainer.User.Id,
+                TraineeUserId = trainee.User.Id,
+                StartedByUserId = trainee.User.Id,
+                StartedByRole = "trainee",
+                Status = SharedSessionStatus.Completed,
+                Version = 2,
+                CreatedAt = completedAt.AddHours(-1),
+                UpdatedAt = completedAt,
+                ClosedAt = completedAt,
+            });
+            await dbContext.SaveChangesAsync();
+        }
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var traineeResponse = await client.GetFromJsonAsync<TraineeRelationshipSummaryResponse>(
+            "/trainee/relationship");
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var trainerResponse = await client.GetFromJsonAsync<TrainerRelationshipSummaryResponse>(
+            "/trainer/relationship");
+
+        client.DefaultRequestHeaders.Authorization = Bearer(otherTrainer.AccessToken);
+        var otherTrainerResponse = await client.GetFromJsonAsync<TrainerRelationshipSummaryResponse>(
+            "/trainer/relationship");
+
+        Assert.NotNull(traineeResponse);
+        Assert.Equal(1, traineeResponse.WeeklyStreak.CurrentStreak);
+        Assert.Equal(completedAt, traineeResponse.WeeklyStreak.LastCompletedWorkoutAt);
+        var linkedTrainee = Assert.Single(Assert.IsType<TrainerRelationshipSummaryResponse>(trainerResponse).Trainees);
+        Assert.Equal(1, linkedTrainee.WeeklyStreak.CurrentStreak);
+        Assert.Equal(completedAt, linkedTrainee.WeeklyStreak.LastCompletedWorkoutAt);
+        Assert.Empty(Assert.IsType<TrainerRelationshipSummaryResponse>(otherTrainerResponse).Trainees);
+
+        using var verificationScope = factory.Services.CreateScope();
+        var verificationDbContext = verificationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.True(await verificationDbContext.TraineeWeeklyStreaks.AnyAsync(
+            item => item.TraineeUserId == trainee.User.Id));
     }
 
     [Fact]
@@ -375,8 +553,10 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
         string Id,
         string Email,
         string DisplayName,
+        DateTimeOffset? ConnectedAt,
         ActiveSharedSessionSummaryResponse? ActiveSession,
-        IReadOnlyList<AssignedWorkoutSetSummaryResponse> AssignedWorkoutSets);
+        IReadOnlyList<AssignedWorkoutSetSummaryResponse> AssignedWorkoutSets,
+        WeeklyStreakResponse WeeklyStreak);
 
     private sealed record ActiveSharedSessionSummaryResponse(
         Guid SessionId,
@@ -393,7 +573,16 @@ public sealed partial class PairingEndpointTests(TestApplicationFactory factory)
         int RowCount,
         DateTimeOffset UpdatedAt);
 
-    private sealed record TraineeRelationshipSummaryResponse(TraineeTrainerResponse? Trainer);
+    private sealed record TraineeRelationshipSummaryResponse(
+        TraineeTrainerResponse? Trainer,
+        WeeklyStreakResponse WeeklyStreak);
+
+    private sealed record WeeklyStreakResponse(
+        int CurrentStreak,
+        int BestStreak,
+        DateOnly? LastActiveWeekStart,
+        DateTimeOffset? LastCompletedWorkoutAt,
+        bool IsActiveThisWeek);
 
     private sealed record TraineeTrainerResponse(
         string Id,

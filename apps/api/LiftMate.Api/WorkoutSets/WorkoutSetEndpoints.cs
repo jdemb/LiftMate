@@ -1,6 +1,8 @@
+using System.Data;
 using System.Security.Claims;
 using LiftMate.Api.Auth;
 using LiftMate.Api.Data;
+using LiftMate.Api.SharedSessions;
 using Microsoft.EntityFrameworkCore;
 
 namespace LiftMate.Api.WorkoutSets;
@@ -15,6 +17,7 @@ public static class WorkoutSetEndpoints
         trainerGroup.MapPost("/", Create).RequireAuthorization("TrainerOnly");
         trainerGroup.MapGet("/{setId:guid}", GetTrainerSet).RequireAuthorization("TrainerOnly");
         trainerGroup.MapPut("/{setId:guid}", Update).RequireAuthorization("TrainerOnly");
+        trainerGroup.MapDelete("/{setId:guid}", Delete).RequireAuthorization("TrainerOnly");
         trainerGroup.MapPost("/{setId:guid}/assignments", Assign).RequireAuthorization("TrainerOnly");
         trainerGroup.MapDelete("/{setId:guid}/assignments/{traineeUserId}", Unassign).RequireAuthorization("TrainerOnly");
 
@@ -59,7 +62,7 @@ public static class WorkoutSetEndpoints
             return Results.Unauthorized();
         }
 
-        var rows = ValidateAndMapRows(request.Rows, out var rowError);
+        var rows = MapRowsForCreate(request.Rows, out var rowError);
         if (rowError is not null)
         {
             return Results.BadRequest(new { error = rowError });
@@ -71,12 +74,19 @@ public static class WorkoutSetEndpoints
             return Results.BadRequest(new { error = nameError });
         }
 
+        var restError = WorkoutSetValidation.ValidateRestSeconds(request.RestSeconds);
+        if (restError is not null)
+        {
+            return Results.BadRequest(new { error = restError });
+        }
+
         var now = DateTimeOffset.UtcNow;
         var workoutSet = new WorkoutSet
         {
             Id = Guid.NewGuid(),
             TrainerUserId = trainerUserId,
             Name = request.Name.Trim(),
+            RestSeconds = request.RestSeconds ?? 90,
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -122,20 +132,21 @@ public static class WorkoutSetEndpoints
             return Results.BadRequest(new { error = nameError });
         }
 
-        var rows = ValidateAndMapRows(request.Rows, out var rowError);
+        var restError = WorkoutSetValidation.ValidateRestSeconds(request.RestSeconds);
+        if (restError is not null)
+        {
+            return Results.BadRequest(new { error = restError });
+        }
+
+        var rowError = ApplyRowsForUpdate(workoutSet, request.Rows, dbContext);
         if (rowError is not null)
         {
             return Results.BadRequest(new { error = rowError });
         }
 
         workoutSet.Name = request.Name.Trim();
+        workoutSet.RestSeconds = request.RestSeconds ?? 90;
         workoutSet.UpdatedAt = DateTimeOffset.UtcNow;
-        dbContext.WorkoutSetRows.RemoveRange(workoutSet.Rows);
-        foreach (var row in rows)
-        {
-            row.WorkoutSetId = workoutSet.Id;
-            dbContext.WorkoutSetRows.Add(row);
-        }
 
         await dbContext.SaveChangesAsync(cancellationToken);
         dbContext.ChangeTracker.Clear();
@@ -213,6 +224,64 @@ public static class WorkoutSetEndpoints
         return Results.Ok(WorkoutSetMapping.ToDetail(reloaded ?? workoutSet));
     }
 
+    private static async Task<IResult> Delete(
+        Guid setId,
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var trainerUserId = UserId(principal);
+        if (trainerUserId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        IResult? result = null;
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+
+        await executionStrategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken);
+            dbContext.ChangeTracker.Clear();
+
+            var workoutSet = await dbContext.WorkoutSets
+                .Include(set => set.Assignments)
+                .SingleOrDefaultAsync(
+                    set => set.Id == setId && set.TrainerUserId == trainerUserId,
+                    cancellationToken);
+            if (workoutSet is null)
+            {
+                result = Results.NotFound();
+                return;
+            }
+
+            if (workoutSet.DeletedAt is not null)
+            {
+                result = Results.NoContent();
+                return;
+            }
+
+            var hasActiveSession = await dbContext.SharedSessions.AnyAsync(
+                session => session.WorkoutSetId == setId && session.Status == SharedSessionStatus.Active,
+                cancellationToken);
+            if (hasActiveSession)
+            {
+                result = Results.Conflict(new { error = "Workout set cannot be deleted during an active session." });
+                return;
+            }
+
+            workoutSet.DeletedAt = DateTimeOffset.UtcNow;
+            dbContext.WorkoutSetAssignments.RemoveRange(workoutSet.Assignments);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            result = Results.NoContent();
+        });
+
+        return result ?? Results.Problem("Workout set deletion did not complete.");
+    }
+
     private static async Task<IResult> Unassign(
         Guid setId,
         string traineeUserId,
@@ -282,7 +351,8 @@ public static class WorkoutSetEndpoints
         return dbContext.WorkoutSets
             .Include(set => set.Rows)
             .Include(set => set.Assignments)
-            .ThenInclude(assignment => assignment.TraineeUser);
+            .ThenInclude(assignment => assignment.TraineeUser)
+            .Where(set => set.DeletedAt == null);
     }
 
     private static Task<WorkoutSet?> FindTrainerSet(
@@ -313,20 +383,167 @@ public static class WorkoutSetEndpoints
             .Where(assignment =>
                 assignment.TraineeUserId == traineeUserId &&
                 assignment.WorkoutSet != null &&
+                assignment.WorkoutSet.DeletedAt == null &&
                 assignment.WorkoutSet.TrainerUserId == assignment.TraineeUser!.TrainerUserId);
     }
 
-    private static IReadOnlyList<WorkoutSetRow> ValidateAndMapRows(
+    private static IReadOnlyList<WorkoutSetRow> MapRowsForCreate(
         IReadOnlyList<WorkoutSetRowRequest> requests,
         out string? error)
     {
-        if (requests.Count == 0)
+        var validationError = ValidateRequests(requests);
+        if (validationError is not null)
         {
-            error = "At least one workout set row is required.";
+            error = validationError;
             return [];
         }
 
         var rows = new List<WorkoutSetRow>();
+        var rowIds = new HashSet<Guid>();
+        foreach (var group in requests.GroupBy(request => request.ExerciseOrder))
+        {
+            var suppliedExerciseIds = group
+                .Where(request => request.ExerciseId.HasValue)
+                .Select(request => request.ExerciseId!.Value)
+                .Distinct()
+                .ToArray();
+            if (suppliedExerciseIds.Length > 1 ||
+                (suppliedExerciseIds.Length == 1 && group.Any(request => request.ExerciseId is null)))
+            {
+                error = "Rows for one exercise must use one consistent exercise ID.";
+                return [];
+            }
+
+            var exerciseId = suppliedExerciseIds.SingleOrDefault();
+            if (exerciseId == Guid.Empty)
+            {
+                exerciseId = Guid.NewGuid();
+            }
+
+            foreach (var request in group)
+            {
+                var rowId = request.Id ?? Guid.NewGuid();
+                if (!rowIds.Add(rowId))
+                {
+                    error = "Workout set row IDs must be unique.";
+                    return [];
+                }
+
+                rows.Add(MapNewRow(request, rowId, exerciseId));
+            }
+        }
+
+        error = null;
+        return rows;
+    }
+
+    private static string? ApplyRowsForUpdate(
+        WorkoutSet workoutSet,
+        IReadOnlyList<WorkoutSetRowRequest> requests,
+        ApplicationDbContext dbContext)
+    {
+        var validationError = ValidateRequests(requests);
+        if (validationError is not null)
+        {
+            return validationError;
+        }
+
+        var existingById = workoutSet.Rows.ToDictionary(row => row.Id);
+        var requestedIds = new HashSet<Guid>();
+        var exerciseIdsByOrder = new Dictionary<int, Guid>();
+
+        foreach (var group in requests.GroupBy(request => request.ExerciseOrder))
+        {
+            var suppliedExerciseIds = group
+                .Where(request => request.ExerciseId.HasValue)
+                .Select(request => request.ExerciseId!.Value)
+                .Distinct()
+                .ToArray();
+            if (suppliedExerciseIds.Length > 1 ||
+                (suppliedExerciseIds.Length == 1 && group.Any(request => request.ExerciseId is null)))
+            {
+                return "Rows for one exercise must use one consistent exercise ID.";
+            }
+
+            Guid exerciseId;
+            if (suppliedExerciseIds.Length == 0)
+            {
+                if (group.Any(request => request.Id.HasValue))
+                {
+                    return "Existing row IDs require an exercise ID.";
+                }
+
+                exerciseId = Guid.NewGuid();
+            }
+            else
+            {
+                exerciseId = suppliedExerciseIds[0];
+                if (!workoutSet.Rows.Any(row => row.ExerciseId == exerciseId))
+                {
+                    return "Exercise ID does not belong to the workout set.";
+                }
+            }
+
+            exerciseIdsByOrder[group.Key] = exerciseId;
+
+            foreach (var request in group)
+            {
+                if (!request.Id.HasValue)
+                {
+                    continue;
+                }
+
+                if (!requestedIds.Add(request.Id.Value))
+                {
+                    return "Workout set row IDs must be unique.";
+                }
+
+                if (!existingById.TryGetValue(request.Id.Value, out var existing))
+                {
+                    return "Workout set row ID does not belong to the workout set.";
+                }
+
+                if (request.ExerciseId != existing.ExerciseId)
+                {
+                    return "Workout set row and exercise IDs are inconsistent.";
+                }
+
+                if (!string.Equals(existing.ExerciseType, request.ExerciseType.Trim(), StringComparison.Ordinal))
+                {
+                    return "Changing exercise type requires new exercise and row IDs.";
+                }
+            }
+        }
+
+        var rowsToRemove = workoutSet.Rows
+            .Where(row => !requestedIds.Contains(row.Id))
+            .ToArray();
+        dbContext.WorkoutSetRows.RemoveRange(rowsToRemove);
+
+        foreach (var request in requests)
+        {
+            var exerciseId = exerciseIdsByOrder[request.ExerciseOrder];
+            if (request.Id.HasValue)
+            {
+                UpdateRow(existingById[request.Id.Value], request);
+                continue;
+            }
+
+            var row = MapNewRow(request, Guid.NewGuid(), exerciseId);
+            row.WorkoutSetId = workoutSet.Id;
+            dbContext.WorkoutSetRows.Add(row);
+        }
+
+        return null;
+    }
+
+    private static string? ValidateRequests(IReadOnlyList<WorkoutSetRowRequest> requests)
+    {
+        if (requests.Count == 0)
+        {
+            return "At least one workout set row is required.";
+        }
+
         var rowPositions = new HashSet<(int ExerciseOrder, int SetIndex)>();
         foreach (var request in requests)
         {
@@ -340,31 +557,41 @@ public static class WorkoutSetEndpoints
                 request.Seconds);
             if (validationError is not null)
             {
-                error = validationError;
-                return [];
+                return validationError;
             }
 
             if (!rowPositions.Add((request.ExerciseOrder, request.SetIndex)))
             {
-                error = "Workout set rows must not duplicate exercise order and set index.";
-                return [];
+                return "Workout set rows must not duplicate exercise order and set index.";
             }
-
-            rows.Add(new WorkoutSetRow
-            {
-                Id = Guid.NewGuid(),
-                ExerciseOrder = request.ExerciseOrder,
-                SetIndex = request.SetIndex,
-                ExerciseName = request.ExerciseName.Trim(),
-                ExerciseType = request.ExerciseType.Trim(),
-                Reps = request.Reps,
-                Weight = request.Weight,
-                Seconds = request.Seconds,
-            });
         }
 
-        error = null;
-        return rows;
+        return null;
+    }
+
+    private static WorkoutSetRow MapNewRow(
+        WorkoutSetRowRequest request,
+        Guid rowId,
+        Guid exerciseId)
+    {
+        var row = new WorkoutSetRow
+        {
+            Id = rowId,
+            ExerciseId = exerciseId,
+        };
+        UpdateRow(row, request);
+        return row;
+    }
+
+    private static void UpdateRow(WorkoutSetRow row, WorkoutSetRowRequest request)
+    {
+        row.ExerciseOrder = request.ExerciseOrder;
+        row.SetIndex = request.SetIndex;
+        row.ExerciseName = request.ExerciseName.Trim();
+        row.ExerciseType = request.ExerciseType.Trim();
+        row.Reps = request.Reps;
+        row.Weight = request.Weight;
+        row.Seconds = request.Seconds;
     }
 
     private static string? UserId(ClaimsPrincipal principal)

@@ -4,51 +4,62 @@ import 'package:liftmate/shared_sessions/shared_session_realtime_client.dart';
 
 void main() {
   group('SignalRSharedSessionRealtimeClient', () {
-    test('connect starts connection, joins session, and exposes start/update payloads', () async {
-      late _FakeHubConnectionAdapter fakeConnection;
-      final client = SignalRSharedSessionRealtimeClient(
-        baseUrl: 'https://api.example.test/',
-        hubConnectionFactory: (hubUrl, accessToken) {
-          fakeConnection = _FakeHubConnectionAdapter(hubUrl, accessToken);
-          return fakeConnection;
-        },
-      );
+    test(
+      'connect starts connection, joins session, and exposes start/update payloads',
+      () async {
+        late _FakeHubConnectionAdapter fakeConnection;
+        late AccessTokenProvider tokenProvider;
+        final client = SignalRSharedSessionRealtimeClient(
+          baseUrl: 'https://api.example.test/',
+          hubConnectionFactory: (hubUrl, provider) {
+            tokenProvider = provider;
+            fakeConnection = _FakeHubConnectionAdapter(hubUrl, 'unused');
+            return fakeConnection;
+          },
+        );
 
-      final statuses = <SharedSessionConnectionStatus>[];
-      final updates = <SharedSession>[];
-      final statusSubscription = client.connectionStatus.listen(statuses.add);
-      final updateSubscription = client.updates.listen(updates.add);
+        final statuses = <SharedSessionConnectionStatus>[];
+        final updates = <SharedSession>[];
+        final statusSubscription = client.connectionStatus.listen(statuses.add);
+        final updateSubscription = client.updates.listen(updates.add);
 
-      await client.connect(accessToken: 'access-token');
-      await client.joinSession(sessionId: 'session-1');
-      fakeConnection.emitSessionStarted(_sessionJson(version: 1));
-      fakeConnection.emitSessionUpdated(_sessionJson());
-      await Future<void>.delayed(Duration.zero);
+        await client.connect(accessToken: 'access-token');
+        await client.joinSession(sessionId: 'session-1');
+        fakeConnection.emitSessionStarted(_sessionJson(version: 1));
+        fakeConnection.emitSessionUpdated(_sessionJson());
+        await Future<void>.delayed(Duration.zero);
 
-      expect(fakeConnection.hubUrl, 'https://api.example.test/hubs/shared-sessions');
-      expect(fakeConnection.accessToken, 'access-token');
-      expect(fakeConnection.started, isTrue);
-      expect(fakeConnection.invocations, hasLength(1));
-      expect(fakeConnection.invocations.single.$1, 'JoinSession');
-      expect(fakeConnection.invocations.single.$2, ['session-1']);
-      expect(statuses, containsAllInOrder([
-        SharedSessionConnectionStatus.connecting,
-        SharedSessionConnectionStatus.connected,
-      ]));
-      expect(updates, hasLength(2));
-      expect(updates.first.version, 1);
-      expect(updates.last.version, 2);
+        expect(
+          fakeConnection.hubUrl,
+          'https://api.example.test/hubs/shared-sessions',
+        );
+        expect(await tokenProvider(), 'access-token');
+        expect(fakeConnection.started, isTrue);
+        expect(fakeConnection.invocations, hasLength(1));
+        expect(fakeConnection.invocations.single.$1, 'JoinSession');
+        expect(fakeConnection.invocations.single.$2, ['session-1']);
+        expect(
+          statuses,
+          containsAllInOrder([
+            SharedSessionConnectionStatus.connecting,
+            SharedSessionConnectionStatus.connected,
+          ]),
+        );
+        expect(updates, hasLength(2));
+        expect(updates.first.version, 1);
+        expect(updates.last.version, 2);
 
-      await updateSubscription.cancel();
-      await statusSubscription.cancel();
-    });
+        await updateSubscription.cancel();
+        await statusSubscription.cancel();
+      },
+    );
 
     test('disconnect stops active connection', () async {
       late _FakeHubConnectionAdapter fakeConnection;
       final client = SignalRSharedSessionRealtimeClient(
         baseUrl: 'https://api.example.test',
-        hubConnectionFactory: (hubUrl, accessToken) {
-          fakeConnection = _FakeHubConnectionAdapter(hubUrl, accessToken);
+        hubConnectionFactory: (hubUrl, _) {
+          fakeConnection = _FakeHubConnectionAdapter(hubUrl, 'unused');
           return fakeConnection;
         },
       );
@@ -68,48 +79,51 @@ void main() {
       );
     });
 
-    test('surfaces join failures instead of silently collapsing to disconnected', () async {
-      late _FakeHubConnectionAdapter fakeConnection;
-      final client = SignalRSharedSessionRealtimeClient(
-        baseUrl: 'https://api.example.test',
-        hubConnectionFactory: (hubUrl, accessToken) {
-          fakeConnection = _FakeHubConnectionAdapter(
-            hubUrl,
-            accessToken,
-            joinError: StateError('join denied'),
-          );
-          return fakeConnection;
-        },
-      );
+    test(
+      'surfaces join failures instead of silently collapsing to disconnected',
+      () async {
+        late _FakeHubConnectionAdapter fakeConnection;
+        final client = SignalRSharedSessionRealtimeClient(
+          baseUrl: 'https://api.example.test',
+          hubConnectionFactory: (hubUrl, _) {
+            fakeConnection = _FakeHubConnectionAdapter(
+              hubUrl,
+              'unused',
+              joinError: StateError('join denied'),
+            );
+            return fakeConnection;
+          },
+        );
 
-      final errors = <String>[];
-      final statuses = <SharedSessionConnectionStatus>[];
-      final errorSubscription = client.errors.listen(errors.add);
-      final statusSubscription = client.connectionStatus.listen(statuses.add);
+        final errors = <String>[];
+        final statuses = <SharedSessionConnectionStatus>[];
+        final errorSubscription = client.errors.listen(errors.add);
+        final statusSubscription = client.connectionStatus.listen(statuses.add);
 
-      await client.connect(accessToken: 'access-token');
-      await expectLater(
-        client.joinSession(sessionId: 'session-1'),
-        throwsStateError,
-      );
-      await Future<void>.delayed(Duration.zero);
+        await client.connect(accessToken: 'access-token');
+        await expectLater(
+          client.joinSession(sessionId: 'session-1'),
+          throwsStateError,
+        );
+        await Future<void>.delayed(Duration.zero);
 
-      expect(errors.single, contains('Realtime join failed'));
-      expect(errors.single, contains('join denied'));
-      expect(statuses, contains(SharedSessionConnectionStatus.connected));
-      expect(fakeConnection.invocations.single.$1, 'JoinSession');
+        expect(errors.single, contains('Realtime join failed'));
+        expect(errors.single, contains('join denied'));
+        expect(statuses, contains(SharedSessionConnectionStatus.connected));
+        expect(fakeConnection.invocations.single.$1, 'JoinSession');
 
-      await errorSubscription.cancel();
-      await statusSubscription.cancel();
-    });
+        await errorSubscription.cancel();
+        await statusSubscription.cancel();
+      },
+    );
 
     test('surfaces start failures before reporting disconnected', () async {
       final client = SignalRSharedSessionRealtimeClient(
         baseUrl: 'https://api.example.test',
-        hubConnectionFactory: (hubUrl, accessToken) {
+        hubConnectionFactory: (hubUrl, _) {
           return _FakeHubConnectionAdapter(
             hubUrl,
-            accessToken,
+            'unused',
             startError: StateError('host lookup failed'),
           );
         },
@@ -128,14 +142,39 @@ void main() {
 
       expect(errors.single, contains('Realtime connection failed'));
       expect(errors.single, contains('host lookup failed'));
-      expect(statuses, containsAllInOrder([
-        SharedSessionConnectionStatus.connecting,
-        SharedSessionConnectionStatus.disconnected,
-      ]));
+      expect(
+        statuses,
+        containsAllInOrder([
+          SharedSessionConnectionStatus.connecting,
+          SharedSessionConnectionStatus.disconnected,
+        ]),
+      );
 
       await errorSubscription.cancel();
       await statusSubscription.cancel();
     });
+
+    test(
+      'hub token provider reads the current token for every handshake',
+      () async {
+        var currentToken = 'access-token-1';
+        late Future<String> Function() capturedProvider;
+        final client = SignalRSharedSessionRealtimeClient(
+          baseUrl: 'https://api.example.test/',
+          accessTokenProvider: () async => currentToken,
+          hubConnectionFactory: (hubUrl, accessTokenProvider) {
+            capturedProvider = accessTokenProvider;
+            return _FakeHubConnectionAdapter(hubUrl, 'unused');
+          },
+        );
+
+        await client.connect(accessToken: 'initial-fallback');
+
+        expect(await capturedProvider(), 'access-token-1');
+        currentToken = 'access-token-2';
+        expect(await capturedProvider(), 'access-token-2');
+      },
+    );
   });
 }
 
@@ -194,7 +233,9 @@ class _FakeHubConnectionAdapter implements HubConnectionAdapter {
   }
 
   @override
-  void onStatusChanged(void Function(SharedSessionConnectionStatus status) handler) {
+  void onStatusChanged(
+    void Function(SharedSessionConnectionStatus status) handler,
+  ) {
     _statusHandler = handler;
   }
 

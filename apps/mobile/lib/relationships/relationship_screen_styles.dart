@@ -28,6 +28,7 @@ class RelationshipCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(16),
     this.margin,
+    this.color,
     this.borderColor,
     super.key,
   });
@@ -35,6 +36,7 @@ class RelationshipCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry? margin;
+  final Color? color;
   final Color? borderColor;
 
   @override
@@ -43,7 +45,7 @@ class RelationshipCard extends StatelessWidget {
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: lmSurface,
+        color: color ?? lmSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: borderColor ?? Colors.white.withValues(alpha: 0.07),

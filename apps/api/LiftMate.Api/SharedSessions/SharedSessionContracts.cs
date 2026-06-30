@@ -29,6 +29,8 @@ public sealed record SharedSessionResponse(
     string TrainerEmail,
     string TraineeEmail,
     Guid? WorkoutSetId,
+    string WorkoutSetName,
+    int RestSeconds,
     string StartedByUserId,
     string StartedByRole,
     string Status,
@@ -40,6 +42,8 @@ public sealed record SharedSessionResponse(
 
 public sealed record SharedSessionValueResponse(
     Guid Id,
+    Guid? ExerciseId,
+    Guid? WorkoutSetRowId,
     string ExerciseName,
     string ExerciseType,
     int ExerciseOrder,

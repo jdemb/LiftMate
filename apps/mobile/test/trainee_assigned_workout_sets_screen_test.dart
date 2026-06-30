@@ -13,6 +13,8 @@ import 'package:liftmate/shared_sessions/shared_session_api_client.dart';
 import 'package:liftmate/shared_sessions/shared_session_realtime_client.dart';
 import 'package:liftmate/workout_sets/workout_set_api_client.dart';
 
+import 'fake_onboarding_state_store.dart';
+
 void main() {
   group('Trainee assigned workout sets screen', () {
     testWidgets('linked trainee sees assigned sets and ordered row preview', (tester) async {
@@ -83,8 +85,27 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(seen, contains('POST /shared-sessions/from-workout-set'));
+      expect(find.textContaining('Ćwiczenie 1 / 2'), findsOneWidget);
       expect(find.text('Bench press'), findsOneWidget);
+      expect(find.text('Seria 1'), findsOneWidget);
+      expect(find.text('Seria 2'), findsOneWidget);
       expect(find.byIcon(Icons.add_rounded), findsWidgets);
+
+      expect(
+        find.byKey(const ValueKey('live-rest-footer')),
+        findsOneWidget,
+      );
+      expect(find.text('Odpoczynek'), findsOneWidget);
+      expect(find.byTooltip('Start'), findsOneWidget);
+      expect(find.text('+15s'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('Plank'),
+        300,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.text('Plank'), findsOneWidget);
+      expect(find.text('Zakończ i zapisz trening'), findsOneWidget);
     });
 
     testWidgets('trainer-led active workout opens read-only live view', (tester) async {
@@ -118,7 +139,7 @@ void main() {
       await tester.tap(find.text('Dołącz do aktywnego treningu'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Ćwiczenie 1 / 1'), findsOneWidget);
+      expect(find.textContaining('Ćwiczenie 1 / 2'), findsOneWidget);
       expect(find.textContaining('nic nie musisz'), findsOneWidget);
       expect(find.byIcon(Icons.add_rounded), findsNothing);
     });
@@ -197,6 +218,7 @@ Widget _testApp({
           ),
         ),
       ),
+      onboardingStateStore: FakeOnboardingStateStore(),
       relationshipApiClient: RelationshipApiClient(
         baseUrl: 'https://api.example.test',
         httpClient: httpClient,
@@ -295,6 +317,34 @@ Map<String, Object?> _sessionJson({required String startedByRole}) {
         'reps': 6,
         'weight': 40.0,
         'seconds': null,
+        'isDone': false,
+        'completedAt': null,
+        'updatedByUserId': null,
+        'updatedAt': null,
+      },
+      {
+        'id': 'value-2',
+        'exerciseName': 'Bench press',
+        'exerciseType': 'repsWeight',
+        'exerciseOrder': 1,
+        'setIndex': 2,
+        'reps': 6,
+        'weight': 42.5,
+        'seconds': null,
+        'isDone': false,
+        'completedAt': null,
+        'updatedByUserId': null,
+        'updatedAt': null,
+      },
+      {
+        'id': 'value-3',
+        'exerciseName': 'Plank',
+        'exerciseType': 'time',
+        'exerciseOrder': 2,
+        'setIndex': 1,
+        'reps': null,
+        'weight': null,
+        'seconds': 60,
         'isDone': false,
         'completedAt': null,
         'updatedByUserId': null,

@@ -22,6 +22,7 @@ class WorkoutSetControllerState {
     this.selectedSet,
     this.assignableTrainees = const [],
     this.traineeAssignedSets = const [],
+    this.deletingSetId,
     this.message,
   });
 
@@ -34,6 +35,7 @@ class WorkoutSetControllerState {
   final WorkoutSetDetail? selectedSet;
   final List<TrainerTraineeSummary> assignableTrainees;
   final List<TraineeAssignedWorkoutSet> traineeAssignedSets;
+  final String? deletingSetId;
   final String? message;
 
   WorkoutSetControllerState copyWith({
@@ -43,8 +45,10 @@ class WorkoutSetControllerState {
     WorkoutSetDetail? selectedSet,
     List<TrainerTraineeSummary>? assignableTrainees,
     List<TraineeAssignedWorkoutSet>? traineeAssignedSets,
+    String? deletingSetId,
     String? message,
     bool clearSelectedSet = false,
+    bool clearDeletingSetId = false,
     bool clearMessage = false,
   }) {
     return WorkoutSetControllerState(
@@ -54,6 +58,8 @@ class WorkoutSetControllerState {
       selectedSet: clearSelectedSet ? null : selectedSet ?? this.selectedSet,
       assignableTrainees: assignableTrainees ?? this.assignableTrainees,
       traineeAssignedSets: traineeAssignedSets ?? this.traineeAssignedSets,
+      deletingSetId:
+          clearDeletingSetId ? null : deletingSetId ?? this.deletingSetId,
       message: clearMessage ? null : message ?? this.message,
     );
   }
@@ -177,6 +183,59 @@ class WorkoutSetController extends ChangeNotifier {
         request: request,
       ),
     );
+  }
+
+  Future<WorkoutSetApiResult<void>> deleteSet(String workoutSetId) async {
+    if (_state.deletingSetId != null) {
+      return const WorkoutSetApiResult<void>(
+        status: WorkoutSetApiStatus.conflict,
+        message: 'Workout set deletion is already in progress.',
+      );
+    }
+
+    final accessToken = authController.tokens?.accessToken;
+    if (accessToken == null) {
+      const result = WorkoutSetApiResult<void>(
+        status: WorkoutSetApiStatus.unauthorized,
+        message: 'User is not authenticated.',
+      );
+      _setState(_state.copyWith(
+        status: WorkoutSetControllerStatus.error,
+        message: result.message,
+        clearDeletingSetId: true,
+      ));
+      return result;
+    }
+
+    _setState(_state.copyWith(
+      status: WorkoutSetControllerStatus.saving,
+      deletingSetId: workoutSetId,
+      clearMessage: true,
+    ));
+    final result = await workoutSetApiClient.delete(
+      accessToken: accessToken,
+      workoutSetId: workoutSetId,
+    );
+
+    if (result.isSuccess) {
+      _setState(_state.copyWith(
+        status: WorkoutSetControllerStatus.loaded,
+        trainerSets: _state.trainerSets
+            .where((workoutSet) => workoutSet.id != workoutSetId)
+            .toList(growable: false),
+        clearSelectedSet: _state.selectedSet?.id == workoutSetId,
+        clearDeletingSetId: true,
+        clearMessage: true,
+      ));
+      return result;
+    }
+
+    _setState(_state.copyWith(
+      status: WorkoutSetControllerStatus.error,
+      message: result.message,
+      clearDeletingSetId: true,
+    ));
+    return result;
   }
 
   Future<WorkoutSetApiResult<WorkoutSetDetail>> assign(

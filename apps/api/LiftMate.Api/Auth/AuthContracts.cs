@@ -1,10 +1,20 @@
+using LiftMate.Api.WeeklyStreaks;
+
 namespace LiftMate.Api.Auth;
 
 public sealed record RegisterRequest(
     string Email,
     string Password,
     string Role,
-    string DisplayName);
+    string DisplayName,
+    string? RegistrationInviteCode);
+
+public sealed record RegisterTraineeRequest(
+    string Email,
+    string Password,
+    string DisplayName,
+    string? RegistrationInviteCode,
+    string TrainerInviteCode);
 
 public sealed record LoginRequest(string Email, string Password);
 
@@ -35,8 +45,10 @@ public sealed record TrainerTraineeResponse(
     string Id,
     string Email,
     string DisplayName,
+    DateTimeOffset? ConnectedAt,
     ActiveSharedSessionSummaryResponse? ActiveSession,
-    IReadOnlyList<AssignedWorkoutSetSummaryResponse> AssignedWorkoutSets);
+    IReadOnlyList<AssignedWorkoutSetSummaryResponse> AssignedWorkoutSets,
+    WeeklyStreakResponse WeeklyStreak);
 
 public sealed record ActiveSharedSessionSummaryResponse(
     Guid SessionId,
@@ -62,4 +74,6 @@ public sealed record TraineeTrainerResponse(
     string Email,
     string DisplayName);
 
-public sealed record TraineeRelationshipSummaryResponse(TraineeTrainerResponse? Trainer);
+public sealed record TraineeRelationshipSummaryResponse(
+    TraineeTrainerResponse? Trainer,
+    WeeklyStreakResponse WeeklyStreak);

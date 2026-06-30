@@ -1,5 +1,8 @@
 using LiftMate.Api.Auth;
 using LiftMate.Api.SharedSessions;
+using LiftMate.Api.TrainerGuidance;
+using LiftMate.Api.TrainingProgress;
+using LiftMate.Api.WeeklyStreaks;
 using LiftMate.Api.WorkoutSets;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -17,11 +20,21 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<SharedSessionValue> SharedSessionValues => Set<SharedSessionValue>();
 
+    public DbSet<PostWorkoutFeedback> PostWorkoutFeedbacks => Set<PostWorkoutFeedback>();
+
+    public DbSet<TrainerGuidance.TrainerGuidance> TrainerGuidance => Set<TrainerGuidance.TrainerGuidance>();
+
     public DbSet<WorkoutSet> WorkoutSets => Set<WorkoutSet>();
 
     public DbSet<WorkoutSetRow> WorkoutSetRows => Set<WorkoutSetRow>();
 
     public DbSet<WorkoutSetAssignment> WorkoutSetAssignments => Set<WorkoutSetAssignment>();
+
+    public DbSet<WorkoutProgress> WorkoutProgresses => Set<WorkoutProgress>();
+
+    public DbSet<WorkoutProgressValue> WorkoutProgressValues => Set<WorkoutProgressValue>();
+
+    public DbSet<TraineeWeeklyStreak> TraineeWeeklyStreaks => Set<TraineeWeeklyStreak>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -39,6 +52,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
             entity.Property(user => user.TrainerUserId)
                 .HasMaxLength(450);
+
+            entity.Property(user => user.TrainerLinkedAt);
 
             entity.HasIndex(user => user.TrainerUserId);
 
@@ -124,6 +139,14 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .HasMaxLength(32)
                 .IsRequired();
 
+            entity.Property(session => session.WorkoutSetName)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(session => session.RestSeconds)
+                .HasDefaultValue(90)
+                .IsRequired();
+
             entity.HasIndex(session => session.WorkoutSetId);
             entity.HasIndex(session => session.StartedByUserId);
             entity.HasIndex(session => session.TrainerUserId);
@@ -158,6 +181,11 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .HasForeignKey(value => value.SharedSessionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(session => session.Feedback)
+                .WithOne(feedback => feedback.SharedSession)
+                .HasForeignKey<PostWorkoutFeedback>(feedback => feedback.SharedSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             entity.ToTable(table =>
             {
                 table.HasCheckConstraint(
@@ -166,7 +194,74 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 table.HasCheckConstraint(
                     "CK_SharedSessions_StartedByRole",
                     "[StartedByRole] IN ('trainer', 'trainee')");
+                table.HasCheckConstraint(
+                    "CK_SharedSessions_RestSeconds",
+                    "[RestSeconds] BETWEEN 15 AND 600");
             });
+        });
+
+        builder.Entity<PostWorkoutFeedback>(entity =>
+        {
+            entity.HasKey(feedback => feedback.SharedSessionId);
+
+            entity.Property(feedback => feedback.Comment)
+                .HasMaxLength(1000);
+
+            entity.Property(feedback => feedback.SubmittedAt)
+                .IsRequired();
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_PostWorkoutFeedbacks_WellbeingRating",
+                "[WellbeingRating] BETWEEN 1 AND 5"));
+        });
+
+        builder.Entity<TrainerGuidance.TrainerGuidance>(entity =>
+        {
+            entity.HasKey(guidance => guidance.Id);
+
+            entity.Property(guidance => guidance.TraineeUserId)
+                .HasMaxLength(450)
+                .IsRequired();
+
+            entity.Property(guidance => guidance.Type)
+                .HasMaxLength(64)
+                .IsRequired();
+
+            entity.Property(guidance => guidance.ExerciseName)
+                .HasMaxLength(200);
+
+            entity.Property(guidance => guidance.Fingerprint)
+                .HasMaxLength(128)
+                .IsRequired();
+
+            entity.Property(guidance => guidance.Message)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.Property(guidance => guidance.EvidenceJson)
+                .IsRequired();
+
+            entity.Property(guidance => guidance.CreatedAt)
+                .IsRequired();
+
+            entity.HasIndex(guidance => new
+                {
+                    guidance.TraineeUserId,
+                    guidance.Type,
+                    guidance.ExerciseId,
+                    guidance.Fingerprint,
+                })
+                .IsUnique();
+            entity.HasIndex(guidance => new
+            {
+                guidance.TraineeUserId,
+                guidance.ReadAt,
+                guidance.CreatedAt,
+            });
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_TrainerGuidance_Type",
+                "[Type] IN ('weight_stagnation', 'low_wellbeing')"));
         });
 
         builder.Entity<SharedSessionValue>(entity =>
@@ -192,6 +287,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
             entity.HasIndex(value => value.SharedSessionId);
             entity.HasIndex(value => new { value.SharedSessionId, value.ExerciseOrder, value.SetIndex });
+            entity.HasIndex(value => value.ExerciseId);
+            entity.HasIndex(value => value.WorkoutSetRowId);
             entity.HasIndex(value => value.ExerciseType);
 
             entity.HasOne(value => value.UpdatedByUser)
@@ -216,7 +313,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .HasMaxLength(200)
                 .IsRequired();
 
+            entity.Property(workoutSet => workoutSet.RestSeconds)
+                .HasDefaultValue(90)
+                .IsRequired();
+
             entity.HasIndex(workoutSet => workoutSet.TrainerUserId);
+            entity.HasIndex(workoutSet => new { workoutSet.TrainerUserId, workoutSet.DeletedAt });
 
             entity.HasOne(workoutSet => workoutSet.TrainerUser)
                 .WithMany()
@@ -232,6 +334,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .WithOne(assignment => assignment.WorkoutSet)
                 .HasForeignKey(assignment => assignment.WorkoutSetId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_WorkoutSets_RestSeconds",
+                "[RestSeconds] BETWEEN 15 AND 600"));
         });
 
         builder.Entity<WorkoutSetRow>(entity =>
@@ -251,6 +357,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
             entity.HasIndex(row => row.WorkoutSetId);
             entity.HasIndex(row => new { row.WorkoutSetId, row.ExerciseOrder, row.SetIndex });
+            entity.HasIndex(row => new { row.WorkoutSetId, row.ExerciseId, row.SetIndex });
             entity.HasIndex(row => row.ExerciseType);
 
             entity.ToTable(table => table.HasCheckConstraint(
@@ -279,6 +386,79 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .WithMany()
                 .HasForeignKey(assignment => assignment.TraineeUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<WorkoutProgress>(entity =>
+        {
+            entity.HasKey(progress => progress.Id);
+
+            entity.Property(progress => progress.TraineeUserId)
+                .HasMaxLength(450)
+                .IsRequired();
+
+            entity.HasIndex(progress => new { progress.TraineeUserId, progress.WorkoutSetId })
+                .IsUnique();
+            entity.HasIndex(progress => progress.SourceSessionId)
+                .IsUnique();
+
+            entity.HasOne(progress => progress.WorkoutSet)
+                .WithMany()
+                .HasForeignKey(progress => progress.WorkoutSetId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(progress => progress.Values)
+                .WithOne(value => value.WorkoutProgress)
+                .HasForeignKey(value => value.WorkoutProgressId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<WorkoutProgressValue>(entity =>
+        {
+            entity.HasKey(value => value.Id);
+
+            entity.Property(value => value.ExerciseType)
+                .HasMaxLength(32)
+                .IsRequired();
+
+            entity.Property(value => value.Weight)
+                .HasPrecision(8, 2);
+
+            entity.HasIndex(value => new { value.WorkoutProgressId, value.WorkoutSetRowId })
+                .IsUnique();
+            entity.HasIndex(value => value.ExerciseId);
+
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_WorkoutProgressValues_ExerciseType",
+                "[ExerciseType] IN ('repsWeight', 'repsOnly', 'time')"));
+        });
+
+        builder.Entity<TraineeWeeklyStreak>(entity =>
+        {
+            entity.HasKey(streak => streak.TraineeUserId);
+
+            entity.Property(streak => streak.TraineeUserId)
+                .HasMaxLength(450);
+
+            entity.Property(streak => streak.LastActiveWeekStart)
+                .HasColumnType("date");
+
+            entity.Property(streak => streak.CalculatedAt)
+                .IsRequired();
+
+            entity.HasOne(streak => streak.TraineeUser)
+                .WithMany()
+                .HasForeignKey(streak => streak.TraineeUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_TraineeWeeklyStreaks_CurrentStreak",
+                    "[CurrentStreakAtLastActiveWeek] >= 0");
+                table.HasCheckConstraint(
+                    "CK_TraineeWeeklyStreaks_BestStreak",
+                    "[BestStreak] >= 0");
+            });
         });
     }
 }

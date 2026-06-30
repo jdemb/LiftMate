@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using LiftMate.Api.Data;
 using LiftMate.Api.SharedSessions;
 using LiftMate.Api.WorkoutSets;
+using LiftMate.Api.WeeklyStreaks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,6 +35,7 @@ public static class PairingEndpoints
     private static async Task<IResult> GetTrainerRelationship(
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
+        WeeklyStreakService weeklyStreakService,
         CancellationToken cancellationToken)
     {
         var trainerUserId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -55,6 +57,22 @@ public static class PairingEndpoints
             .ToListAsync(cancellationToken);
 
         var traineeIds = traineeUsers.Select(user => user.Id).ToArray();
+        var legacyTraineeIds = traineeUsers
+            .Where(user => user.TrainerLinkedAt is null)
+            .Select(user => user.Id)
+            .ToArray();
+        var legacyTokenRows = await dbContext.RefreshTokens
+            .Where(token => legacyTraineeIds.Contains(token.UserId))
+            .Select(token => new { token.UserId, token.CreatedAt })
+            .ToListAsync(cancellationToken);
+        var legacyConnectedAt = legacyTokenRows
+            .GroupBy(token => token.UserId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Min(token => token.CreatedAt));
+        var weeklyStreaks = await weeklyStreakService.GetResponsesForTraineesAsync(
+            traineeIds,
+            cancellationToken);
         var activeSessions = await dbContext.SharedSessions
             .Where(session =>
                 session.TrainerUserId == trainerUserId &&
@@ -79,6 +97,7 @@ public static class PairingEndpoints
             .Where(assignment =>
                 traineeIds.Contains(assignment.TraineeUserId) &&
                 assignment.WorkoutSet != null &&
+                assignment.WorkoutSet.DeletedAt == null &&
                 assignment.WorkoutSet.TrainerUserId == trainerUserId)
             .ToListAsync(cancellationToken);
         var assignedSetsByTrainee = assignedSetRows
@@ -105,8 +124,13 @@ public static class PairingEndpoints
                 user.Id,
                 user.Email ?? string.Empty,
                 user.DisplayName,
+                user.TrainerLinkedAt ??
+                    (legacyConnectedAt.TryGetValue(user.Id, out var registeredAt)
+                        ? registeredAt
+                        : null),
                 activeSessions.GetValueOrDefault(user.Id),
-                assignedSetsByTrainee.GetValueOrDefault(user.Id) ?? []))
+                assignedSetsByTrainee.GetValueOrDefault(user.Id) ?? [],
+                weeklyStreaks[user.Id]))
             .ToArray();
 
         return Results.Ok(new TrainerRelationshipSummaryResponse(inviteCode.Code, trainees));
@@ -132,6 +156,7 @@ public static class PairingEndpoints
     private static async Task<IResult> GetTraineeRelationship(
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
+        WeeklyStreakService weeklyStreakService,
         CancellationToken cancellationToken)
     {
         var traineeUserId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -155,7 +180,11 @@ public static class PairingEndpoints
                 trainee.TrainerUser.Email ?? string.Empty,
                 trainee.TrainerUser.DisplayName);
 
-        return Results.Ok(new TraineeRelationshipSummaryResponse(trainer));
+        var weeklyStreak = await weeklyStreakService.GetResponseForTraineeAsync(
+            traineeUserId,
+            cancellationToken);
+
+        return Results.Ok(new TraineeRelationshipSummaryResponse(trainer, weeklyStreak));
     }
 
     private static async Task<TrainerInviteCode?> GetOrCreateInviteCode(
@@ -250,9 +279,11 @@ public static class PairingEndpoints
             return Results.BadRequest(new { error = "A trainee cannot link to themselves." });
         }
 
+        var linkedAt = DateTimeOffset.UtcNow;
         var previousTrainerUserId = trainee.TrainerUserId;
         trainee.TrainerUserId = inviteCode.TrainerUserId;
-        inviteCode.LastUsedAt = DateTimeOffset.UtcNow;
+        trainee.TrainerLinkedAt = linkedAt;
+        inviteCode.LastUsedAt = linkedAt;
         List<SharedSession> cancelledSessions = [];
         List<WorkoutSetAssignment> staleAssignments = [];
         if (previousTrainerUserId is not null &&

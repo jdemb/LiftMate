@@ -1,7 +1,11 @@
+using System.Data;
 using System.Security.Claims;
 using LiftMate.Api.Auth;
 using LiftMate.Api.Data;
+using LiftMate.Api.TrainerGuidance;
+using LiftMate.Api.TrainingProgress;
 using LiftMate.Api.WorkoutSets;
+using LiftMate.Api.WeeklyStreaks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -118,6 +122,8 @@ public static class SharedSessionEndpoints
             StartedByUserId = trainerUserId,
             StartedByUser = trainer,
             StartedByRole = UserRole.Trainer,
+            WorkoutSetName = "Trening",
+            RestSeconds = 90,
             Status = SharedSessionStatus.Active,
             Version = 1,
             CreatedAt = now,
@@ -158,142 +164,188 @@ public static class SharedSessionEndpoints
             return Results.Forbid();
         }
 
-        var workoutSet = await dbContext.WorkoutSets
-            .Include(set => set.Rows)
-            .Include(set => set.Assignments)
-            .SingleOrDefaultAsync(set => set.Id == request.WorkoutSetId, cancellationToken);
-        if (workoutSet is null)
+        IResult? terminalResult = null;
+        SharedSession? startedSession = null;
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+
+        await executionStrategy.ExecuteAsync(async () =>
         {
-            return Results.NotFound();
-        }
-
-        ApplicationUser? trainer;
-        ApplicationUser? trainee;
-        string startedByRole;
-
-        if (isTrainer)
-        {
-            if (!string.Equals(workoutSet.TrainerUserId, currentUserId, StringComparison.Ordinal))
-            {
-                return Results.NotFound();
-            }
-
-            if (string.IsNullOrWhiteSpace(request.TraineeUserId))
-            {
-                return Results.BadRequest(new { error = "Trainee user id is required for trainer starts." });
-            }
-
-            trainee = await userManager.Users.SingleOrDefaultAsync(
-                user => user.Id == request.TraineeUserId,
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
                 cancellationToken);
-            if (trainee is null || trainee.LiftMateRole != UserRole.Trainee)
+            dbContext.ChangeTracker.Clear();
+
+            var workoutSet = await dbContext.WorkoutSets
+                .Include(set => set.Rows)
+                .Include(set => set.Assignments)
+                .SingleOrDefaultAsync(
+                    set => set.Id == request.WorkoutSetId && set.DeletedAt == null,
+                    cancellationToken);
+            if (workoutSet is null)
             {
-                return Results.BadRequest(new { error = "Trainee user not found." });
+                terminalResult = Results.NotFound();
+                return;
             }
 
-            if (!string.Equals(trainee.TrainerUserId, currentUserId, StringComparison.Ordinal))
+            ApplicationUser? trainer;
+            ApplicationUser? trainee;
+            string startedByRole;
+
+            if (isTrainer)
             {
-                return Results.Forbid();
+                if (!string.Equals(workoutSet.TrainerUserId, currentUserId, StringComparison.Ordinal))
+                {
+                    terminalResult = Results.NotFound();
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(request.TraineeUserId))
+                {
+                    terminalResult = Results.BadRequest(new { error = "Trainee user id is required for trainer starts." });
+                    return;
+                }
+
+                trainee = await userManager.Users.SingleOrDefaultAsync(
+                    user => user.Id == request.TraineeUserId,
+                    cancellationToken);
+                if (trainee is null || trainee.LiftMateRole != UserRole.Trainee)
+                {
+                    terminalResult = Results.BadRequest(new { error = "Trainee user not found." });
+                    return;
+                }
+
+                if (!string.Equals(trainee.TrainerUserId, currentUserId, StringComparison.Ordinal))
+                {
+                    terminalResult = Results.Forbid();
+                    return;
+                }
+
+                trainer = await userManager.Users.SingleOrDefaultAsync(
+                    user => user.Id == currentUserId,
+                    cancellationToken);
+                startedByRole = UserRole.Trainer;
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(request.TraineeUserId) &&
+                    !string.Equals(request.TraineeUserId, currentUserId, StringComparison.Ordinal))
+                {
+                    terminalResult = Results.Forbid();
+                    return;
+                }
+
+                trainee = await userManager.Users.SingleOrDefaultAsync(
+                    user => user.Id == currentUserId,
+                    cancellationToken);
+                if (trainee is null || trainee.LiftMateRole != UserRole.Trainee || string.IsNullOrWhiteSpace(trainee.TrainerUserId))
+                {
+                    terminalResult = Results.Forbid();
+                    return;
+                }
+
+                if (!string.Equals(workoutSet.TrainerUserId, trainee.TrainerUserId, StringComparison.Ordinal))
+                {
+                    terminalResult = Results.NotFound();
+                    return;
+                }
+
+                trainer = await userManager.Users.SingleOrDefaultAsync(
+                    user => user.Id == workoutSet.TrainerUserId,
+                    cancellationToken);
+                startedByRole = UserRole.Trainee;
             }
 
-            trainer = await userManager.Users.SingleOrDefaultAsync(
-                user => user.Id == currentUserId,
+            if (trainer is null)
+            {
+                terminalResult = Results.Forbid();
+                return;
+            }
+
+            var isAssigned = workoutSet.Assignments.Any(
+                assignment => string.Equals(assignment.TraineeUserId, trainee.Id, StringComparison.Ordinal));
+            if (!isAssigned)
+            {
+                terminalResult = Results.Forbid();
+                return;
+            }
+
+            if (workoutSet.Rows.Count == 0)
+            {
+                terminalResult = Results.BadRequest(new { error = "Workout set must contain at least one row." });
+                return;
+            }
+
+            var hasActiveSession = await dbContext.SharedSessions.AnyAsync(
+                session => session.TraineeUserId == trainee.Id && session.Status == SharedSessionStatus.Active,
                 cancellationToken);
-            startedByRole = UserRole.Trainer;
-        }
-        else
-        {
-            if (!string.IsNullOrWhiteSpace(request.TraineeUserId) &&
-                !string.Equals(request.TraineeUserId, currentUserId, StringComparison.Ordinal))
+            if (hasActiveSession)
             {
-                return Results.Forbid();
+                terminalResult = Results.Conflict(new { error = "Trainee already has an active shared session." });
+                return;
             }
 
-            trainee = await userManager.Users.SingleOrDefaultAsync(
-                user => user.Id == currentUserId,
-                cancellationToken);
-            if (trainee is null || trainee.LiftMateRole != UserRole.Trainee || string.IsNullOrWhiteSpace(trainee.TrainerUserId))
-            {
-                return Results.Forbid();
-            }
-
-            if (!string.Equals(workoutSet.TrainerUserId, trainee.TrainerUserId, StringComparison.Ordinal))
-            {
-                return Results.NotFound();
-            }
-
-            trainer = await userManager.Users.SingleOrDefaultAsync(
-                user => user.Id == workoutSet.TrainerUserId,
-                cancellationToken);
-            startedByRole = UserRole.Trainee;
-        }
-
-        if (trainer is null)
-        {
-            return Results.Forbid();
-        }
-
-        var isAssigned = workoutSet.Assignments.Any(
-            assignment => string.Equals(assignment.TraineeUserId, trainee.Id, StringComparison.Ordinal));
-        if (!isAssigned)
-        {
-            return Results.Forbid();
-        }
-
-        if (workoutSet.Rows.Count == 0)
-        {
-            return Results.BadRequest(new { error = "Workout set must contain at least one row." });
-        }
-
-        var hasActiveSession = await dbContext.SharedSessions.AnyAsync(
-            session => session.TraineeUserId == trainee.Id && session.Status == SharedSessionStatus.Active,
-            cancellationToken);
-        if (hasActiveSession)
-        {
-            return Results.Conflict(new { error = "Trainee already has an active shared session." });
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        var session = new SharedSession
-        {
-            Id = Guid.NewGuid(),
-            TrainerUserId = trainer.Id,
-            TrainerUser = trainer,
-            TraineeUserId = trainee.Id,
-            TraineeUser = trainee,
-            WorkoutSetId = workoutSet.Id,
-            WorkoutSet = workoutSet,
-            StartedByUserId = currentUserId,
-            StartedByRole = startedByRole,
-            Status = SharedSessionStatus.Active,
-            Version = 1,
-            CreatedAt = now,
-            UpdatedAt = now,
-        };
-
-        foreach (var row in workoutSet.Rows.OrderBy(row => row.ExerciseOrder).ThenBy(row => row.SetIndex).ThenBy(row => row.Id))
-        {
-            session.Values.Add(new SharedSessionValue
+            var now = DateTimeOffset.UtcNow;
+            var projectedValues = await dbContext.WorkoutProgresses
+                .Where(progress =>
+                    progress.TraineeUserId == trainee.Id &&
+                    progress.WorkoutSetId == workoutSet.Id)
+                .SelectMany(progress => progress.Values)
+                .ToDictionaryAsync(value => value.WorkoutSetRowId, cancellationToken);
+            var session = new SharedSession
             {
                 Id = Guid.NewGuid(),
-                ExerciseOrder = row.ExerciseOrder,
-                ExerciseName = row.ExerciseName,
-                ExerciseType = row.ExerciseType,
-                SetIndex = row.SetIndex,
-                Reps = row.Reps,
-                Weight = row.Weight,
-                Seconds = row.Seconds,
-                IsDone = false,
-                CompletedAt = null,
-            });
+                TrainerUserId = trainer.Id,
+                TrainerUser = trainer,
+                TraineeUserId = trainee.Id,
+                TraineeUser = trainee,
+                WorkoutSetId = workoutSet.Id,
+                WorkoutSet = workoutSet,
+                WorkoutSetName = workoutSet.Name,
+                RestSeconds = workoutSet.RestSeconds,
+                StartedByUserId = currentUserId,
+                StartedByRole = startedByRole,
+                Status = SharedSessionStatus.Active,
+                Version = 1,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
+
+            foreach (var row in workoutSet.Rows.OrderBy(row => row.ExerciseOrder).ThenBy(row => row.SetIndex).ThenBy(row => row.Id))
+            {
+                projectedValues.TryGetValue(row.Id, out var projected);
+                session.Values.Add(new SharedSessionValue
+                {
+                    Id = Guid.NewGuid(),
+                    ExerciseId = row.ExerciseId,
+                    WorkoutSetRowId = row.Id,
+                    ExerciseOrder = row.ExerciseOrder,
+                    ExerciseName = row.ExerciseName,
+                    ExerciseType = row.ExerciseType,
+                    SetIndex = row.SetIndex,
+                    Reps = projected?.Reps ?? row.Reps,
+                    Weight = projected?.Weight ?? row.Weight,
+                    Seconds = projected?.Seconds ?? row.Seconds,
+                    IsDone = false,
+                    CompletedAt = null,
+                });
+            }
+
+            dbContext.SharedSessions.Add(session);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            startedSession = session;
+        });
+
+        if (terminalResult is not null)
+        {
+            return terminalResult;
         }
 
-        dbContext.SharedSessions.Add(session);
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await broadcaster.BroadcastStartedAsync(session, cancellationToken);
-        await broadcaster.BroadcastUpdatedAsync(session, cancellationToken);
+        var started = startedSession ?? throw new InvalidOperationException("Shared session start did not complete.");
+        await broadcaster.BroadcastStartedAsync(started, cancellationToken);
+        await broadcaster.BroadcastUpdatedAsync(started, cancellationToken);
 
-        return Results.Created($"/shared-sessions/{session.Id}", SharedSessionMapping.ToResponse(session));
+        return Results.Created($"/shared-sessions/{started.Id}", SharedSessionMapping.ToResponse(started));
     }
 
     private static async Task<IResult> GetActive(
@@ -353,68 +405,172 @@ public static class SharedSessionEndpoints
         SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
-        var session = await FindSession(dbContext, sessionId, cancellationToken);
-        if (session is null)
-        {
-            return Results.NotFound();
-        }
-
         var userId = SharedSessionAccess.UserId(principal);
         if (userId is null)
         {
             return Results.Unauthorized();
         }
 
-        if (!CanUpdateValues(session, principal, userId))
+        IResult? terminalResult = null;
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+
+        await executionStrategy.ExecuteAsync(async () =>
         {
-            return Results.Forbid();
+            terminalResult = null;
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken);
+            dbContext.ChangeTracker.Clear();
+
+            var session = await FindSession(dbContext, sessionId, cancellationToken);
+            if (session is null)
+            {
+                terminalResult = Results.NotFound();
+                return;
+            }
+
+            if (!CanUpdateValues(session, principal, userId))
+            {
+                terminalResult = Results.Forbid();
+                return;
+            }
+
+            if (session.Status != SharedSessionStatus.Active)
+            {
+                terminalResult = Results.Conflict(new { error = "Shared session is not active." });
+                return;
+            }
+
+            var value = session.Values.SingleOrDefault(value => value.Id == valueId);
+            if (value is null)
+            {
+                terminalResult = Results.NotFound();
+                return;
+            }
+
+            var validationError = ValidateUpdatedValue(value, request, out var reps, out var weight, out var seconds);
+            if (validationError is not null)
+            {
+                terminalResult = Results.BadRequest(new { error = validationError });
+                return;
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            value.Reps = reps;
+            value.Weight = weight;
+            value.Seconds = seconds;
+            if (request.IsDone.HasValue)
+            {
+                value.IsDone = request.IsDone.Value;
+                value.CompletedAt = value.IsDone ? value.CompletedAt ?? now : null;
+            }
+            value.UpdatedByUserId = userId;
+            value.UpdatedAt = now;
+            session.Version += 1;
+            session.UpdatedAt = now;
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
+
+        if (terminalResult is not null)
+        {
+            return terminalResult;
         }
 
-        if (session.Status != SharedSessionStatus.Active)
+        dbContext.ChangeTracker.Clear();
+        var updatedSession = await FindSession(dbContext, sessionId, cancellationToken);
+        if (updatedSession is null)
         {
-            return Results.Conflict(new { error = "Shared session is not active." });
+            return Results.Problem("Shared session update did not produce a result.");
         }
 
-        var value = session.Values.SingleOrDefault(value => value.Id == valueId);
-        if (value is null)
-        {
-            return Results.NotFound();
-        }
-
-        var validationError = ValidateUpdatedValue(value, request, out var reps, out var weight, out var seconds);
-        if (validationError is not null)
-        {
-            return Results.BadRequest(new { error = validationError });
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        value.Reps = reps;
-        value.Weight = weight;
-        value.Seconds = seconds;
-        if (request.IsDone.HasValue)
-        {
-            value.IsDone = request.IsDone.Value;
-            value.CompletedAt = value.IsDone ? value.CompletedAt ?? now : null;
-        }
-        value.UpdatedByUserId = userId;
-        value.UpdatedAt = now;
-        session.Version += 1;
-        session.UpdatedAt = now;
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await broadcaster.BroadcastUpdatedAsync(session, cancellationToken);
-
-        return Results.Ok(SharedSessionMapping.ToResponse(session));
+        await broadcaster.BroadcastUpdatedAsync(updatedSession, cancellationToken);
+        return Results.Ok(SharedSessionMapping.ToResponse(updatedSession));
     }
 
-    private static Task<IResult> Complete(
+    private static async Task<IResult> Complete(
         Guid sessionId,
         ClaimsPrincipal principal,
         ApplicationDbContext dbContext,
+        WorkoutProgressProjector projector,
+        TrainerGuidanceEvaluator guidanceEvaluator,
+        WeeklyStreakService weeklyStreakService,
         SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
-        return Close(sessionId, SharedSessionStatus.Completed, SharedSessionStatus.Cancelled, principal, dbContext, broadcaster, cancellationToken);
+        IResult? terminalResult = null;
+        SharedSession? completedSession = null;
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+
+        await executionStrategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken);
+            dbContext.ChangeTracker.Clear();
+
+            var session = await FindSession(dbContext, sessionId, cancellationToken);
+            if (session is null)
+            {
+                terminalResult = Results.NotFound();
+                return;
+            }
+
+            if (!SharedSessionAccess.CanAccess(session, principal))
+            {
+                terminalResult = Results.Forbid();
+                return;
+            }
+
+            if (session.Status == SharedSessionStatus.Completed)
+            {
+                terminalResult = Results.Ok(SharedSessionMapping.ToResponse(session));
+                return;
+            }
+
+            if (session.Status == SharedSessionStatus.Cancelled)
+            {
+                terminalResult = Results.Conflict(new { error = "Shared session is already cancelled." });
+                return;
+            }
+
+            var completedAt = DateTimeOffset.UtcNow;
+            session.Status = SharedSessionStatus.Completed;
+            session.Version += 1;
+            session.UpdatedAt = completedAt;
+            session.ClosedAt = completedAt;
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await projector.ProjectAsync(session, completedAt, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await weeklyStreakService.RecalculateForTraineeAsync(
+                session.TraineeUserId,
+                cancellationToken);
+            await guidanceEvaluator.EvaluateWeightStagnationAsync(session.TraineeUserId, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            completedSession = session;
+        });
+
+        if (terminalResult is not null)
+        {
+            return terminalResult;
+        }
+
+        if (completedSession is null)
+        {
+            return Results.Problem("Shared session completion did not produce a result.");
+        }
+
+        dbContext.ChangeTracker.Clear();
+        var canonicalSession = await FindSession(dbContext, sessionId, cancellationToken);
+        if (canonicalSession is null)
+        {
+            return Results.Problem("Shared session completion did not produce a result.");
+        }
+
+        await broadcaster.BroadcastUpdatedAsync(canonicalSession, cancellationToken);
+        return Results.Ok(SharedSessionMapping.ToResponse(canonicalSession));
     }
 
     private static Task<IResult> Cancel(
@@ -436,37 +592,66 @@ public static class SharedSessionEndpoints
         SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
-        var session = await FindSession(dbContext, sessionId, cancellationToken);
-        if (session is null)
+        IResult? terminalResult = null;
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+
+        await executionStrategy.ExecuteAsync(async () =>
         {
-            return Results.NotFound();
+            terminalResult = null;
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken);
+            dbContext.ChangeTracker.Clear();
+
+            var session = await FindSession(dbContext, sessionId, cancellationToken);
+            if (session is null)
+            {
+                terminalResult = Results.NotFound();
+                return;
+            }
+
+            if (!SharedSessionAccess.CanAccess(session, principal))
+            {
+                terminalResult = Results.Forbid();
+                return;
+            }
+
+            if (session.Status == targetStatus)
+            {
+                terminalResult = Results.Ok(SharedSessionMapping.ToResponse(session));
+                return;
+            }
+
+            if (session.Status == conflictStatus)
+            {
+                terminalResult = Results.Conflict(new { error = $"Shared session is already {conflictStatus}." });
+                return;
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            session.Status = targetStatus;
+            session.Version += 1;
+            session.UpdatedAt = now;
+            session.ClosedAt = now;
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
+
+        if (terminalResult is not null)
+        {
+            return terminalResult;
         }
 
-        if (!SharedSessionAccess.CanAccess(session, principal))
+        dbContext.ChangeTracker.Clear();
+        var closedSession = await FindSession(dbContext, sessionId, cancellationToken);
+        if (closedSession is null)
         {
-            return Results.Forbid();
+            return Results.Problem("Shared session close did not produce a result.");
         }
 
-        if (session.Status == targetStatus)
-        {
-            return Results.Ok(SharedSessionMapping.ToResponse(session));
-        }
-
-        if (session.Status == conflictStatus)
-        {
-            return Results.Conflict(new { error = $"Shared session is already {conflictStatus}." });
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        session.Status = targetStatus;
-        session.Version += 1;
-        session.UpdatedAt = now;
-        session.ClosedAt = now;
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await broadcaster.BroadcastUpdatedAsync(session, cancellationToken);
-
-        return Results.Ok(SharedSessionMapping.ToResponse(session));
+        await broadcaster.BroadcastUpdatedAsync(closedSession, cancellationToken);
+        return Results.Ok(SharedSessionMapping.ToResponse(closedSession));
     }
 
     private static Task<SharedSession?> FindSession(

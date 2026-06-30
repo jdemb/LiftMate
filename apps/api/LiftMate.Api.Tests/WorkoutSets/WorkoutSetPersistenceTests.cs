@@ -31,6 +31,7 @@ public sealed class WorkoutSetPersistenceTests(TestApplicationFactory factory)
         workoutSet.Rows.Add(new WorkoutSetRow
         {
             Id = Guid.NewGuid(),
+            ExerciseId = Guid.NewGuid(),
             ExerciseOrder = 1,
             SetIndex = 1,
             ExerciseName = "Bench press",
@@ -61,6 +62,7 @@ public sealed class WorkoutSetPersistenceTests(TestApplicationFactory factory)
         Assert.Equal("Push A", saved.Name);
         var row = Assert.Single(saved.Rows);
         Assert.Equal(1, row.ExerciseOrder);
+        Assert.NotEqual(Guid.Empty, row.ExerciseId);
         Assert.Equal(1, row.SetIndex);
         Assert.Equal("Bench press", row.ExerciseName);
         Assert.Equal(ExerciseValueType.RepsWeight, row.ExerciseType);
@@ -128,6 +130,36 @@ public sealed class WorkoutSetPersistenceTests(TestApplicationFactory factory)
     {
         Assert.NotNull(WorkoutSetValidation.ValidateSetName(" "));
         Assert.Null(WorkoutSetValidation.ValidateSetName("Leg day"));
+    }
+
+    [Fact]
+    public async Task WorkoutSetDeletionTimestampIsNullableAndPersists()
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var trainer = CreateUser($"{Guid.NewGuid():N}-trainer", UserRole.Trainer);
+        var now = DateTimeOffset.UtcNow;
+        var workoutSet = new WorkoutSet
+        {
+            Id = Guid.NewGuid(),
+            TrainerUserId = trainer.Id,
+            Name = "Push A",
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
+        dbContext.Users.Add(trainer);
+        dbContext.WorkoutSets.Add(workoutSet);
+        await dbContext.SaveChangesAsync();
+
+        Assert.Null(workoutSet.DeletedAt);
+
+        workoutSet.DeletedAt = now;
+        await dbContext.SaveChangesAsync();
+        dbContext.ChangeTracker.Clear();
+
+        var persisted = await dbContext.WorkoutSets.SingleAsync(set => set.Id == workoutSet.Id);
+        Assert.Equal(now, persisted.DeletedAt);
     }
 
     private static ApplicationUser CreateUser(string handle, string role, string? trainerUserId = null)

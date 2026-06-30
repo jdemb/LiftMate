@@ -4,30 +4,22 @@ import 'auth_api_client.dart';
 import 'auth_models.dart';
 import 'token_store.dart';
 
-enum AuthControllerStatus {
-  loading,
-  unauthenticated,
-  authenticated,
-  error,
-}
+enum AuthControllerStatus { loading, unauthenticated, authenticated, error }
 
 class AuthControllerState {
-  const AuthControllerState({
-    required this.status,
-    this.user,
-    this.message,
-  });
+  const AuthControllerState({required this.status, this.user, this.message});
 
-  const AuthControllerState.loading() : this(status: AuthControllerStatus.loading);
+  const AuthControllerState.loading()
+    : this(status: AuthControllerStatus.loading);
 
   const AuthControllerState.unauthenticated()
-      : this(status: AuthControllerStatus.unauthenticated);
+    : this(status: AuthControllerStatus.unauthenticated);
 
   const AuthControllerState.authenticated(AuthUser user)
-      : this(status: AuthControllerStatus.authenticated, user: user);
+    : this(status: AuthControllerStatus.authenticated, user: user);
 
   const AuthControllerState.error(String message)
-      : this(status: AuthControllerStatus.error, message: message);
+    : this(status: AuthControllerStatus.error, message: message);
 
   final AuthControllerStatus status;
   final AuthUser? user;
@@ -47,9 +39,37 @@ class AuthController extends ChangeNotifier {
 
   AuthControllerState _state = const AuthControllerState.loading();
   StoredAuthTokens? _tokens;
+  Future<void>? _refreshInFlight;
 
   AuthControllerState get state => _state;
   StoredAuthTokens? get tokens => _tokens;
+
+  Future<String?> getValidAccessToken({String? rejectedAccessToken}) async {
+    final currentTokens = _tokens;
+    if (currentTokens == null) {
+      return null;
+    }
+
+    final mustRefresh = rejectedAccessToken == null
+        ? _shouldRefresh(currentTokens)
+        : currentTokens.accessToken == rejectedAccessToken;
+    if (!mustRefresh) {
+      return currentTokens.accessToken;
+    }
+
+    final refresh = _refreshInFlight ??= _refreshStoredSession(
+      currentTokens.refreshToken,
+    );
+    try {
+      await refresh;
+    } finally {
+      if (identical(_refreshInFlight, refresh)) {
+        _refreshInFlight = null;
+      }
+    }
+
+    return _tokens?.accessToken;
+  }
 
   Future<void> initialize() async {
     _setState(const AuthControllerState.loading());
@@ -64,18 +84,20 @@ class AuthController extends ChangeNotifier {
     _tokens = storedTokens;
 
     if (_shouldRefresh(storedTokens)) {
-      await _refreshStoredSession(storedTokens.refreshToken);
+      await getValidAccessToken(rejectedAccessToken: storedTokens.accessToken);
       return;
     }
 
-    final meResult = await authApiClient.me(accessToken: storedTokens.accessToken);
+    final meResult = await authApiClient.me(
+      accessToken: storedTokens.accessToken,
+    );
     if (meResult.isSuccess && meResult.data != null) {
       _setState(AuthControllerState.authenticated(meResult.data!));
       return;
     }
 
     if (meResult.status == AuthApiStatus.unauthorized) {
-      await _refreshStoredSession(storedTokens.refreshToken);
+      await getValidAccessToken(rejectedAccessToken: storedTokens.accessToken);
       return;
     }
 
@@ -87,6 +109,7 @@ class AuthController extends ChangeNotifier {
     required String password,
     required UserRole role,
     required String displayName,
+    required String registrationInviteCode,
   }) async {
     _setState(const AuthControllerState.loading());
 
@@ -95,6 +118,7 @@ class AuthController extends ChangeNotifier {
       password: password,
       role: role,
       displayName: displayName,
+      registrationInviteCode: registrationInviteCode,
     );
     await _storeSessionOrShowError(result);
 
@@ -137,16 +161,34 @@ class AuthController extends ChangeNotifier {
     return result;
   }
 
+  Future<AuthApiResult<AuthSession>> registerTrainee({
+    required String email,
+    required String password,
+    required String displayName,
+    required String registrationInviteCode,
+    required String trainerInviteCode,
+  }) async {
+    _setState(const AuthControllerState.loading());
+
+    final result = await authApiClient.registerTrainee(
+      email: email,
+      password: password,
+      displayName: displayName,
+      registrationInviteCode: registrationInviteCode,
+      trainerInviteCode: trainerInviteCode,
+    );
+    await _storeSessionOrShowError(result);
+
+    return result;
+  }
+
   Future<AuthApiResult<AuthSession>> login({
     required String email,
     required String password,
   }) async {
     _setState(const AuthControllerState.loading());
 
-    final result = await authApiClient.login(
-      email: email,
-      password: password,
-    );
+    final result = await authApiClient.login(email: email, password: password);
     await _storeSessionOrShowError(result);
 
     return result;
@@ -176,7 +218,9 @@ class AuthController extends ChangeNotifier {
     await _clearSession();
   }
 
-  Future<void> _storeSessionOrShowError(AuthApiResult<AuthSession> result) async {
+  Future<void> _storeSessionOrShowError(
+    AuthApiResult<AuthSession> result,
+  ) async {
     final session = result.data;
     if (!result.isSuccess || session == null) {
       _tokens = null;

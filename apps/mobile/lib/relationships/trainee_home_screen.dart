@@ -8,6 +8,8 @@ import '../workout_sets/trainee_assigned_workout_set_view.dart';
 import '../workout_sets/workout_set_controller.dart';
 import '../workout_sets/workout_set_models.dart';
 import 'relationship_controller.dart';
+import 'relationship_formatters.dart';
+import 'relationship_models.dart';
 import 'relationship_screen_styles.dart';
 
 class TraineeHomeScreen extends StatefulWidget {
@@ -21,6 +23,7 @@ class TraineeHomeScreen extends StatefulWidget {
     this.sharedSessionController,
     this.onStartWorkout,
     this.onJoinActiveWorkout,
+    this.onOpenHistory,
     super.key,
   });
 
@@ -33,6 +36,7 @@ class TraineeHomeScreen extends StatefulWidget {
   final SharedSessionController? sharedSessionController;
   final ValueChanged<TraineeAssignedWorkoutSet>? onStartWorkout;
   final VoidCallback? onJoinActiveWorkout;
+  final VoidCallback? onOpenHistory;
 
   @override
   State<TraineeHomeScreen> createState() => _TraineeHomeScreenState();
@@ -50,7 +54,8 @@ class _TraineeHomeScreenState extends State<TraineeHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final trainer = widget.state.traineeSummary?.trainer;
-    final isLoading = widget.state.status == RelationshipControllerStatus.loading;
+    final isLoading =
+        widget.state.status == RelationshipControllerStatus.loading;
 
     return Column(
       children: [
@@ -72,7 +77,9 @@ class _TraineeHomeScreenState extends State<TraineeHomeScreen> {
                 else if (trainer == null)
                   _UnlinkedTrainerCard(
                     controller: _codeController,
-                    errorMessage: widget.state.status == RelationshipControllerStatus.error
+                    errorMessage:
+                        widget.state.status ==
+                            RelationshipControllerStatus.error
                         ? widget.state.message
                         : null,
                     isLoading: isLoading,
@@ -83,7 +90,9 @@ class _TraineeHomeScreenState extends State<TraineeHomeScreen> {
                     trainerName: trainer.displayName,
                     trainerEmail: trainer.email,
                     controller: _codeController,
-                    errorMessage: widget.state.status == RelationshipControllerStatus.error
+                    errorMessage:
+                        widget.state.status ==
+                            RelationshipControllerStatus.error
                         ? widget.state.message
                         : null,
                     isLoading: isLoading,
@@ -92,6 +101,7 @@ class _TraineeHomeScreenState extends State<TraineeHomeScreen> {
                     sharedSessionController: widget.sharedSessionController,
                     onStartWorkout: widget.onStartWorkout,
                     onJoinActiveWorkout: widget.onJoinActiveWorkout,
+                    weeklyStreak: widget.state.traineeSummary!.weeklyStreak,
                   ),
               ],
             ),
@@ -104,9 +114,10 @@ class _TraineeHomeScreenState extends State<TraineeHomeScreen> {
               label: 'Dziś',
               active: true,
             ),
-            const RelationshipBottomNavItem(
+            RelationshipBottomNavItem(
               icon: Icons.history_rounded,
               label: 'Historia',
+              onTap: widget.onOpenHistory,
             ),
             RelationshipBottomNavItem(
               icon: Icons.logout_rounded,
@@ -129,10 +140,7 @@ class _TraineeHomeScreenState extends State<TraineeHomeScreen> {
 }
 
 class _TraineeHeader extends StatelessWidget {
-  const _TraineeHeader({
-    required this.user,
-    required this.onLogout,
-  });
+  const _TraineeHeader({required this.user, required this.onLogout});
 
   final AuthUser user;
   final Future<void> Function() onLogout;
@@ -145,7 +153,10 @@ class _TraineeHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Cześć,', style: TextStyle(color: lmMuted, fontSize: 14)),
+              const Text(
+                'Cześć,',
+                style: TextStyle(color: lmMuted, fontSize: 14),
+              ),
               Text(
                 user.displayName,
                 maxLines: 1,
@@ -182,6 +193,7 @@ class _LinkedTrainerCard extends StatelessWidget {
     required this.sharedSessionController,
     required this.onStartWorkout,
     required this.onJoinActiveWorkout,
+    required this.weeklyStreak,
   });
 
   final String trainerName;
@@ -194,6 +206,7 @@ class _LinkedTrainerCard extends StatelessWidget {
   final SharedSessionController? sharedSessionController;
   final ValueChanged<TraineeAssignedWorkoutSet>? onStartWorkout;
   final VoidCallback? onJoinActiveWorkout;
+  final WeeklyStreakSummary weeklyStreak;
 
   @override
   Widget build(BuildContext context) {
@@ -248,6 +261,8 @@ class _LinkedTrainerCard extends StatelessWidget {
           onStartWorkout: onStartWorkout,
           onJoinActiveWorkout: onJoinActiveWorkout,
         ),
+        const SizedBox(height: 14),
+        _WeeklyStreakCard(summary: weeklyStreak),
         const SizedBox(height: 22),
         _TrainerCodeForm(
           controller: controller,
@@ -258,6 +273,77 @@ class _LinkedTrainerCard extends StatelessWidget {
           onSubmit: onSubmit,
         ),
       ],
+    );
+  }
+}
+
+class _WeeklyStreakCard extends StatelessWidget {
+  const _WeeklyStreakCard({required this.summary});
+
+  final WeeklyStreakSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = summary.currentStreak == 0
+        ? 'Zacznij od jednego treningu w tym tygodniu'
+        : summary.isActiveThisWeek
+        ? 'Trening w tym tygodniu zaliczony'
+        : 'Zrób trening w tym tygodniu, żeby utrzymać serię';
+
+    return RelationshipCard(
+      borderColor: const Color(0xFFF59E0B).withValues(alpha: 0.28),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.local_fire_department_rounded,
+              color: Color(0xFFF59E0B),
+              size: 27,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Twoja seria',
+                  style: TextStyle(
+                    color: lmMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  formatWeekCount(summary.currentStreak),
+                  style: const TextStyle(
+                    fontFamily: 'Space Grotesk',
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  message,
+                  style: const TextStyle(color: lmMuted, fontSize: 12.5),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Najlepsza seria: ${formatWeekCount(summary.bestStreak)}',
+                  style: const TextStyle(color: lmBlueSoft, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -429,7 +515,10 @@ class _TrainerCodeForm extends StatelessWidget {
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 8),
-            Text(subtitle!, style: const TextStyle(color: lmMuted, height: 1.45)),
+            Text(
+              subtitle!,
+              style: const TextStyle(color: lmMuted, height: 1.45),
+            ),
           ],
           const SizedBox(height: 18),
           TextField(
@@ -444,7 +533,10 @@ class _TrainerCodeForm extends StatelessWidget {
           ),
           if (errorMessage != null) ...[
             const SizedBox(height: 10),
-            Text(errorMessage!, style: const TextStyle(color: Colors.redAccent)),
+            Text(
+              errorMessage!,
+              style: const TextStyle(color: Colors.redAccent),
+            ),
           ],
           const SizedBox(height: 16),
           FilledButton.icon(

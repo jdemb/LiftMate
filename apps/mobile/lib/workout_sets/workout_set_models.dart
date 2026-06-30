@@ -4,14 +4,17 @@ class CreateWorkoutSetRequest {
   const CreateWorkoutSetRequest({
     required this.name,
     required this.rows,
+    this.restSeconds = 90,
   });
 
   final String name;
   final List<WorkoutSetRowRequest> rows;
+  final int restSeconds;
 
   Map<String, Object?> toJson() {
     return {
       'name': name,
+      'restSeconds': restSeconds,
       'rows': rows.map((row) => row.toJson()).toList(growable: false),
     };
   }
@@ -21,11 +24,14 @@ class UpdateWorkoutSetRequest extends CreateWorkoutSetRequest {
   const UpdateWorkoutSetRequest({
     required super.name,
     required super.rows,
+    super.restSeconds = 90,
   });
 }
 
 class WorkoutSetRowRequest {
   const WorkoutSetRowRequest({
+    this.id,
+    this.exerciseId,
     required this.exerciseOrder,
     required this.setIndex,
     required this.exerciseName,
@@ -35,6 +41,8 @@ class WorkoutSetRowRequest {
     this.seconds,
   });
 
+  final String? id;
+  final String? exerciseId;
   final int exerciseOrder;
   final int setIndex;
   final String exerciseName;
@@ -45,6 +53,8 @@ class WorkoutSetRowRequest {
 
   Map<String, Object?> toJson() {
     return {
+      'id': id,
+      'exerciseId': exerciseId,
       'exerciseOrder': exerciseOrder,
       'setIndex': setIndex,
       'exerciseName': exerciseName,
@@ -120,6 +130,7 @@ class WorkoutSetDetail {
   const WorkoutSetDetail({
     required this.id,
     required this.name,
+    required this.restSeconds,
     required this.rows,
     required this.assignments,
     required this.createdAt,
@@ -128,6 +139,7 @@ class WorkoutSetDetail {
 
   final String id;
   final String name;
+  final int restSeconds;
   final List<WorkoutSetRow> rows;
   final List<WorkoutSetAssignment> assignments;
   final DateTime createdAt;
@@ -136,6 +148,7 @@ class WorkoutSetDetail {
   factory WorkoutSetDetail.fromJson(Map<String, dynamic> json) {
     final id = json['id'];
     final name = json['name'];
+    final restSeconds = json['restSeconds'] ?? 90;
     final rows = json['rows'];
     final assignments = json['assignments'];
     final createdAt = json['createdAt'];
@@ -143,6 +156,7 @@ class WorkoutSetDetail {
 
     if (id is! String ||
         name is! String ||
+        restSeconds is! int ||
         rows is! List ||
         assignments is! List ||
         createdAt is! String ||
@@ -153,7 +167,12 @@ class WorkoutSetDetail {
     return WorkoutSetDetail(
       id: id,
       name: name,
-      rows: _parseList(rows, WorkoutSetRow.fromJson, 'Invalid workout set row response body.'),
+      restSeconds: restSeconds,
+      rows: _parseList(
+        rows,
+        WorkoutSetRow.fromJson,
+        'Invalid workout set row response body.',
+      ),
       assignments: _parseList(
         assignments,
         WorkoutSetAssignment.fromJson,
@@ -168,6 +187,7 @@ class WorkoutSetDetail {
 class WorkoutSetRow {
   const WorkoutSetRow({
     required this.id,
+    required this.exerciseId,
     required this.exerciseOrder,
     required this.setIndex,
     required this.exerciseName,
@@ -178,6 +198,7 @@ class WorkoutSetRow {
   });
 
   final String id;
+  final String exerciseId;
   final int exerciseOrder;
   final int setIndex;
   final String exerciseName;
@@ -188,6 +209,7 @@ class WorkoutSetRow {
 
   factory WorkoutSetRow.fromJson(Map<String, dynamic> json) {
     final id = json['id'];
+    final exerciseId = json['exerciseId'] ?? id;
     final exerciseOrder = json['exerciseOrder'];
     final setIndex = json['setIndex'];
     final exerciseName = json['exerciseName'];
@@ -197,6 +219,7 @@ class WorkoutSetRow {
     final seconds = json['seconds'];
 
     if (id is! String ||
+        exerciseId is! String ||
         exerciseOrder is! int ||
         setIndex is! int ||
         exerciseName is! String ||
@@ -209,6 +232,7 @@ class WorkoutSetRow {
 
     return WorkoutSetRow(
       id: id,
+      exerciseId: exerciseId,
       exerciseOrder: exerciseOrder,
       setIndex: setIndex,
       exerciseName: exerciseName,
@@ -243,7 +267,9 @@ class WorkoutSetAssignment {
         traineeEmail is! String ||
         traineeDisplayName is! String ||
         assignedAt is! String) {
-      throw const FormatException('Invalid workout set assignment response body.');
+      throw const FormatException(
+        'Invalid workout set assignment response body.',
+      );
     }
 
     return WorkoutSetAssignment(
@@ -259,6 +285,7 @@ class TraineeAssignedWorkoutSet {
   const TraineeAssignedWorkoutSet({
     required this.id,
     required this.name,
+    required this.restSeconds,
     required this.trainerDisplayName,
     required this.rows,
     required this.assignedAt,
@@ -267,6 +294,7 @@ class TraineeAssignedWorkoutSet {
 
   final String id;
   final String name;
+  final int restSeconds;
   final String trainerDisplayName;
   final List<WorkoutSetRow> rows;
   final DateTime assignedAt;
@@ -275,6 +303,7 @@ class TraineeAssignedWorkoutSet {
   factory TraineeAssignedWorkoutSet.fromJson(Map<String, dynamic> json) {
     final id = json['id'];
     final name = json['name'];
+    final restSeconds = json['restSeconds'] ?? 90;
     final trainerDisplayName = json['trainerDisplayName'];
     final rows = json['rows'];
     final assignedAt = json['assignedAt'];
@@ -282,18 +311,26 @@ class TraineeAssignedWorkoutSet {
 
     if (id is! String ||
         name is! String ||
+        restSeconds is! int ||
         trainerDisplayName is! String ||
         rows is! List ||
         assignedAt is! String ||
         updatedAt is! String) {
-      throw const FormatException('Invalid trainee assigned workout set response body.');
+      throw const FormatException(
+        'Invalid trainee assigned workout set response body.',
+      );
     }
 
     return TraineeAssignedWorkoutSet(
       id: id,
       name: name,
+      restSeconds: restSeconds,
       trainerDisplayName: trainerDisplayName,
-      rows: _parseList(rows, WorkoutSetRow.fromJson, 'Invalid workout set row response body.'),
+      rows: _parseList(
+        rows,
+        WorkoutSetRow.fromJson,
+        'Invalid workout set row response body.',
+      ),
       assignedAt: DateTime.parse(assignedAt).toUtc(),
       updatedAt: DateTime.parse(updatedAt).toUtc(),
     );
@@ -305,11 +342,13 @@ List<T> _parseList<T>(
   T Function(Map<String, dynamic> json) parse,
   String message,
 ) {
-  return values.map((value) {
-    if (value is! Map<String, dynamic>) {
-      throw FormatException(message);
-    }
+  return values
+      .map((value) {
+        if (value is! Map<String, dynamic>) {
+          throw FormatException(message);
+        }
 
-    return parse(value);
-  }).toList(growable: false);
+        return parse(value);
+      })
+      .toList(growable: false);
 }

@@ -6,6 +6,16 @@
 <script src="./support.js"></script>
 </head>
 <body>
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" rx="20" fill="#101216"/>
+  <g transform="translate(50 50)" fill="#3a82f6">
+    <rect x="-13" y="-16" width="7" height="32" rx="3"/>
+    <rect x="-6" y="-5" width="12" height="10"/>
+    <rect x="6" y="-16" width="7" height="32" rx="3"/>
+  </g>
+</svg>
+</template>
 <x-dc>
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,13 +42,9 @@
       </div>
       <div>
         <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:25px;letter-spacing:-0.5px;line-height:1;">LiftMate</div>
-        <div style="font-size:13px;color:#969ba3;margin-top:4px;">Prototyp mobilny · spec do przekazania agentowi · Flutter + .NET</div>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div style="display:flex;align-items:center;gap:8px;padding:7px 13px;border-radius:999px;background:rgba(58,130,246,.14);border:1px solid rgba(58,130,246,.3);font-size:12.5px;font-weight:600;color:#9cc1fb;">Rola: <span style="color:#fff;">{{ roleLabel }}</span></div>
-      <div style="display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;background:rgba(255,77,77,.12);border:1px solid rgba(255,77,77,.28);font-size:12.5px;font-weight:600;color:#ff8d8d;"><span style="width:7px;height:7px;border-radius:50%;background:#ff4d4d;display:inline-block;animation:lm-pulse 1.4s infinite;"></span> na żywo</div>
-    </div>
+    <div style="display:flex;align-items:center;gap:10px;"></div>
   </div>
 
   <!-- ===== WORK AREA ===== -->
@@ -200,13 +206,21 @@
                     <div style="font-size:12.5px;color:#969ba3;margin-top:2px;">podopiecznych</div>
                   </div>
                   <div style="flex:1;padding:14px 16px;border-radius:16px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
-                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:28px;color:#3a82f6;">2</div>
-                    <div style="font-size:12.5px;color:#969ba3;margin-top:2px;">treningi dziś</div>
+                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:28px;color:#3a82f6;">1</div>
+                    <div style="font-size:12.5px;color:#969ba3;margin-top:2px;">aktywnych sesji</div>
                   </div>
                 </div>
               </div>
               <div class="lm-scroll" style="flex:1;overflow:auto;padding:4px 22px 16px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin:8px 2px 12px;">
+                <div style="padding:16px;border-radius:18px;background:#191c22;border:1px solid rgba(58,130,246,.45);box-shadow:0 0 0 1px rgba(58,130,246,.12);display:flex;align-items:center;gap:14px;">
+                  <div style="width:46px;height:46px;border-radius:13px;background:rgba(58,130,246,.16);display:flex;align-items:center;justify-content:center;font-size:22px;color:#9cc1fb;flex-shrink:0;">⊞</div>
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-size:13px;color:#969ba3;font-weight:600;">Twój kod zaproszenia</div>
+                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:21px;letter-spacing:1px;margin-top:2px;">JT6UDA</div>
+                  </div>
+                  <button onClick="{{ copyInvite }}" style="flex-shrink:0;display:flex;align-items:center;gap:7px;padding:10px 14px;border-radius:12px;border:1px solid rgba(58,130,246,.45);background:rgba(58,130,246,.16);color:#9cc1fb;font-family:'Manrope';font-weight:600;font-size:13.5px;cursor:pointer;"><span style="font-size:15px;">{{ copyIcon }}</span>{{ copyLabel }}</button>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin:18px 2px 12px;">
                   <div style="font-size:13px;font-weight:700;letter-spacing:.5px;color:#686d75;text-transform:uppercase;">Podopieczni</div>
                   <div style="font-size:13px;color:#3a82f6;font-weight:600;">+ Zaproś</div>
                 </div>
@@ -242,23 +256,44 @@
                 <div style="font-weight:700;font-size:17px;">Podopieczny</div>
               </div>
               <div class="lm-scroll" style="flex:1;overflow:auto;padding:8px 22px 24px;">
-                <div style="display:flex;align-items:center;gap:16px;">
-                  <div style="width:62px;height:62px;border-radius:18px;background:linear-gradient(145deg,#3a82f6,#2f6fd6);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;font-family:'Space Grotesk';">AN</div>
-                  <div>
-                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:23px;">Anna Nowak</div>
-                    <div style="font-size:13.5px;color:#969ba3;margin-top:3px;">Połączona · od marca 2026</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
+                  <div style="display:flex;align-items:center;gap:15px;min-width:0;">
+                    <div style="width:60px;height:60px;border-radius:18px;background:linear-gradient(145deg,#3a82f6,#2f6fd6);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:21px;font-family:'Space Grotesk';flex-shrink:0;">AN</div>
+                    <div style="min-width:0;">
+                      <div style="font-family:'Space Grotesk';font-weight:700;font-size:23px;letter-spacing:-0.4px;">Anna Nowak</div>
+                      <div style="font-size:13.5px;color:#969ba3;margin-top:2px;">Połączona</div>
+                    </div>
+                  </div>
+                  <div style="text-align:right;flex-shrink:0;">
+                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:19px;">🔥 6</div>
+                    <div style="font-size:12px;color:#686d75;margin-top:2px;">najlepsza 6</div>
                   </div>
                 </div>
-                <div style="display:flex;gap:10px;margin-top:20px;">
-                  <div style="flex:1;padding:14px;border-radius:15px;background:#191c22;border:1px solid rgba(255,255,255,.07);text-align:center;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;color:#21c97a;">+2.5</div><div style="font-size:11.5px;color:#969ba3;margin-top:2px;">kg / tydzień</div></div>
-                  <div style="flex:1;padding:14px;border-radius:15px;background:#191c22;border:1px solid rgba(255,255,255,.07);text-align:center;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;color:#fff;">18</div><div style="font-size:11.5px;color:#969ba3;margin-top:2px;">treningów</div></div>
-                  <div style="flex:1;padding:14px;border-radius:15px;background:#191c22;border:1px solid rgba(255,255,255,.07);text-align:center;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;color:#fff;">🔥6</div><div style="font-size:11.5px;color:#969ba3;margin-top:2px;">seria</div></div>
+                <div style="display:flex;gap:11px;margin-top:18px;">
+                  <button onClick="{{ toTraineeHistory }}" style="flex:1;height:50px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:transparent;color:#f3f4f6;font-family:'Manrope';font-weight:600;font-size:14.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;"><span style="font-size:16px;">◷</span>Historia</button>
+                  <button onClick="{{ toAssign }}" style="flex:1;height:50px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:transparent;color:#f3f4f6;font-family:'Manrope';font-weight:600;font-size:14.5px;cursor:pointer;">Zmień zestaw</button>
                 </div>
-                <div style="margin-top:22px;font-size:13px;font-weight:700;letter-spacing:.5px;color:#686d75;text-transform:uppercase;">Przypisany zestaw</div>
+
+                <div style="margin-top:24px;font-family:'Space Grotesk';font-weight:700;font-size:21px;letter-spacing:-0.4px;">Podpowiedzi</div>
+                <div style="font-size:13.5px;color:#969ba3;margin-top:3px;">Na podstawie 3 ostatnich treningów</div>
+                <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px;">
+                  <sc-for list="{{ insightsVM }}" as="i" hint-placeholder-count="2">
+                    <div style="{{ i.cardStyle }}">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                        <div style="font-family:'Space Grotesk';font-weight:700;font-size:18px;">{{ i.title }}</div>
+                        <span style="{{ i.tagStyle }}">{{ i.tag }}</span>
+                      </div>
+                      <button onClick="{{ i.toggle }}" style="{{ i.readStyle }}">{{ i.readLabel }}</button>
+                      <div style="font-size:14.5px;color:#dfe2e7;line-height:1.5;margin-top:13px;">{{ i.body }}</div>
+                      <div style="font-size:13px;color:#686d75;margin-top:9px;">{{ i.sub }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <div style="margin-top:24px;font-size:13px;font-weight:700;letter-spacing:.5px;color:#686d75;text-transform:uppercase;">Przypisany zestaw</div>
                 <div style="margin-top:12px;padding:18px;border-radius:18px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
                   <div style="display:flex;align-items:center;justify-content:space-between;">
                     <div style="font-family:'Space Grotesk';font-weight:700;font-size:18px;">Push A — góra ciała</div>
-                    <div style="font-size:12px;color:#3a82f6;font-weight:600;">Zmień</div>
                   </div>
                   <div style="font-size:13px;color:#969ba3;margin-top:6px;">5 ćwiczeń · ~45 min · ostatnio 2 dni temu</div>
                   <div style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap;">
@@ -266,9 +301,8 @@
                     <span style="font-size:12px;padding:5px 10px;border-radius:8px;background:#22262e;color:#c2c7ce;">Hantle skos</span>
                     <span style="font-size:12px;padding:5px 10px;border-radius:8px;background:#22262e;color:#c2c7ce;">+3</span>
                   </div>
+                  <button onClick="{{ startLive }}" style="width:100%;height:54px;margin-top:16px;border:none;border-radius:15px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:15.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 10px 26px rgba(58,130,246,.36);"><span style="width:8px;height:8px;border-radius:50%;background:#fff;"></span>Rozpocznij wspólny trening</button>
                 </div>
-                <button onClick="{{ startLive }}" style="width:100%;height:56px;margin-top:18px;border:none;border-radius:16px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 10px 26px rgba(58,130,246,.36);"><span style="width:8px;height:8px;border-radius:50%;background:#fff;"></span>Rozpocznij wspólny trening</button>
-                <button onClick="{{ toAssign }}" style="width:100%;height:50px;margin-top:11px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:transparent;color:#f3f4f6;font-family:'Manrope';font-weight:600;font-size:15px;cursor:pointer;">Przypisz inny zestaw</button>
               </div>
             </div>
           </sc-if>
@@ -283,13 +317,25 @@
               <div class="lm-scroll" style="flex:1;overflow:auto;padding:8px 22px 16px;">
                 <div style="display:flex;flex-direction:column;gap:12px;">
                   <sc-for list="{{ sets }}" as="z" hint-placeholder-count="3">
-                    <div style="padding:18px;border-radius:18px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
-                      <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div style="padding:18px;border-radius:18px;background:#191c22;border:1px solid rgba(255,255,255,.07);position:relative;">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
                         <div style="font-family:'Space Grotesk';font-weight:700;font-size:17.5px;">{{ z.name }}</div>
-                        <span style="font-size:11px;padding:4px 9px;border-radius:7px;background:rgba(58,130,246,.16);color:#9cc1fb;font-weight:600;">{{ z.tag }}</span>
+                        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                          <span style="font-size:11px;padding:4px 9px;border-radius:7px;background:rgba(58,130,246,.16);color:#9cc1fb;font-weight:600;">{{ z.tag }}</span>
+                          <button onClick="{{ z.toggleMenu }}" aria-label="Więcej" style="width:30px;height:30px;border-radius:9px;border:none;background:transparent;color:#969ba3;font-size:19px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;">⋮</button>
+                        </div>
                       </div>
                       <div style="font-size:13px;color:#969ba3;margin-top:6px;">{{ z.meta }}</div>
-                      <div style="font-size:12.5px;color:#686d75;margin-top:10px;">Przypisany: {{ z.assigned }}</div>
+                      <div style="font-size:12.5px;color:#686d75;margin-top:10px;">Przypisani: {{ z.assigned }}</div>
+                      <div style="display:flex;gap:10px;margin-top:15px;">
+                        <button onClick="{{ toBuilder }}" style="flex:1;height:46px;border:1px solid rgba(255,255,255,.14);border-radius:13px;background:transparent;color:#f3f4f6;font-family:'Manrope';font-weight:600;font-size:14.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="font-size:14px;">✎</span>Edytuj</button>
+                        <button onClick="{{ toAssign }}" style="flex:1;height:46px;border:none;border-radius:13px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:14.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 20px rgba(58,130,246,.3);"><span style="font-size:15px;">👤</span>Przypisz</button>
+                      </div>
+                      <sc-if value="{{ z.menuOpen }}" hint-placeholder-val="{{ false }}">
+                        <div style="position:absolute;top:52px;right:16px;z-index:5;background:#22262e;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:6px;box-shadow:0 14px 34px rgba(0,0,0,.5);min-width:168px;">
+                          <button onClick="{{ z.remove }}" style="width:100%;display:flex;align-items:center;gap:10px;padding:11px 12px;border:none;background:transparent;color:#ff8d8d;font-family:'Manrope';font-weight:600;font-size:14px;cursor:pointer;border-radius:8px;text-align:left;" style-hover="background:rgba(255,77,77,.1);"><span style="font-size:15px;">🗑</span>Usuń zestaw</button>
+                        </div>
+                      </sc-if>
                     </div>
                   </sc-for>
                 </div>
@@ -313,6 +359,12 @@
               <div class="lm-scroll" style="flex:1;overflow:auto;padding:10px 22px 16px;">
                 <div style="font-size:13px;font-weight:600;color:#969ba3;margin-bottom:8px;">Nazwa zestawu</div>
                 <div style="height:52px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 16px;font-size:16px;font-weight:700;color:#fff;">{{ setName }}</div>
+                <div style="font-size:13px;font-weight:600;color:#969ba3;margin:22px 0 8px;">Czas odpoczynku</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.08);">
+                  <button onClick="{{ decRest }}" style="width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:transparent;color:#f3f4f6;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:30px;letter-spacing:1px;">{{ setRestLabel }}</div>
+                  <button onClick="{{ incRest }}" style="width:46px;height:46px;border-radius:50%;border:none;background:rgba(58,130,246,.5);color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+                </div>
                 <div style="display:flex;align-items:center;justify-content:space-between;margin:22px 2px 12px;">
                   <div style="font-size:13px;font-weight:700;letter-spacing:.5px;color:#686d75;text-transform:uppercase;">Ćwiczenia · {{ draftCount }}</div>
                 </div>
@@ -325,6 +377,7 @@
                         <div style="font-size:12.5px;color:#969ba3;margin-top:3px;">{{ d.params }}</div>
                       </div>
                       <span style="font-size:10.5px;padding:4px 8px;border-radius:7px;background:rgba(58,130,246,.14);color:#9cc1fb;font-weight:600;white-space:nowrap;">{{ d.typeLabel }}</span>
+                      <button onClick="{{ d.remove }}" aria-label="Usuń" style="width:34px;height:34px;border-radius:10px;border:none;background:transparent;color:#686d75;font-size:17px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">⌫</button>
                     </div>
                   </sc-for>
                 </div>
@@ -447,7 +500,7 @@
                   <div style="font-weight:700;font-size:15px;">Anna Nowak</div>
                   <div style="font-size:11.5px;color:#686d75;">Push A — góra ciała</div>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,77,77,.14);"><span style="width:7px;height:7px;border-radius:50%;background:#ff4d4d;animation:lm-pulse 1.4s infinite;"></span><span style="font-size:11px;font-weight:700;color:#ff8d8d;">żywo</span></div>
+                <div style="display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;background:rgba(255,77,77,.14);"><span style="width:7px;height:7px;border-radius:50%;background:#ff4d4d;animation:lm-pulse 1.4s infinite;"></span><span style="font-family:'Space Grotesk';font-size:14px;font-weight:700;color:#ff8d8d;letter-spacing:.5px;">{{ sessLabel }}</span></div>
               </div>
               <div class="lm-scroll" style="flex:1;overflow:auto;padding:16px 20px 16px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -510,28 +563,23 @@
                   </sc-for>
                 </div>
 
-                <!-- rest timer -->
-                <div style="margin-top:16px;padding:16px 18px;border-radius:16px;background:#15181e;border:1px solid rgba(255,255,255,.07);">
-                  <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <div style="font-size:12.5px;font-weight:700;color:#969ba3;text-transform:uppercase;letter-spacing:.5px;">Odpoczynek</div>
-                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;color:#fff;">{{ restLabel }}</div>
-                  </div>
-                  <div style="height:6px;border-radius:3px;background:#22262e;margin-top:10px;overflow:hidden;"><div style="height:100%;border-radius:3px;background:#3a82f6;width:{{ restPct }}%;"></div></div>
-                  <div style="display:flex;gap:9px;margin-top:13px;">
-                    <button onClick="{{ tickStart }}" style="flex:1;height:42px;border:none;border-radius:12px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:14px;cursor:pointer;">Start</button>
-                    <button onClick="{{ tickPause }}" style="flex:1;height:42px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:transparent;color:#f3f4f6;font-family:'Manrope';font-weight:600;font-size:14px;cursor:pointer;">Pauza</button>
-                    <button onClick="{{ tickAdd }}" style="width:54px;height:42px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:transparent;color:#f3f4f6;font-weight:700;font-size:13px;cursor:pointer;">+15s</button>
-                    <button onClick="{{ tickReset }}" style="width:46px;height:42px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:transparent;color:#969ba3;font-size:16px;cursor:pointer;">↺</button>
-                  </div>
-                </div>
-
-                <div style="margin-top:14px;padding:13px 16px;border-radius:13px;background:#15181e;display:flex;align-items:center;justify-content:space-between;">
+                <!-- next exercise -->
+                <div style="margin-top:16px;padding:13px 16px;border-radius:13px;background:#15181e;display:flex;align-items:center;justify-content:space-between;">
                   <div><div style="font-size:11px;color:#686d75;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Następne</div><div style="font-size:14px;font-weight:700;margin-top:2px;">{{ liveNextName }}</div></div>
                   <button onClick="{{ nextEx }}" style="padding:9px 16px;border:none;border-radius:11px;background:#22262e;color:#9cc1fb;font-weight:700;font-size:13.5px;cursor:pointer;">Dalej ›</button>
                 </div>
               </div>
-              <div style="padding:12px 20px 16px;background:#10131a;border-top:1px solid rgba(255,255,255,.07);">
-                <button onClick="{{ endLive }}" style="width:100%;height:52px;border:none;border-radius:14px;background:rgba(33,201,122,.16);border:1px solid rgba(33,201,122,.4);color:#7ee0ad;font-family:'Manrope';font-weight:700;font-size:15.5px;cursor:pointer;">✓ Zakończ i zapisz trening</button>
+              <div style="padding:14px 20px 16px;background:#10131a;border-top:1px solid rgba(255,255,255,.07);">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <div style="font-size:14px;font-weight:600;color:#969ba3;">Odpoczynek</div>
+                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:26px;letter-spacing:.5px;">{{ restLabel }}</div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-top:10px;">
+                  <button onClick="{{ restToggle }}" aria-label="Start/pauza" style="width:52px;height:52px;border-radius:50%;border:none;background:#22262e;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">{{ restPlayIcon }}</button>
+                  <button onClick="{{ tickAdd }}" style="padding:0 16px;height:44px;border:none;border-radius:13px;background:transparent;color:#3a82f6;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;">+15s</button>
+                  <button onClick="{{ tickReset }}" aria-label="Reset" style="width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:transparent;color:#c2c7ce;cursor:pointer;display:flex;align-items:center;justify-content:center;">{{ resetIcon }}</button>
+                </div>
+                <button onClick="{{ endLive }}" style="width:100%;height:56px;margin-top:14px;border-radius:14px;background:rgba(33,201,122,.12);border:1px solid rgba(33,201,122,.45);color:#7ee0ad;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;"><span style="font-size:17px;">✓</span>Zakończ i zapisz trening</button>
               </div>
             </div>
           </sc-if>
@@ -559,6 +607,15 @@
                     </sc-for>
                   </div>
                   <button onClick="{{ startTraineeWorkout }}" style="width:100%;height:54px;margin-top:20px;border:none;border-radius:15px;background:#3a82f6;color:#fff;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;box-shadow:0 10px 26px rgba(58,130,246,.36);">Rozpocznij trening</button>
+                </div>
+                <div style="margin-top:14px;padding:18px;border-radius:18px;background:#191c22;border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:16px;">
+                  <div style="width:54px;height:54px;border-radius:16px;background:rgba(255,141,79,.14);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">🔥</div>
+                  <div style="min-width:0;">
+                    <div style="font-size:12px;font-weight:700;letter-spacing:.4px;color:#969ba3;">Twoja seria</div>
+                    <div style="font-family:'Space Grotesk';font-weight:700;font-size:23px;letter-spacing:-0.4px;margin-top:2px;">2 tygodnie</div>
+                    <div style="font-size:13px;color:#969ba3;line-height:1.45;margin-top:5px;">Zrób trening w tym tygodniu, żeby utrzymać serię</div>
+                    <div style="font-size:12.5px;color:#9cc1fb;font-weight:600;margin-top:7px;">Najlepsza seria: 2 tygodnie</div>
+                  </div>
                 </div>
                 <div style="font-size:13px;font-weight:700;letter-spacing:.5px;color:#686d75;text-transform:uppercase;margin:22px 2px 12px;">Ostatni trening</div>
                 <div style="padding:16px;border-radius:16px;background:#191c22;border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;">
@@ -603,27 +660,72 @@
             </div>
           </sc-if>
 
-          <!-- TRAINEE: HISTORY -->
+          <!-- TRAINEE: POST-WORKOUT FEEDBACK -->
+          <sc-if value="{{ scFeedback }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;min-height:0;background:radial-gradient(420px 300px at 50% 0%, rgba(58,130,246,.18), #101216 62%);">
+              <div style="padding:14px 20px 8px;display:flex;align-items:center;justify-content:space-between;">
+                <button onClick="{{ back }}" style="background:none;border:none;color:#969ba3;font-size:24px;cursor:pointer;">‹</button>
+                <div style="padding:6px 11px;border-radius:999px;background:rgba(33,201,122,.12);border:1px solid rgba(33,201,122,.28);font-size:11.5px;font-weight:700;color:#7ee0ad;">trening zapisany</div>
+              </div>
+              <div class="lm-scroll" style="flex:1;overflow:auto;padding:6px 22px 18px;">
+                <div style="text-align:center;padding:6px 4px 22px;">
+                  <div style="width:62px;height:62px;border-radius:20px;background:rgba(58,130,246,.16);display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:28px;">💬</div>
+                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:26px;letter-spacing:-0.6px;line-height:1.1;margin-top:16px;">Jak się czujesz<br>po treningu?</div>
+                  <div style="font-size:13.5px;color:#969ba3;line-height:1.5;margin-top:9px;">Oceń samopoczucie — pomoże to trenerowi dobrać kolejny trening.</div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <sc-for list="{{ feedbackRatings }}" as="r" hint-placeholder-count="5">
+                    <button onClick="{{ r.pick }}" aria-label="{{ r.aria }}" style="{{ r.style }}">
+                      <span style="font-family:'Space Grotesk';font-weight:800;font-size:19px;">{{ r.value }}</span>
+                      <span style="font-size:9px;font-weight:700;line-height:1.1;margin-top:5px;">{{ r.short }}</span>
+                    </button>
+                  </sc-for>
+                </div>
+                <div style="height:18px;font-size:12.5px;color:#9cc1fb;font-weight:700;margin-top:11px;text-align:center;">{{ fbSelectedLabel }}</div>
+                <div style="margin-top:14px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                    <div style="font-size:13px;font-weight:700;color:#969ba3;">Komentarz (opcjonalnie)</div>
+                    <div style="font-size:12px;color:#686d75;font-weight:700;">{{ fbCount }}/1000</div>
+                  </div>
+                  <textarea value="{{ fbComment }}" onChange="{{ onFbComment }}" placeholder="Napisz, co było dobre albo trudne w tym treningu..." style="width:100%;min-height:116px;resize:none;border-radius:16px;background:#191c22;border:1px solid rgba(255,255,255,.08);padding:15px 16px;color:#f3f4f6;font-family:'Manrope';font-size:14px;line-height:1.5;outline:none;"></textarea>
+                </div>
+              </div>
+              <div style="padding:12px 22px 16px;background:#10131a;border-top:1px solid rgba(255,255,255,.07);">
+                <button onClick="{{ submitFeedback }}" style="{{ fbSubmitStyle }}">{{ fbSubmitLabel }}</button>
+                <button onClick="{{ skipFeedback }}" style="width:100%;height:42px;margin-top:8px;border:none;background:transparent;color:#969ba3;font-family:'Manrope';font-weight:700;font-size:14px;cursor:pointer;">Pomiń</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TRAINEE: HISTORY (L1 — session list) -->
           <sc-if value="{{ scCHistory }}" hint-placeholder-val="{{ true }}">
             <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
               <div style="padding:16px 22px 10px;">
-                <div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;letter-spacing:-0.5px;">Historia i progres</div>
-                <div style="font-size:13.5px;color:#969ba3;margin-top:4px;">Zapisane wartości startują kolejny trening</div>
+                <div style="font-family:'Space Grotesk';font-weight:700;font-size:24px;letter-spacing:-0.5px;">Historia treningów</div>
+                <div style="font-size:13.5px;color:#969ba3;margin-top:4px;">{{ sessionsCount }} ukończonych sesji</div>
               </div>
               <div class="lm-scroll" style="flex:1;overflow:auto;padding:8px 22px 16px;">
                 <div style="display:flex;flex-direction:column;gap:12px;">
-                  <sc-for list="{{ historyVM }}" as="h" hint-placeholder-count="4">
-                    <div style="padding:16px 18px;border-radius:18px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
-                      <div style="display:flex;align-items:flex-start;justify-content:space-between;">
-                        <div style="font-weight:700;font-size:15px;max-width:170px;">{{ h.name }}</div>
-                        <div style="text-align:right;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:19px;color:#fff;">{{ h.current }}</div><div style="font-size:12px;font-weight:700;color:#21c97a;margin-top:2px;">{{ h.delta }}</div></div>
+                  <sc-for list="{{ sessionsVM }}" as="se" hint-placeholder-count="4">
+                    <button onClick="{{ se.open }}" style="text-align:left;display:block;width:100%;padding:15px 17px;border-radius:18px;background:#191c22;border:1px solid rgba(255,255,255,.07);cursor:pointer;color:#f3f4f6;font-family:'Manrope';">
+                      <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <div style="display:flex;align-items:center;gap:13px;">
+                          <div style="width:46px;height:46px;border-radius:13px;background:{{ se.iconBg }};display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;color:{{ se.iconColor }};font-family:'Space Grotesk';">
+                            <span style="font-size:17px;font-weight:700;">{{ se.dayNum }}</span><span style="font-size:8.5px;font-weight:600;margin-top:2px;letter-spacing:.5px;">{{ se.monShort }}</span>
+                          </div>
+                          <div>
+                            <div style="font-weight:700;font-size:15px;">{{ se.name }}</div>
+                            <div style="font-size:12.5px;color:#969ba3;margin-top:3px;">{{ se.dateLabel }}</div>
+                          </div>
+                        </div>
+                        <span style="color:#686d75;font-size:20px;">›</span>
                       </div>
-                      <div style="display:flex;align-items:flex-end;gap:6px;height:90px;margin-top:14px;">
-                        <sc-for list="{{ h.bars }}" as="b" hint-placeholder-count="6">
-                          <div style="flex:1;display:flex;align-items:flex-end;height:100%;"><div style="width:100%;border-radius:5px 5px 0 0;height:{{ b.h }}px;background:{{ b.last }};"></div></div>
-                        </sc-for>
+                      <div style="display:flex;gap:22px;margin-top:13px;padding-top:13px;border-top:1px solid rgba(255,255,255,.06);">
+                        <div><span style="font-family:'Space Grotesk';font-weight:700;font-size:15px;">{{ se.duration }}</span></div>
+                        <div><span style="font-family:'Space Grotesk';font-weight:700;font-size:15px;">{{ se.exCount }}</span><span style="font-size:12px;color:#686d75;"> ćwiczeń</span></div>
+                        <div><span style="font-family:'Space Grotesk';font-weight:700;font-size:15px;">{{ se.setCount }}</span><span style="font-size:12px;color:#686d75;"> serii</span></div>
                       </div>
-                    </div>
+                    </button>
                   </sc-for>
                 </div>
               </div>
@@ -634,6 +736,98 @@
               </div>
             </div>
           </sc-if>
+
+          <!-- TRAINEE: SESSION DETAIL (L2) -->
+          <sc-if value="{{ scCSession }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+              <div style="padding:14px 20px 10px;display:flex;align-items:center;gap:12px;">
+                <button onClick="{{ back }}" style="background:none;border:none;color:#969ba3;font-size:24px;cursor:pointer;">‹</button>
+                <div style="min-width:0;"><div style="font-weight:700;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ sessName }}</div><div style="font-size:12px;color:#969ba3;margin-top:1px;">{{ sessDate }}</div></div>
+              </div>
+              <div class="lm-scroll" style="flex:1;overflow:auto;padding:6px 22px 16px;">
+                <div style="display:flex;gap:10px;margin-bottom:16px;">
+                  <div style="flex:1;padding:13px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.07);text-align:center;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:18px;">{{ sessDuration }}</div><div style="font-size:11px;color:#686d75;margin-top:2px;">czas</div></div>
+                  <div style="flex:1;padding:13px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.07);text-align:center;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:18px;">{{ sessExCount }}</div><div style="font-size:11px;color:#686d75;margin-top:2px;">ćwiczeń</div></div>
+                  <div style="flex:1;padding:13px;border-radius:14px;background:#191c22;border:1px solid rgba(255,255,255,.07);text-align:center;"><div style="font-family:'Space Grotesk';font-weight:700;font-size:18px;">{{ sessSetCount }}</div><div style="font-size:11px;color:#686d75;margin-top:2px;">serii</div></div>
+                </div>
+                <sc-if value="{{ sessHasFeedback }}" hint-placeholder-val="{{ true }}">
+                  <div style="padding:14px 16px;border-radius:16px;background:#191c22;border:1px solid rgba(58,130,246,.24);margin-bottom:16px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                      <div>
+                        <div style="font-size:11px;font-weight:800;letter-spacing:.7px;color:#9cc1fb;text-transform:uppercase;">Feedback po treningu</div>
+                        <div style="font-family:'Space Grotesk';font-weight:700;font-size:17px;margin-top:6px;">Samopoczucie: {{ sessFbRating }}/5</div>
+                        <div style="font-size:12.5px;color:#c2c7ce;margin-top:3px;">{{ sessFbLabel }}</div>
+                      </div>
+                      <div style="width:46px;height:46px;border-radius:14px;background:rgba(58,130,246,.16);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk';font-weight:800;font-size:21px;color:#9cc1fb;flex-shrink:0;">{{ sessFbRating }}</div>
+                    </div>
+                    <div style="font-size:13px;color:#969ba3;line-height:1.5;margin-top:11px;">{{ sessFbComment }}</div>
+                  </div>
+                </sc-if>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <sc-for list="{{ sessExVM }}" as="ex" hint-placeholder-count="5">
+                    <button onClick="{{ ex.open }}" style="text-align:left;display:block;width:100%;padding:15px 16px;border-radius:16px;background:#191c22;border:1px solid rgba(255,255,255,.07);cursor:pointer;color:#f3f4f6;font-family:'Manrope';">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                        <div style="font-weight:700;font-size:14.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ ex.name }}</div>
+                        <span style="font-size:12px;color:#3a82f6;font-weight:600;white-space:nowrap;flex-shrink:0;">progres ›</span>
+                      </div>
+                      <div style="font-size:12.5px;color:#969ba3;margin-top:4px;">{{ ex.summary }} · najlepsza {{ ex.top }}</div>
+                      <div style="display:flex;gap:6px;margin-top:11px;flex-wrap:wrap;">
+                        <sc-for list="{{ ex.sets }}" as="st" hint-placeholder-count="4">
+                          <span style="font-size:12px;font-family:'Space Grotesk';font-weight:600;padding:5px 9px;border-radius:8px;background:#22262e;color:#c2c7ce;">{{ st }}</span>
+                        </sc-for>
+                      </div>
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- TRAINEE: EXERCISE PROGRESS (L3) -->
+          <sc-if value="{{ scCExprog }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;min-height:0;">
+              <div style="padding:14px 20px 8px;display:flex;align-items:center;gap:12px;">
+                <button onClick="{{ back }}" style="background:none;border:none;color:#969ba3;font-size:24px;cursor:pointer;">‹</button>
+                <div style="font-weight:700;font-size:16px;">Progres ćwiczenia</div>
+              </div>
+              <div class="lm-scroll" style="flex:1;overflow:auto;padding:6px 22px 18px;">
+                <div style="font-family:'Space Grotesk';font-weight:700;font-size:21px;letter-spacing:-0.4px;">{{ epName }}</div>
+                <div style="display:flex;align-items:baseline;gap:10px;margin-top:10px;">
+                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:40px;letter-spacing:-1px;">{{ epCurrent }}</div>
+                  <div style="font-size:13px;font-weight:700;color:#21c97a;">{{ epDelta }}</div>
+                </div>
+                <div style="font-size:12.5px;color:#969ba3;margin-top:5px;">Start {{ epStart }} → dziś {{ epCurrent }}</div>
+                <div style="margin-top:20px;padding:18px 16px 13px;border-radius:18px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
+                  <div style="display:flex;align-items:flex-end;gap:7px;height:140px;">
+                    <sc-for list="{{ epBars }}" as="b" hint-placeholder-count="7">
+                      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;">
+                        <div style="font-size:10.5px;font-family:'Space Grotesk';font-weight:700;color:{{ b.valColor }};">{{ b.val }}</div>
+                        <div style="width:100%;border-radius:5px 5px 0 0;height:{{ b.h }}px;background:{{ b.color }};"></div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;gap:7px;margin-top:8px;">
+                    <sc-for list="{{ epBars }}" as="b" hint-placeholder-count="7">
+                      <div style="flex:1;text-align:center;font-size:9.5px;color:#686d75;">{{ b.label }}</div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="margin-top:22px;font-size:12px;font-weight:700;letter-spacing:.5px;color:#686d75;text-transform:uppercase;">Ostatnie wartości</div>
+                <div style="margin-top:11px;display:flex;flex-direction:column;gap:8px;">
+                  <sc-for list="{{ epRows }}" as="r" hint-placeholder-count="5">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 15px;border-radius:13px;background:#191c22;border:1px solid rgba(255,255,255,.07);">
+                      <div style="font-size:13px;color:#c2c7ce;">{{ r.date }}</div>
+                      <div style="display:flex;align-items:center;gap:14px;">
+                        <div style="font-family:'Space Grotesk';font-weight:700;font-size:15px;">{{ r.val }}</div>
+                        <div style="font-size:11.5px;font-weight:700;color:{{ r.dColor }};min-width:38px;text-align:right;">{{ r.d }}</div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
 
         </div>
       </x-import>
@@ -658,125 +852,7 @@
 
   </div>
 
-  <!-- ===== VARIANTS SECTION ===== -->
-  <div style="max-width:1500px;margin:64px auto 0;">
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">
-      <div style="width:34px;height:34px;border-radius:10px;background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.3);display:flex;align-items:center;justify-content:center;"><span style="width:9px;height:9px;border-radius:50%;background:#ff4d4d;animation:lm-pulse 1.4s infinite;"></span></div>
-      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:26px;letter-spacing:-0.6px;">Sesja na żywo — 3 kierunki</div>
-    </div>
-    <div style="font-size:15px;color:#969ba3;max-width:720px;line-height:1.55;margin-bottom:30px;">To najtrudniejszy ekran (US-03 / FR-012). Trzy podejścia do tego samego problemu: jak czytelnie pokazać bieżącą serię i pozwolić wpisywać wartości jednym kciukiem. Wybierz kierunek do dopracowania — w prototypie powyżej użyto kierunku B.</div>
-
-    <div style="display:flex;gap:26px;flex-wrap:wrap;">
-
-      <!-- VARIANT A: jedna seria naraz -->
-      <div style="flex:0 0 auto;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="font-family:'Space Grotesk';font-weight:700;font-size:15px;color:#9cc1fb;">A</span><span style="font-weight:700;font-size:16px;">Jedna seria naraz</span></div>
-        <div style="font-size:13px;color:#797f87;max-width:380px;line-height:1.5;margin-bottom:14px;">Maksymalne skupienie. Wielkie liczby, ogromne przyciski, jedna decyzja na ekranie. Najłatwiejszy do obsługi kciukiem.</div>
-        <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="412px,892px">
-          <div style="height:100%;display:flex;flex-direction:column;background:#0c0e12;font-family:'Manrope',system-ui,sans-serif;color:#f3f4f6;">
-            <div style="padding:14px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);">
-              <span style="color:#969ba3;font-size:22px;">‹</span>
-              <div style="text-align:center;"><div style="font-weight:700;font-size:15px;">Anna Nowak</div><div style="font-size:11.5px;color:#686d75;">Wyciskanie sztangi</div></div>
-              <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,77,77,.14);"><span style="width:7px;height:7px;border-radius:50%;background:#ff4d4d;"></span><span style="font-size:11px;font-weight:700;color:#ff8d8d;">żywo</span></div>
-            </div>
-            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;">
-              <div style="display:flex;gap:8px;margin-bottom:8px;"><span style="width:30px;height:6px;border-radius:3px;background:#21c97a;"></span><span style="width:30px;height:6px;border-radius:3px;background:#21c97a;"></span><span style="width:30px;height:6px;border-radius:3px;background:#3a82f6;"></span><span style="width:30px;height:6px;border-radius:3px;background:#22262e;"></span></div>
-              <div style="font-size:13px;color:#969ba3;font-weight:600;">Seria 3 z 4</div>
-              <div style="width:100%;margin-top:24px;padding:26px 20px;border-radius:24px;background:#15181e;border:1px solid rgba(58,130,246,.25);text-align:center;">
-                <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:#9cc1fb;text-transform:uppercase;">Ciężar</div>
-                <div style="display:flex;align-items:center;justify-content:center;gap:18px;margin-top:14px;">
-                  <div style="width:56px;height:56px;border-radius:50%;background:#22262e;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;">−</div>
-                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:64px;letter-spacing:-2px;line-height:1;">62,5</div>
-                  <div style="width:56px;height:56px;border-radius:50%;background:#3a82f6;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;">+</div>
-                </div>
-                <div style="font-size:13px;color:#686d75;margin-top:6px;">kg · ost. 60 kg</div>
-                <div style="height:1px;background:rgba(255,255,255,.07);margin:20px 0;"></div>
-                <div style="display:flex;align-items:center;justify-content:center;gap:16px;">
-                  <div style="width:40px;height:40px;border-radius:12px;background:#22262e;display:flex;align-items:center;justify-content:center;font-size:22px;">−</div>
-                  <div><div style="font-family:'Space Grotesk';font-weight:700;font-size:32px;">8</div><div style="font-size:11px;color:#686d75;">powtórzeń</div></div>
-                  <div style="width:40px;height:40px;border-radius:12px;background:#22262e;display:flex;align-items:center;justify-content:center;font-size:22px;">+</div>
-                </div>
-              </div>
-              <button style="width:100%;height:58px;margin-top:20px;border:none;border-radius:16px;background:#21c97a;color:#06281a;font-family:'Manrope';font-weight:800;font-size:17px;cursor:pointer;">Zatwierdź serię ✓</button>
-              <div style="margin-top:16px;font-size:13px;color:#686d75;">Odpoczynek po serii: <span style="color:#f3f4f6;font-weight:700;">1:30</span></div>
-            </div>
-          </div>
-        </x-import>
-      </div>
-
-      <!-- VARIANT B: pełna lista serii -->
-      <div style="flex:0 0 auto;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="font-family:'Space Grotesk';font-weight:700;font-size:15px;color:#9cc1fb;">B</span><span style="font-weight:700;font-size:16px;">Pełna lista serii</span><span style="font-size:10.5px;padding:3px 8px;border-radius:6px;background:rgba(33,201,122,.16);color:#7ee0ad;font-weight:700;">użyty w prototypie</span></div>
-        <div style="font-size:13px;color:#797f87;max-width:380px;line-height:1.5;margin-bottom:14px;">Wszystkie serie naraz, kompaktowe steppery. Trener widzi cały obraz ćwiczenia i progres względem poprzedniego treningu.</div>
-        <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="412px,892px">
-          <div style="height:100%;display:flex;flex-direction:column;background:#0c0e12;font-family:'Manrope',system-ui,sans-serif;color:#f3f4f6;">
-            <div style="padding:14px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);">
-              <span style="color:#969ba3;font-size:22px;">‹</span>
-              <div style="text-align:center;"><div style="font-weight:700;font-size:15px;">Anna Nowak</div><div style="font-size:11.5px;color:#686d75;">Push A — góra ciała</div></div>
-              <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,77,77,.14);"><span style="width:7px;height:7px;border-radius:50%;background:#ff4d4d;"></span><span style="font-size:11px;font-weight:700;color:#ff8d8d;">żywo</span></div>
-            </div>
-            <div style="flex:1;overflow:hidden;padding:16px 18px;">
-              <div style="font-size:11.5px;font-weight:700;letter-spacing:1px;color:#9cc1fb;text-transform:uppercase;">Ćwiczenie 1 / 5</div>
-              <div style="font-family:'Space Grotesk';font-weight:700;font-size:25px;letter-spacing:-0.5px;margin-top:4px;">Wyciskanie sztangi</div>
-              <div style="display:flex;flex-direction:column;gap:9px;margin-top:16px;">
-                <div style="padding:13px 14px;border-radius:15px;background:rgba(33,201,122,.07);border:1px solid rgba(33,201,122,.3);">
-                  <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-family:'Space Grotesk';font-weight:700;font-size:13.5px;color:#c2c7ce;">Seria 1 · zrobiona</span><span style="font-size:12px;font-weight:700;color:#21c97a;">▲ +2,5</span></div>
-                  <div style="display:flex;align-items:center;gap:10px;margin-top:8px;"><div style="flex:1;font-family:'Space Grotesk';font-weight:700;font-size:18px;">60<span style="font-size:11px;color:#969ba3;"> kg</span> · 8</div><div style="width:30px;height:30px;border-radius:9px;background:#21c97a;color:#06281a;display:flex;align-items:center;justify-content:center;font-weight:800;">✓</div></div>
-                </div>
-                <div style="padding:13px 14px;border-radius:15px;background:#191c22;border:1px solid rgba(58,130,246,.35);">
-                  <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-family:'Space Grotesk';font-weight:700;font-size:13.5px;color:#fff;">Seria 2 · teraz</span><span style="font-size:11px;color:#686d75;">ost. 57,5 × 8</span></div>
-                  <div style="display:flex;align-items:flex-end;gap:10px;margin-top:10px;">
-                    <div style="flex:1;display:flex;align-items:center;gap:7px;"><div style="width:30px;height:30px;border-radius:9px;background:#22262e;display:flex;align-items:center;justify-content:center;font-size:18px;">−</div><div style="flex:1;text-align:center;font-family:'Space Grotesk';font-weight:700;font-size:19px;">60<span style="font-size:10px;color:#969ba3;"> kg</span></div><div style="width:30px;height:30px;border-radius:9px;background:#3a82f6;display:flex;align-items:center;justify-content:center;font-size:18px;">+</div></div>
-                    <div style="flex:1;display:flex;align-items:center;gap:7px;"><div style="width:30px;height:30px;border-radius:9px;background:#22262e;display:flex;align-items:center;justify-content:center;font-size:18px;">−</div><div style="flex:1;text-align:center;font-family:'Space Grotesk';font-weight:700;font-size:19px;">8</div><div style="width:30px;height:30px;border-radius:9px;background:#3a82f6;display:flex;align-items:center;justify-content:center;font-size:18px;">+</div></div>
-                    <div style="width:34px;height:34px;border-radius:10px;border:2px solid rgba(255,255,255,.2);"></div>
-                  </div>
-                </div>
-                <div style="padding:13px 14px;border-radius:15px;background:#191c22;border:1px solid rgba(255,255,255,.07);opacity:.65;">
-                  <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-family:'Space Grotesk';font-weight:700;font-size:13.5px;color:#c2c7ce;">Seria 3</span><span style="font-size:11px;color:#686d75;">ost. 57,5 × 8</span></div>
-                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:16px;margin-top:6px;color:#969ba3;">60 kg · 8</div>
-                </div>
-              </div>
-              <div style="margin-top:14px;padding:13px 16px;border-radius:14px;background:#15181e;display:flex;align-items:center;justify-content:space-between;"><span style="font-size:12.5px;color:#969ba3;font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Odpoczynek</span><span style="font-family:'Space Grotesk';font-weight:700;font-size:22px;">1:12</span></div>
-            </div>
-          </div>
-        </x-import>
-      </div>
-
-      <!-- VARIANT C: timer w centrum -->
-      <div style="flex:0 0 auto;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="font-family:'Space Grotesk';font-weight:700;font-size:15px;color:#9cc1fb;">C</span><span style="font-weight:700;font-size:16px;">Timer w centrum</span></div>
-        <div style="font-size:13px;color:#797f87;max-width:380px;line-height:1.5;margin-bottom:14px;">Odpoczynek między seriami jako bohater ekranu. Wielki pierścień odliczania, a tuż pod nim cel następnej serii gotowy do edycji.</div>
-        <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="412px,892px">
-          <div style="height:100%;display:flex;flex-direction:column;background:radial-gradient(420px 300px at 50% 12%, rgba(58,130,246,.16), #0a0c10 62%);font-family:'Manrope',system-ui,sans-serif;color:#f3f4f6;">
-            <div style="padding:14px 20px 12px;display:flex;align-items:center;justify-content:space-between;">
-              <span style="color:#969ba3;font-size:22px;">‹</span>
-              <div style="text-align:center;"><div style="font-weight:700;font-size:15px;">Anna Nowak</div><div style="font-size:11.5px;color:#686d75;">Wyciskanie sztangi · seria 3/4</div></div>
-              <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,77,77,.14);"><span style="width:7px;height:7px;border-radius:50%;background:#ff4d4d;"></span><span style="font-size:11px;font-weight:700;color:#ff8d8d;">żywo</span></div>
-            </div>
-            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 26px;">
-              <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:#9cc1fb;text-transform:uppercase;">Odpoczynek</div>
-              <div style="width:208px;height:208px;border-radius:50%;margin-top:18px;background:conic-gradient(#3a82f6 0% 64%, #1c2027 64% 100%);display:flex;align-items:center;justify-content:center;">
-                <div style="width:172px;height:172px;border-radius:50%;background:#0c0e12;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:54px;letter-spacing:-1px;line-height:1;">1:12</div>
-                  <div style="font-size:12.5px;color:#686d75;margin-top:4px;">do następnej serii</div>
-                </div>
-              </div>
-              <div style="display:flex;gap:10px;margin-top:20px;"><div style="padding:9px 16px;border-radius:999px;background:#22262e;font-size:13px;font-weight:700;color:#9cc1fb;">+15 s</div><div style="padding:9px 16px;border-radius:999px;background:#22262e;font-size:13px;font-weight:700;color:#9cc1fb;">Pomiń ›</div></div>
-              <div style="width:100%;margin-top:26px;padding:16px 18px;border-radius:18px;background:#15181e;border:1px solid rgba(255,255,255,.08);">
-                <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#686d75;text-transform:uppercase;">Następna seria</div>
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
-                  <div style="display:flex;align-items:center;gap:8px;"><div style="width:32px;height:32px;border-radius:9px;background:#22262e;display:flex;align-items:center;justify-content:center;font-size:18px;">−</div><div style="font-family:'Space Grotesk';font-weight:700;font-size:22px;">62,5<span style="font-size:11px;color:#969ba3;"> kg</span></div><div style="width:32px;height:32px;border-radius:9px;background:#3a82f6;display:flex;align-items:center;justify-content:center;font-size:18px;">+</div></div>
-                  <div style="font-family:'Space Grotesk';font-weight:700;font-size:18px;color:#c2c7ce;">× 8</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </x-import>
-      </div>
-
-    </div>
-    <div style="height:40px;"></div>
-  </div>
+  
 
 </div>
 </x-dc>
@@ -790,10 +866,21 @@ class Component extends DCLogic {
     exSets: 3, exReps: 10, exWeight: 20, exSeconds: 45,
     live: null,
     liveEx: 0,
-    restRunning: false, restRemaining: 90, restTotal: 90,
+    restRunning: false, restRemaining: 120, restTotal: 120,
+    sessElapsed: 0,
     setName: 'Push A — góra ciała',
+    setRest: 120,
     exName: '',
     assignSel: [0, 2],
+    sessionId: 0,
+    exKey: 'bench',
+    fbRating: 0,
+    fbComment: '',
+    fbStatus: 'idle',
+    inviteCopied: false,
+    insightsRead: {},
+    openSetMenu: null,
+    deletedSets: [],
     draft: [
       { name: 'Wyciskanie sztangi leżąc', type: 'weight', sets: 4, reps: 8, weight: 60 },
       { name: 'Wyciskanie hantli, skos', type: 'weight', sets: 3, reps: 10, weight: 22 },
@@ -803,12 +890,87 @@ class Component extends DCLogic {
     ],
   };
 
-  history = [
-    { name: 'Wyciskanie sztangi leżąc', current: '60 kg', delta: '+5 kg / mies.', up: true, bars: [40, 48, 52, 55, 58, 60] },
-    { name: 'Wyciskanie hantli, skos', current: '22 kg', delta: '+2 kg', up: true, bars: [16, 18, 18, 20, 20, 22] },
-    { name: 'Pompki', current: '15 powt.', delta: '+3', up: true, bars: [10, 11, 12, 13, 14, 15] },
-    { name: 'Deska (plank)', current: '60 s', delta: '+10 s', up: true, bars: [40, 45, 50, 50, 55, 60] },
+  // ----- LEVEL 1: training sessions (reverse-chronological) -----
+  sessions = [
+    {
+      id: 0, dayNum: '19', monShort: 'CZE', dateLabel: 'Dziś · czwartek', name: 'Push A — góra ciała',
+      duration: '52 min', exCount: 5, setCount: 18,
+      feedback: { rating: 4, comment: 'Czułem się mocno, ostatnia seria wyciskania była ciężka.' },
+      exercises: [
+        { key: 'bench', name: 'Wyciskanie sztangi leżąc', top: '60 kg', sets: ['60×8', '60×8', '60×7', '57.5×8'] },
+        { key: 'incdb', name: 'Wyciskanie hantli, skos', top: '22 kg', sets: ['22×10', '22×9', '20×10', '20×10'] },
+        { key: 'ohp', name: 'Wyciskanie nad głowę', top: '35 kg', sets: ['35×8', '35×7', '32.5×8'] },
+        { key: 'pushup', name: 'Pompki', top: '15 powt.', sets: ['15', '14', '13', '12'] },
+        { key: 'plank', name: 'Deska (plank)', top: '60 s', sets: ['60s', '55s', '50s'] },
+      ],
+    },
+    {
+      id: 1, dayNum: '16', monShort: 'CZE', dateLabel: '3 dni temu · poniedziałek', name: 'Pull B — plecy',
+      duration: '47 min', exCount: 5, setCount: 17,
+      feedback: { rating: 3, comment: '' },
+      exercises: [
+        { key: 'row', name: 'Wiosłowanie sztangą', top: '50 kg', sets: ['50×8', '50×8', '47.5×9', '45×10'] },
+        { key: 'pulldown', name: 'Ściąganie drążka', top: '55 kg', sets: ['55×10', '55×9', '50×11'] },
+        { key: 'curl', name: 'Uginanie hantli', top: '14 kg', sets: ['14×10', '14×9', '12×11', '12×10'] },
+        { key: 'pushup', name: 'Pompki', top: '14 powt.', sets: ['14', '13', '12', '11'] },
+        { key: 'plank', name: 'Deska (plank)', top: '55 s', sets: ['55s', '50s', '45s'] },
+      ],
+    },
+    {
+      id: 2, dayNum: '13', monShort: 'CZE', dateLabel: '6 dni temu · piątek', name: 'Push A — góra ciała',
+      duration: '50 min', exCount: 5, setCount: 18,
+      exercises: [
+        { key: 'bench', name: 'Wyciskanie sztangi leżąc', top: '57.5 kg', sets: ['57.5×8', '57.5×8', '55×8', '55×8'] },
+        { key: 'incdb', name: 'Wyciskanie hantli, skos', top: '20 kg', sets: ['20×10', '20×10', '20×9', '18×10'] },
+        { key: 'ohp', name: 'Wyciskanie nad głowę', top: '32.5 kg', sets: ['32.5×8', '32.5×8', '30×9'] },
+        { key: 'pushup', name: 'Pompki', top: '14 powt.', sets: ['14', '13', '12', '11'] },
+        { key: 'plank', name: 'Deska (plank)', top: '55 s', sets: ['55s', '50s', '45s'] },
+      ],
+    },
+    {
+      id: 3, dayNum: '10', monShort: 'CZE', dateLabel: '9 dni temu · wtorek', name: 'Pull B — plecy',
+      duration: '45 min', exCount: 5, setCount: 16,
+      exercises: [
+        { key: 'row', name: 'Wiosłowanie sztangą', top: '47.5 kg', sets: ['47.5×8', '47.5×8', '45×9'] },
+        { key: 'pulldown', name: 'Ściąganie drążka', top: '50 kg', sets: ['50×10', '50×10', '47.5×10'] },
+        { key: 'curl', name: 'Uginanie hantli', top: '12 kg', sets: ['12×10', '12×10', '10×12', '10×11'] },
+        { key: 'pushup', name: 'Pompki', top: '13 powt.', sets: ['13', '12', '11'] },
+        { key: 'plank', name: 'Deska (plank)', top: '50 s', sets: ['50s', '45s', '40s'] },
+      ],
+    },
+    {
+      id: 4, dayNum: '06', monShort: 'CZE', dateLabel: '13 dni temu · piątek', name: 'Push A — góra ciała',
+      duration: '49 min', exCount: 4, setCount: 15,
+      exercises: [
+        { key: 'bench', name: 'Wyciskanie sztangi leżąc', top: '55 kg', sets: ['55×8', '55×8', '52.5×8', '52.5×8'] },
+        { key: 'incdb', name: 'Wyciskanie hantli, skos', top: '20 kg', sets: ['20×9', '20×9', '18×10'] },
+        { key: 'ohp', name: 'Wyciskanie nad głowę', top: '32.5 kg', sets: ['32.5×7', '30×8', '30×8'] },
+        { key: 'plank', name: 'Deska (plank)', top: '50 s', sets: ['50s', '45s', '45s'] },
+      ],
+    },
+    {
+      id: 5, dayNum: '03', monShort: 'CZE', dateLabel: '16 dni temu · wtorek', name: 'Pull B — plecy',
+      duration: '44 min', exCount: 4, setCount: 14,
+      exercises: [
+        { key: 'row', name: 'Wiosłowanie sztangą', top: '45 kg', sets: ['45×8', '45×8', '42.5×9'] },
+        { key: 'pulldown', name: 'Ściąganie drążka', top: '50 kg', sets: ['50×9', '47.5×10', '47.5×10'] },
+        { key: 'curl', name: 'Uginanie hantli', top: '12 kg', sets: ['12×9', '10×11', '10×10', '10×10'] },
+        { key: 'pushup', name: 'Pompki', top: '13 powt.', sets: ['13', '12', '11'] },
+      ],
+    },
   ];
+
+  // ----- LEVEL 3: per-exercise progress over time -----
+  exProgress = {
+    bench:    { name: 'Wyciskanie sztangi leżąc', current: '60 kg', start: '40 kg', delta: '+20 kg / 3 mies.', unit: ' kg', points: [{ d: '19 mar', v: 40 }, { d: '9 kwi', v: 48 }, { d: '30 kwi', v: 52 }, { d: '21 maj', v: 55 }, { d: '6 cze', v: 55 }, { d: '13 cze', v: 57.5 }, { d: '19 cze', v: 60 }] },
+    incdb:    { name: 'Wyciskanie hantli, skos', current: '22 kg', start: '16 kg', delta: '+6 kg / 3 mies.', unit: ' kg', points: [{ d: '19 mar', v: 16 }, { d: '9 kwi', v: 18 }, { d: '30 kwi', v: 18 }, { d: '21 maj', v: 20 }, { d: '6 cze', v: 20 }, { d: '13 cze', v: 20 }, { d: '19 cze', v: 22 }] },
+    ohp:      { name: 'Wyciskanie nad głowę', current: '35 kg', start: '27.5 kg', delta: '+7.5 kg / 3 mies.', unit: ' kg', points: [{ d: '19 mar', v: 27.5 }, { d: '9 kwi', v: 30 }, { d: '30 kwi', v: 30 }, { d: '21 maj', v: 32.5 }, { d: '6 cze', v: 32.5 }, { d: '13 cze', v: 32.5 }, { d: '19 cze', v: 35 }] },
+    row:      { name: 'Wiosłowanie sztangą', current: '50 kg', start: '40 kg', delta: '+10 kg / 3 mies.', unit: ' kg', points: [{ d: '21 mar', v: 40 }, { d: '11 kwi', v: 42.5 }, { d: '2 maj', v: 45 }, { d: '23 maj', v: 45 }, { d: '3 cze', v: 45 }, { d: '10 cze', v: 47.5 }, { d: '16 cze', v: 50 }] },
+    pulldown: { name: 'Ściąganie drążka', current: '55 kg', start: '42.5 kg', delta: '+12.5 kg / 3 mies.', unit: ' kg', points: [{ d: '21 mar', v: 42.5 }, { d: '11 kwi', v: 45 }, { d: '2 maj', v: 47.5 }, { d: '23 maj', v: 50 }, { d: '3 cze', v: 50 }, { d: '10 cze', v: 50 }, { d: '16 cze', v: 55 }] },
+    curl:     { name: 'Uginanie hantli', current: '14 kg', start: '8 kg', delta: '+6 kg / 3 mies.', unit: ' kg', points: [{ d: '21 mar', v: 8 }, { d: '11 kwi', v: 10 }, { d: '2 maj', v: 10 }, { d: '23 maj', v: 12 }, { d: '3 cze', v: 12 }, { d: '10 cze', v: 12 }, { d: '16 cze', v: 14 }] },
+    pushup:   { name: 'Pompki', current: '15 powt.', start: '10 powt.', delta: '+5 powt. / 3 mies.', unit: '', points: [{ d: '19 mar', v: 10 }, { d: '9 kwi', v: 11 }, { d: '30 kwi', v: 12 }, { d: '21 maj', v: 13 }, { d: '3 cze', v: 13 }, { d: '13 cze', v: 14 }, { d: '19 cze', v: 15 }] },
+    plank:    { name: 'Deska (plank)', current: '60 s', start: '40 s', delta: '+20 s / 3 mies.', unit: ' s', points: [{ d: '19 mar', v: 40 }, { d: '9 kwi', v: 45 }, { d: '30 kwi', v: 50 }, { d: '21 maj', v: 50 }, { d: '3 cze', v: 50 }, { d: '13 cze', v: 55 }, { d: '19 cze', v: 60 }] },
+  };
 
   trainees = [
     { name: 'Anna Nowak', initials: 'AN', avBg: 'linear-gradient(145deg,#3a82f6,#2f6fd6)', sub: 'Push A — góra ciała', last: '2 dni temu', lastColor: '#969ba3', streak: 6, statusDot: '#21c97a' },
@@ -837,7 +999,10 @@ class Component extends DCLogic {
     t_live:    { title: 'Sesja na żywo — trener', note: 'Trener wpisuje wartości w trakcie treningu. Zmiany widzi też podopieczny (jedna wspólna sesja).', refs: ['FR-012', 'US-03'] },
     c_home:    { title: 'Dziś — podopieczny', note: 'Plan na dziś. Jedno duże wezwanie do działania: rozpocznij trening.', refs: ['FR-005'] },
     c_live:    { title: 'Sesja na żywo — podopieczny', note: 'Widok prowadzonego treningu: bieżące ćwiczenie, seria i ciężar dużą czcionką. Aktualizuje się bez odświeżania.', refs: ['FR-012', 'NFR'] },
-    c_history: { title: 'Historia i progres', note: 'Zapisane wartości stają się punktem startu na kolejny trening. Widoczny progres ciężaru w czasie.', refs: ['FR-011', 'US-02'] },
+    feedback:  { title: 'Feedback po treningu', note: 'Nieblokujący formularz po zakończeniu sesji. Podopieczny wybiera ocenę 1–5, może dodać komentarz albo świadomie pominąć. Wynik trafia do szczegółów sesji (read-only dla trenera).', refs: ['US-09'] },
+    c_history: { title: 'Historia treningów', note: 'Lista ukończonych sesji w odwrotnej kolejności — data, czas trwania, liczba ćwiczeń i serii. Punkt wejścia do szczegółów.', refs: ['FR-011', 'US-02'] },
+    c_session: { title: 'Szczegóły sesji', note: 'Pełny zapis jednego treningu: każde ćwiczenie z seriami, powtórzeniami i ciężarem. Kliknięcie ćwiczenia prowadzi do jego progresu.', refs: ['FR-011', 'US-02'] },
+    c_exprogress: { title: 'Progres ćwiczenia', note: 'Zmiana ciężaru/powtórzeń jednego ćwiczenia w czasie. Zapisane wartości stają się punktem startu na kolejny trening.', refs: ['FR-011', 'US-02'] },
   };
 
   // ----- navigation -----
@@ -851,6 +1016,8 @@ class Component extends DCLogic {
       return { screen: prev, stack };
     });
   };
+  openSession = (id) => { this.setState({ sessionId: id }); this.go('c_session'); };
+  openExProgress = (key) => { this.setState({ exKey: key }); this.go('c_exprogress'); };
 
   noteKey() {
     const s = this.state.screen;
@@ -858,7 +1025,33 @@ class Component extends DCLogic {
     return s;
   }
 
-  componentWillUnmount() { if (this._t) clearInterval(this._t); }
+  componentWillUnmount() { if (this._t) clearInterval(this._t); if (this._st) clearInterval(this._st); }
+
+  startSessionTimer() {
+    if (this._st) clearInterval(this._st);
+    this.setState({ sessElapsed: 0 });
+    this._st = setInterval(() => this.setState(s => ({ sessElapsed: s.sessElapsed + 1 })), 1000);
+  }
+  stopSessionTimer() { if (this._st) { clearInterval(this._st); this._st = null; } }
+  restToggle = () => { if (this.state.restRunning) this.tickPause(); else this.tickStart(); };
+
+  buildInsights() {
+    const defs = [
+      { id: 'mood', tag: 'samopoczucie', title: 'Niższe samopoczucie', body: 'Średnia ocena samopoczucia z ostatnich treningów wynosi 2.3/5', sub: 'Oceny: 2, 2, 3 · średnia 2.3/5', accent: '#d9a441', bg: 'rgba(217,164,65,.08)' },
+      { id: 'plateau', tag: 'stagnacja', title: 'Stagnacja ciężaru', body: 'Warto sprawdzić ciężar w ćwiczeniu Wyciskanie sztangi', sub: '42.5 kg → 42.5 kg → 42.5 kg', accent: '#3a82f6', bg: 'rgba(58,130,246,.07)' },
+    ];
+    return defs.map(d => {
+      const read = !!this.state.insightsRead[d.id];
+      return {
+        title: d.title, body: d.body, sub: d.sub, tag: d.tag,
+        cardStyle: `padding:18px;border-radius:18px;background:${read ? '#191c22' : d.bg};border:1px solid ${read ? 'rgba(255,255,255,.07)' : d.accent + '66'};opacity:${read ? '.6' : '1'};`,
+        tagStyle: `font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;color:${d.accent};border:1px solid ${d.accent}66;background:${d.accent}1f;flex-shrink:0;`,
+        readLabel: read ? '✓ Przeczytane' : '◎ Oznacz jako przeczytaną',
+        readStyle: `display:flex;align-items:center;gap:7px;margin-top:13px;background:none;border:none;padding:0;cursor:pointer;font-family:'Manrope';font-weight:600;font-size:14px;color:${read ? '#686d75' : '#9cc1fb'};`,
+        toggle: () => this.setState(s => ({ insightsRead: { ...s.insightsRead, [d.id]: !s.insightsRead[d.id] } })),
+      };
+    });
+  }
 
   startLiveSession() {
     const live = this.state.draft.map(ex => {
@@ -871,6 +1064,7 @@ class Component extends DCLogic {
       return { name: ex.name, type: ex.type, sets };
     });
     this.setState({ live, liveEx: 0 });
+    this.startSessionTimer();
   }
 
   adjustLive(setIdx, field, delta) {
@@ -955,7 +1149,7 @@ class Component extends DCLogic {
     const navGroups = [
       { title: 'Onboarding', color: '#686d75', items: [mk('Powitanie', 'welcome'), mk('Wybór roli', 'role'), mk('Rejestracja', 'signup'), mk('Parowanie', 'pair')] },
       { title: 'Trener', color: '#9cc1fb', items: [mk('Pulpit', 't_dash'), mk('Podopieczny', 't_trainee'), mk('Biblioteka zestawów', 't_sets'), mk('Kreator zestawu', 't_builder'), mk('Dodaj ćwiczenie', 't_addex'), mk('Przypisz zestaw', 't_assign'), mk('Sesja na żywo', 't_live', () => this.goLive('t_live'))] },
-      { title: 'Podopieczny', color: '#7ee0ad', items: [mk('Dziś / trening', 'c_home'), mk('Sesja (widok)', 'c_live', () => this.goLive('c_live')), mk('Historia i progres', 'c_history')] },
+      { title: 'Podopieczny', color: '#7ee0ad', items: [mk('Dziś / trening', 'c_home'), mk('Sesja (widok)', 'c_live', () => this.goLive('c_live')), mk('Feedback po treningu', 'feedback'), mk('Historia treningów', 'c_history'), mk('Szczegóły sesji', 'c_session'), mk('Progres ćwiczenia', 'c_exprogress')] },
     ];
 
     // ----- bottom nav -----
@@ -964,11 +1158,12 @@ class Component extends DCLogic {
       const active = activeIds.includes(s);
       return { icon, label, go: () => this.go(id), style: `display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:4px 12px;color:${active ? '#3a82f6' : '#686d75'};` };
     };
+    const dumbbellIcon = React.createElement('svg', { width: 21, height: 21, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+      React.createElement('path', { d: 'M6 6 V18 M9.2 9 V15 M9.2 12 H14.8 M14.8 9 V15 M18 6 V18' }));
     const trainerNav = [
       navBtn('▦', 'Pulpit', 't_dash', ['t_dash', 't_trainee']),
-      navBtn('▤', 'Zestawy', 't_sets', ['t_sets', 't_builder', 't_addex']),
-      navBtn('●', 'Trening', 't_live', ['t_live', 't_assign']),
-      navBtn('☰', 'Profil', 't_dash', []),
+      navBtn(dumbbellIcon, 'Zestawy', 't_sets', ['t_sets', 't_builder', 't_addex']),
+      navBtn('☰', 'Wyloguj', 'welcome', []),
     ];
 
     // ----- notes -----
@@ -987,21 +1182,25 @@ class Component extends DCLogic {
     const trainees = this.trainees.map((t, i) => ({ ...t, open: () => this.go('t_trainee') }));
     const traineeNav = [
       navBtn('▦', 'Dziś', 'c_home', ['c_home']),
-      navBtn('◷', 'Historia', 'c_history', ['c_history']),
+      navBtn('◷', 'Historia', 'c_history', ['c_history', 'c_session', 'c_exprogress']),
       navBtn('☰', 'Profil', 'c_home', []),
     ];
 
     // ----- builder / draft VM -----
-    const typeChip = { weight: 'Powt. + waga', reps: 'Powtórzenia', time: 'Czas' };
+    const typeChip = { weight: 'waga', reps: 'powt.', time: 'czas' };
     const draftVM = this.state.draft.map((ex, i) => ({
       name: ex.name,
       typeLabel: typeChip[ex.type],
       idx: i + 1,
       params: ex.type === 'weight' ? `${ex.sets} serie · ${ex.reps} powt. · ${ex.weight} kg`
         : ex.type === 'reps' ? `${ex.sets} serie · ${ex.reps} powt.`
-        : `${ex.sets} serie · ${ex.seconds}s`,
+        : `${ex.sets} serie · ${ex.seconds} sek.`,
+      remove: () => this.setState(st => ({ draft: st.draft.filter((_, j) => j !== i) })),
     }));
     const draftCount = this.state.draft.length;
+    const restMin = String(Math.floor(this.state.setRest / 60)).padStart(2, '0');
+    const restSec = String(this.state.setRest % 60).padStart(2, '0');
+    const setRestLabel = restMin + ':' + restSec;
 
     // ----- add exercise VM -----
     const exIsWeight = this.state.exType === 'weight';
@@ -1061,12 +1260,69 @@ class Component extends DCLogic {
     }
     const restLabel = this.fmt(this.state.restRemaining);
     const restPct = this.state.restTotal ? Math.max(0, (this.state.restRemaining / this.state.restTotal) * 100) : 0;
+    const resetIcon = React.createElement('svg', { width: 23, height: 23, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+      React.createElement('polyline', { points: '1 4 1 10 7 10' }),
+      React.createElement('path', { d: 'M3.51 15a9 9 0 1 0 2.13-9.36L1 10' }));
+    const sessLabel = String(Math.floor(this.state.sessElapsed / 60)).padStart(2, '0') + ':' + String(this.state.sessElapsed % 60).padStart(2, '0');
 
-    // ----- history VM -----
-    const historyVM = this.history.map(h => {
-      const mx = Math.max(...h.bars);
-      return { name: h.name, current: h.current, delta: h.delta, bars: h.bars.map((v, i) => ({ h: Math.round(20 + (v / mx) * 70), last: i === h.bars.length - 1 ? '#3a82f6' : '#2c333d' })) };
+    // ----- history VMs -----
+    // L1: session list
+    const agoMap = { 0: 'dziś', 1: '3 dni temu' };
+    const sessionsVM = this.sessions.map(se => ({
+      name: se.name, dateLabel: se.dateLabel, duration: se.duration,
+      exCount: se.exCount, setCount: se.setCount, dayNum: se.dayNum, monShort: se.monShort,
+      iconBg: se.id === 0 ? 'rgba(58,130,246,.16)' : '#22262e',
+      iconColor: se.id === 0 ? '#9cc1fb' : '#c2c7ce',
+      open: () => this.openSession(se.id),
+    }));
+    const sessionsCount = this.sessions.length;
+
+    // L2: session detail
+    const sess = this.sessions[this.state.sessionId] || this.sessions[0];
+    const sessName = sess.name, sessDate = sess.dateLabel;
+    const sessDuration = sess.duration, sessExCount = sess.exCount, sessSetCount = sess.setCount;
+    const fbLabels = ['', 'Bardzo źle', 'Źle', 'W porządku', 'Dobrze', 'Bardzo dobrze'];
+    const sessFb = sess.feedback;
+    const sessHasFeedback = !!sessFb;
+    const sessFbRating = sessFb ? sessFb.rating : 0;
+    const sessFbLabel = sessFb ? fbLabels[sessFb.rating] : '';
+    const sessFbComment = sessFb ? ('Komentarz: ' + (sessFb.comment || 'Bez komentarza')) : '';
+    const fbRating = this.state.fbRating;
+    const feedbackRatings = [1, 2, 3, 4, 5].map(v => {
+      const sel = v === fbRating;
+      return { value: v, short: fbLabels[v], aria: v + ' ' + fbLabels[v],
+        pick: () => this.setState({ fbRating: v }),
+        style: `flex:1;min-height:72px;border-radius:16px;border:1.5px solid ${sel ? '#3a82f6' : 'rgba(255,255,255,.1)'};background:${sel ? 'rgba(58,130,246,.18)' : '#191c22'};color:${sel ? '#fff' : '#c2c7ce'};font-family:'Manrope';display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:${sel ? '0 0 0 4px rgba(58,130,246,.1)' : 'none'};padding:8px 4px;` };
     });
+    const fbSelectedLabel = fbRating ? ('Wybrano: ' + fbRating + ' ' + fbLabels[fbRating]) : 'Wybierz ocenę 1–5';
+    const fbComment = this.state.fbComment;
+    const fbCount = fbComment.length;
+    const fbStatus = this.state.fbStatus;
+    const fbCanSubmit = fbRating > 0 && fbStatus !== 'done';
+    const fbSubmitLabel = fbStatus === 'sending' ? 'Wysyłamy...' : (fbStatus === 'done' ? 'Dzięki! Zapisano ✓' : 'Wyślij feedback');
+    const fbSubmitStyle = `width:100%;height:52px;border:none;border-radius:14px;font-family:'Manrope';font-weight:800;font-size:15.5px;cursor:${fbCanSubmit ? 'pointer' : 'default'};background:${fbStatus === 'done' ? 'rgba(33,201,122,.18)' : (fbRating > 0 ? '#3a82f6' : '#22262e')};color:${fbStatus === 'done' ? '#7ee0ad' : (fbRating > 0 ? '#fff' : '#686d75')};box-shadow:${fbRating > 0 && fbStatus !== 'done' ? '0 10px 26px rgba(58,130,246,.34)' : 'none'};`;
+    const sessExVM = sess.exercises.map(ex => ({
+      name: ex.name, top: ex.top, sets: ex.sets,
+      summary: ex.sets.length + (ex.sets.length === 1 ? ' seria' : (ex.sets.length < 5 ? ' serie' : ' serii')),
+      open: () => this.openExProgress(ex.key),
+    }));
+
+    // L3: exercise progress
+    const ep = this.exProgress[this.state.exKey] || this.exProgress.bench;
+    const epMax = Math.max(...ep.points.map(p => p.v));
+    const epBars = ep.points.map((p, i) => {
+      const last = i === ep.points.length - 1;
+      return { h: Math.round(16 + (p.v / epMax) * 96), label: p.d, val: p.v, color: last ? '#3a82f6' : '#2c333d', valColor: last ? '#9cc1fb' : '#686d75' };
+    });
+    const epRows = ep.points.map((p, i) => {
+      const prev = i > 0 ? ep.points[i - 1].v : null;
+      const diff = prev === null ? null : +(p.v - prev).toFixed(1);
+      let d = '—', dColor = '#686d75';
+      if (diff !== null && diff > 0) { d = '+' + diff; dColor = '#21c97a'; }
+      else if (diff !== null && diff < 0) { d = String(diff); dColor = '#ef6b6b'; }
+      return { date: p.d, val: p.v + ep.unit, d, dColor };
+    }).reverse();
+    const epName = ep.name, epCurrent = ep.current, epStart = ep.start, epDelta = ep.delta;
 
     return {
       // flags
@@ -1074,13 +1330,18 @@ class Component extends DCLogic {
       scTDash: s === 't_dash', scTTrainee: s === 't_trainee', scTSets: s === 't_sets',
       scTBuilder: s === 't_builder', scTAddEx: s === 't_addex', scTAssign: s === 't_assign', scTLive: s === 't_live',
       scCHome: s === 'c_home', scCLive: s === 'c_live', scCHistory: s === 'c_history',
+      scCSession: s === 'c_session', scCExprog: s === 'c_exprogress', scFeedback: s === 'feedback',
       isTrainer, isTrainee, roleLabel,
       // nav
       navGroups, bottomNavStyle, trainerNav,
       // notes
       screenTitle: n.title, screenNote: n.note, screenRefs: n.refs,
       // data
-      trainees, sets: this.sets, codeBoxes,
+      trainees, sets: this.sets.map((z, i) => ({
+        ...z, idx: i, menuOpen: this.state.openSetMenu === i,
+        toggleMenu: () => this.setState(s => ({ openSetMenu: s.openSetMenu === i ? null : i })),
+        remove: () => this.setState(s => ({ deletedSets: [...s.deletedSets, i], openSetMenu: null })),
+      })).filter(z => !this.state.deletedSets.includes(z.idx)), codeBoxes,
       roleCardTrainee, roleCardTrainer,
       signupName: isTrainer ? 'Marek Kowalski' : 'Anna Nowak',
       signupEmail: isTrainer ? 'marek.k@example.com' : 'anna.nowak@example.com',
@@ -1095,10 +1356,27 @@ class Component extends DCLogic {
       toSets: () => this.go('t_sets'),
       toBuilder: () => this.go('t_builder'),
       toAssign: () => this.go('t_assign'),
+      copyIcon: this.state.inviteCopied ? '✓' : '⧉',
+      copyLabel: this.state.inviteCopied ? 'Skopiowano' : 'Kopiuj kod',
+      copyInvite: () => {
+        try { navigator.clipboard && navigator.clipboard.writeText('JT6UDA'); } catch (e) {}
+        this.setState({ inviteCopied: true });
+        clearTimeout(this._inviteT);
+        this._inviteT = setTimeout(() => this.setState({ inviteCopied: false }), 1800);
+      },
+      toTraineeHistory: () => this.go('c_history'),
+      insightsVM: this.buildInsights(),
       startLive: () => { this.startLiveSession(); this.go('t_live'); },
+      feedbackRatings, fbSelectedLabel, fbComment, fbCount, fbSubmitLabel, fbSubmitStyle,
+      onFbComment: (e) => this.setState({ fbComment: e.target.value.slice(0, 1000) }),
+      submitFeedback: () => { if (!this.state.fbRating || this.state.fbStatus === 'done') return; this.setState({ fbStatus: 'sending' }); setTimeout(() => this.setState({ fbStatus: 'done' }), 700); },
+      skipFeedback: () => this.go('c_home'),
+      sessHasFeedback, sessFbRating, sessFbLabel, sessFbComment,
       devW: 412, devH: 892,
       // builder
-      draftVM, draftCount, setName: this.state.setName,
+      draftVM, draftCount, setName: this.state.setName, setRestLabel,
+      incRest: () => this.setState(st => ({ setRest: Math.min(600, st.setRest + 15) })),
+      decRest: () => this.setState(st => ({ setRest: Math.max(0, st.setRest - 15) })),
       toAddEx: () => this.go('t_addex'), saveSet: () => this.go('t_sets'),
       // add exercise
       exIsWeight, exIsReps, exIsTime,
@@ -1116,13 +1394,17 @@ class Component extends DCLogic {
       // live (trainer)
       liveReady, liveExName, liveExNum, liveExTotal, liveSetRows, liveNextName,
       liveIsWeight, liveIsReps, liveIsTime,
-      restLabel, restRunning: this.state.restRunning, restPct,
+      restLabel, restRunning: this.state.restRunning, restPct, sessLabel,
+      restToggle: this.restToggle, restPlayIcon: this.state.restRunning ? '❚❚' : '▶', resetIcon,
       tickStart: this.tickStart, tickPause: this.tickPause, tickReset: this.tickReset, tickAdd: this.tickAdd,
-      nextEx: this.nextEx, prevEx: this.prevEx, endLive: () => this.go('t_dash'),
+      nextEx: this.nextEx, prevEx: this.prevEx, endLive: () => { this.stopSessionTimer(); this.go('feedback'); },
       // trainee
       startTraineeWorkout: () => this.goLive('c_live'),
       cWeight, cReps, cSetPos, cDoneCount, traineeNav,
-      historyVM,
+      sessionsVM, sessionsCount,
+      sessName, sessDate, sessDuration, sessExCount, sessSetCount, sessExVM,
+      epBars, epRows, epName, epCurrent, epStart, epDelta,
+      openSession: this.openSession, openExProgress: this.openExProgress,
       back: this.back,
     };
   }

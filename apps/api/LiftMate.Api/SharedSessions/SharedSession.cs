@@ -19,6 +19,10 @@ public sealed class SharedSession
 
     public WorkoutSet? WorkoutSet { get; set; }
 
+    public string WorkoutSetName { get; set; } = "Trening";
+
+    public int RestSeconds { get; set; } = 90;
+
     public string StartedByUserId { get; set; } = string.Empty;
 
     public ApplicationUser? StartedByUser { get; set; }
@@ -36,4 +40,6 @@ public sealed class SharedSession
     public DateTimeOffset? ClosedAt { get; set; }
 
     public ICollection<SharedSessionValue> Values { get; } = new List<SharedSessionValue>();
+
+    public PostWorkoutFeedback? Feedback { get; set; }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_models.dart';
 import 'relationship_controller.dart';
+import 'relationship_formatters.dart';
 import 'relationship_models.dart';
 import 'relationship_screen_styles.dart';
 
@@ -11,8 +12,10 @@ class TrainerDashboardScreen extends StatelessWidget {
     required this.state,
     required this.onOpenTrainee,
     required this.onOpenWorkoutSets,
+    required this.onCopyInviteCode,
     required this.onReload,
     required this.onLogout,
+    this.openingTraineeId,
     super.key,
   });
 
@@ -20,15 +23,18 @@ class TrainerDashboardScreen extends StatelessWidget {
   final RelationshipControllerState state;
   final ValueChanged<TrainerTraineeSummary> onOpenTrainee;
   final VoidCallback onOpenWorkoutSets;
+  final Future<void> Function(String code) onCopyInviteCode;
   final Future<void> Function() onReload;
   final Future<void> Function() onLogout;
+  final String? openingTraineeId;
 
   @override
   Widget build(BuildContext context) {
     final summary = state.trainerSummary;
     final trainees = summary?.trainees ?? const <TrainerTraineeSummary>[];
-    final activeCount =
-        trainees.where((trainee) => trainee.activeSession != null).length;
+    final activeCount = trainees
+        .where((trainee) => trainee.activeSession != null)
+        .length;
 
     return Column(
       children: [
@@ -59,25 +65,40 @@ class TrainerDashboardScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 18),
-                _InviteCodeCard(code: summary?.inviteCode, isLoading: state.status == RelationshipControllerStatus.loading),
+                _InviteCodeCard(
+                  code: summary?.inviteCode,
+                  isLoading:
+                      state.status == RelationshipControllerStatus.loading,
+                  onCopy: onCopyInviteCode,
+                ),
                 const SizedBox(height: 24),
                 const RelationshipSectionLabel('Podopieczni'),
                 const SizedBox(height: 12),
-                if (state.status == RelationshipControllerStatus.loading && summary == null)
+                if (state.status == RelationshipControllerStatus.loading &&
+                    summary == null)
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 32),
                       child: CircularProgressIndicator(),
                     ),
                   )
-                else if (state.status == RelationshipControllerStatus.error && summary == null)
-                  _ErrorState(message: state.message ?? 'Nie udało się pobrać relacji.')
+                else if (state.status == RelationshipControllerStatus.error &&
+                    summary == null)
+                  _ErrorState(
+                    message: state.message ?? 'Nie udało się pobrać relacji.',
+                  )
+                else if (state.status == RelationshipControllerStatus.error)
+                  _ErrorState(
+                    message: state.message ?? 'Nie udało się pobrać relacji.',
+                  )
                 else if (trainees.isEmpty)
                   const _TrainerEmptyState()
                 else
                   ...trainees.map(
                     (trainee) => _TraineeListItem(
                       trainee: trainee,
+                      isOpening: openingTraineeId == trainee.id,
+                      isDisabled: openingTraineeId != null,
                       onTap: () => onOpenTrainee(trainee),
                     ),
                   ),
@@ -97,10 +118,6 @@ class TrainerDashboardScreen extends StatelessWidget {
               label: 'Zestawy',
               onTap: onOpenWorkoutSets,
             ),
-            const RelationshipBottomNavItem(
-              icon: Icons.play_circle_rounded,
-              label: 'Trening',
-            ),
             RelationshipBottomNavItem(
               icon: Icons.logout_rounded,
               label: 'Wyloguj',
@@ -114,10 +131,7 @@ class TrainerDashboardScreen extends StatelessWidget {
 }
 
 class _TrainerHeader extends StatelessWidget {
-  const _TrainerHeader({
-    required this.user,
-    required this.onLogout,
-  });
+  const _TrainerHeader({required this.user, required this.onLogout});
 
   final AuthUser user;
   final Future<void> Function() onLogout;
@@ -130,7 +144,10 @@ class _TrainerHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Cześć,', style: TextStyle(color: lmMuted, fontSize: 14)),
+              const Text(
+                'Cześć,',
+                style: TextStyle(color: lmMuted, fontSize: 14),
+              ),
               Text(
                 user.displayName,
                 maxLines: 1,
@@ -195,50 +212,88 @@ class _InviteCodeCard extends StatelessWidget {
   const _InviteCodeCard({
     required this.code,
     required this.isLoading,
+    required this.onCopy,
   });
 
   final String? code;
   final bool isLoading;
+  final Future<void> Function(String code) onCopy;
 
   @override
   Widget build(BuildContext context) {
+    final canCopy = code != null && code!.trim().isNotEmpty;
+
     return RelationshipCard(
       borderColor: lmBlue.withValues(alpha: 0.25),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: lmBlue.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.qr_code_2_rounded, color: lmBlueSoft),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Twój kod zaproszenia',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: lmBlue.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  isLoading && code == null ? 'Ładowanie kodu' : (code ?? 'Niedostępny'),
-                  style: const TextStyle(color: lmBlueSoft, fontSize: 13),
+                child: const Icon(Icons.qr_code_2_rounded, color: lmBlueSoft),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Twój kod zaproszenia',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isLoading && code == null
+                          ? 'Ładowanie kodu'
+                          : (code ?? 'Niedostępny'),
+                      style: const TextStyle(color: lmBlueSoft, fontSize: 13),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Text(
+                code ?? '------',
+                style: const TextStyle(
+                  fontFamily: 'Space Grotesk',
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
           ),
-          Text(
-            code ?? '------',
-            style: const TextStyle(
-              fontFamily: 'Space Grotesk',
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Tooltip(
+              message: 'Kopiuj kod zaproszenia',
+              child: TextButton.icon(
+                key: const ValueKey('copy-trainer-invite-code-dashboard'),
+                onPressed: canCopy ? () => onCopy(code!) : null,
+                icon: const Icon(Icons.copy_rounded, size: 17),
+                label: const Text('Kopiuj kod'),
+                style: TextButton.styleFrom(
+                  foregroundColor: lmBlueSoft,
+                  backgroundColor: lmBlue.withValues(alpha: 0.16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: const StadiumBorder(),
+                ),
+              ),
             ),
           ),
         ],
@@ -285,10 +340,14 @@ class _TrainerEmptyState extends StatelessWidget {
 class _TraineeListItem extends StatelessWidget {
   const _TraineeListItem({
     required this.trainee,
+    required this.isOpening,
+    required this.isDisabled,
     required this.onTap,
   });
 
   final TrainerTraineeSummary trainee;
+  final bool isOpening;
+  final bool isDisabled;
   final VoidCallback onTap;
 
   @override
@@ -299,7 +358,7 @@ class _TraineeListItem extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
+          onTap: isDisabled ? null : onTap,
           child: RelationshipCard(
             child: Row(
               children: [
@@ -332,7 +391,48 @@ class _TraineeListItem extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded, color: lmMutedDark),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 78,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        trainee.weeklyStreak.lastCompletedWorkoutAt == null
+                            ? 'nie zaczął'
+                            : formatLastWorkout(
+                                trainee.weeklyStreak.lastCompletedWorkoutAt,
+                              ),
+                        maxLines: 2,
+                        textAlign: TextAlign.right,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: lmMuted,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        formatWeeklyStreakFlame(
+                          trainee.weeklyStreak.currentStreak,
+                        ),
+                        style: const TextStyle(
+                          color: lmMutedDark,
+                          fontSize: 11.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
+                if (isOpening)
+                  const SizedBox.square(
+                    dimension: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  const Icon(Icons.chevron_right_rounded, color: lmMutedDark),
               ],
             ),
           ),

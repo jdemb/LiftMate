@@ -21,30 +21,33 @@ abstract class SharedSessionRealtimeClient {
 
   Stream<String> get errors;
 
-  Future<void> connect({
-    required String accessToken,
-  });
+  Future<void> connect({required String accessToken});
 
-  Future<void> joinSession({
-    required String sessionId,
-  });
+  Future<void> joinSession({required String sessionId});
 
   Future<void> disconnect();
 }
 
-typedef SharedSessionRealtimeClientFactory = SharedSessionRealtimeClient Function();
+typedef SharedSessionRealtimeClientFactory =
+    SharedSessionRealtimeClient Function();
+typedef AccessTokenProvider = Future<String> Function();
 
-class SignalRSharedSessionRealtimeClient implements SharedSessionRealtimeClient {
+class SignalRSharedSessionRealtimeClient
+    implements SharedSessionRealtimeClient {
   SignalRSharedSessionRealtimeClient({
     required String? baseUrl,
+    this.accessTokenProvider,
     HubConnectionFactory? hubConnectionFactory,
-  })  : _baseUrl = _resolveBaseUrl(baseUrl),
-        _hubConnectionFactory = hubConnectionFactory ?? _defaultHubConnectionFactory;
+  }) : _baseUrl = _resolveBaseUrl(baseUrl),
+       _hubConnectionFactory =
+           hubConnectionFactory ?? _defaultHubConnectionFactory;
 
   final String? _baseUrl;
+  final AccessTokenProvider? accessTokenProvider;
   final HubConnectionFactory _hubConnectionFactory;
   final _updatesController = StreamController<SharedSession>.broadcast();
-  final _statusController = StreamController<SharedSessionConnectionStatus>.broadcast();
+  final _statusController =
+      StreamController<SharedSessionConnectionStatus>.broadcast();
   final _errorsController = StreamController<String>.broadcast();
 
   HubConnectionAdapter? _connection;
@@ -53,15 +56,14 @@ class SignalRSharedSessionRealtimeClient implements SharedSessionRealtimeClient 
   Stream<SharedSession> get updates => _updatesController.stream;
 
   @override
-  Stream<SharedSessionConnectionStatus> get connectionStatus => _statusController.stream;
+  Stream<SharedSessionConnectionStatus> get connectionStatus =>
+      _statusController.stream;
 
   @override
   Stream<String> get errors => _errorsController.stream;
 
   @override
-  Future<void> connect({
-    required String accessToken,
-  }) async {
+  Future<void> connect({required String accessToken}) async {
     final baseUrl = _baseUrl;
     if (baseUrl == null) {
       throw StateError('API_BASE_URL is not configured.');
@@ -71,7 +73,8 @@ class SignalRSharedSessionRealtimeClient implements SharedSessionRealtimeClient 
     _emitStatus(SharedSessionConnectionStatus.connecting);
 
     final hubUrl = '$baseUrl/hubs/shared-sessions';
-    final connection = _hubConnectionFactory(hubUrl, accessToken);
+    final tokenProvider = accessTokenProvider ?? () async => accessToken;
+    final connection = _hubConnectionFactory(hubUrl, tokenProvider);
     _connection = connection;
     connection.onSessionUpdated(_handleSessionUpdated);
     connection.onSessionStarted(_handleSessionUpdated);
@@ -89,9 +92,7 @@ class SignalRSharedSessionRealtimeClient implements SharedSessionRealtimeClient 
   }
 
   @override
-  Future<void> joinSession({
-    required String sessionId,
-  }) async {
+  Future<void> joinSession({required String sessionId}) async {
     final connection = _connection;
     if (connection == null) {
       final error = StateError('Realtime connection is not connected.');
@@ -153,7 +154,11 @@ class SignalRSharedSessionRealtimeClient implements SharedSessionRealtimeClient 
   }
 }
 
-typedef HubConnectionFactory = HubConnectionAdapter Function(String hubUrl, String accessToken);
+typedef HubConnectionFactory =
+    HubConnectionAdapter Function(
+      String hubUrl,
+      AccessTokenProvider accessTokenProvider,
+    );
 
 abstract class HubConnectionAdapter {
   Future<void> start();
@@ -166,16 +171,19 @@ abstract class HubConnectionAdapter {
 
   void onSessionStarted(void Function(Map<String, dynamic> json) handler);
 
-  void onStatusChanged(void Function(SharedSessionConnectionStatus status) handler);
+  void onStatusChanged(
+    void Function(SharedSessionConnectionStatus status) handler,
+  );
 }
 
-HubConnectionAdapter _defaultHubConnectionFactory(String hubUrl, String accessToken) {
+HubConnectionAdapter _defaultHubConnectionFactory(
+  String hubUrl,
+  AccessTokenProvider accessTokenProvider,
+) {
   final connection = HubConnectionBuilder()
       .withUrl(
         hubUrl,
-        options: HttpConnectionOptions(
-          accessTokenFactory: () async => accessToken,
-        ),
+        options: HttpConnectionOptions(accessTokenFactory: accessTokenProvider),
       )
       .withAutomaticReconnect()
       .build();
@@ -226,19 +234,28 @@ class SignalRHubConnectionAdapter implements HubConnectionAdapter {
   }
 
   @override
-  void onStatusChanged(void Function(SharedSessionConnectionStatus status) handler) {
+  void onStatusChanged(
+    void Function(SharedSessionConnectionStatus status) handler,
+  ) {
     _connection.stateStream.listen((state) {
       handler(_mapConnectionStatus(state));
     });
   }
 
-  static SharedSessionConnectionStatus _mapConnectionStatus(signalr.HubConnectionState state) {
+  static SharedSessionConnectionStatus _mapConnectionStatus(
+    signalr.HubConnectionState state,
+  ) {
     return switch (state) {
-      signalr.HubConnectionState.Connected => SharedSessionConnectionStatus.connected,
-      signalr.HubConnectionState.Connecting => SharedSessionConnectionStatus.connecting,
-      signalr.HubConnectionState.Disconnecting => SharedSessionConnectionStatus.disconnecting,
-      signalr.HubConnectionState.Reconnecting => SharedSessionConnectionStatus.reconnecting,
-      signalr.HubConnectionState.Disconnected => SharedSessionConnectionStatus.disconnected,
+      signalr.HubConnectionState.Connected =>
+        SharedSessionConnectionStatus.connected,
+      signalr.HubConnectionState.Connecting =>
+        SharedSessionConnectionStatus.connecting,
+      signalr.HubConnectionState.Disconnecting =>
+        SharedSessionConnectionStatus.disconnecting,
+      signalr.HubConnectionState.Reconnecting =>
+        SharedSessionConnectionStatus.reconnecting,
+      signalr.HubConnectionState.Disconnected =>
+        SharedSessionConnectionStatus.disconnected,
     };
   }
 

@@ -13,139 +13,308 @@ import 'package:liftmate/relationships/relationship_models.dart';
 import 'package:liftmate/relationships/trainer_trainee_detail_screen.dart';
 import 'package:liftmate/workout_sets/workout_set_api_client.dart';
 
+import 'fake_onboarding_state_store.dart';
+
 void main() {
   group('Workout set trainer screens', () {
-    testWidgets('trainer opens set list and creates a set from draft exercise', (tester) async {
-      final seen = <String>[];
-      await tester.pumpWidget(_testApp(
-        httpClient: MockClient((request) async {
-          seen.add('${request.method} ${request.url.path}');
-          if (request.url.path == '/auth/me') {
-            return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
-          }
-          if (request.url.path == '/trainer/relationship') {
-            return http.Response(jsonEncode(_relationshipJson()), 200);
-          }
-          if (request.url.path == '/workout-sets' && request.method == 'GET') {
-            return http.Response(jsonEncode([_summaryJson()]), 200);
-          }
-          if (request.url.path == '/workout-sets' && request.method == 'POST') {
-            final body = jsonDecode(request.body) as Map<String, dynamic>;
-            expect(body['name'], 'Push A');
-            expect((body['rows'] as List).length, 3);
-            expect((body['rows'] as List).first['exerciseType'], 'repsWeight');
-            return http.Response(jsonEncode(_detailJson(name: 'Push A')), 201);
-          }
+    testWidgets(
+      'trainer opens set list and creates a set from draft exercise',
+      (tester) async {
+        final seen = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            httpClient: MockClient((request) async {
+              seen.add('${request.method} ${request.url.path}');
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(_userResponse(role: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainer/relationship') {
+                return http.Response(jsonEncode(_relationshipJson()), 200);
+              }
+              if (request.url.path == '/workout-sets' &&
+                  request.method == 'GET') {
+                return http.Response(jsonEncode([_summaryJson()]), 200);
+              }
+              if (request.url.path == '/workout-sets' &&
+                  request.method == 'POST') {
+                final body = jsonDecode(request.body) as Map<String, dynamic>;
+                expect(body['name'], 'Push A');
+                expect(body['restSeconds'], 105);
+                expect((body['rows'] as List).length, 3);
+                expect(
+                  (body['rows'] as List).first['exerciseType'],
+                  'repsWeight',
+                );
+                return http.Response(
+                  jsonEncode(_detailJson(name: 'Push A')),
+                  201,
+                );
+              }
 
-          fail('Unexpected request: ${request.method} ${request.url}');
-        }),
-      ));
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await _tapButton(tester, 'Zestawy');
+
+        expect(find.text('Moje zestawy'), findsOneWidget);
+        expect(find.text('Trening'), findsNothing);
+        expect(find.text('Push A'), findsOneWidget);
+        expect(find.text('Nowy zestaw'), findsOneWidget);
+
+        await _tapButton(tester, 'Nowy zestaw');
+        expect(find.text('Kreator zestawu'), findsOneWidget);
+        expect(find.text('Czas odpoczynku'), findsOneWidget);
+        expect(find.text('01:30'), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('builder-rest-increase')));
+        await tester.pump();
+        expect(find.text('01:45'), findsOneWidget);
+
+        await _tapButton(tester, 'Dodaj ćwiczenie');
+        expect(find.text('Dodaj ćwiczenie'), findsOneWidget);
+        expect(find.text('Powt. + waga'), findsOneWidget);
+        expect(find.text('Powtórzenia'), findsWidgets);
+        expect(find.text('Powtórzenia + waga'), findsNothing);
+        expect(find.text('Same powtórzenia'), findsNothing);
+        expect(_textContaining('\n'), findsNothing);
+
+        await _tapButton(tester, 'Dodaj do zestawu');
+        expect(find.text('Wyciskanie sztangi'), findsOneWidget);
+
+        await _tapButton(tester, 'Zapisz zestaw');
+        await tester.pumpAndSettle();
+
+        expect(find.text('Moje zestawy'), findsOneWidget);
+        expect(
+          seen.where((path) => path == 'POST /workout-sets'),
+          hasLength(1),
+        );
+      },
+    );
+
+    testWidgets('delete menu opens dialog and cancel keeps the set', (
+      tester,
+    ) async {
+      var deleteRequests = 0;
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: _deleteTestClient((request) async {
+            deleteRequests += 1;
+            return http.Response('', 204);
+          }),
+        ),
+      );
 
       await tester.pumpAndSettle();
       await _tapButton(tester, 'Zestawy');
+      await _openDeleteDialog(tester);
 
-      expect(find.text('Moje zestawy'), findsOneWidget);
+      expect(find.text('Usunąć zestaw „Push A”?'), findsOneWidget);
+      await _tapButton(tester, 'Anuluj');
+
+      expect(deleteRequests, 0);
       expect(find.text('Push A'), findsOneWidget);
-      expect(find.text('Nowy zestaw'), findsOneWidget);
-
-      await _tapButton(tester, 'Nowy zestaw');
-      expect(find.text('Kreator zestawu'), findsOneWidget);
-
-      await _tapButton(tester, 'Dodaj ćwiczenie');
-      expect(find.text('Dodaj ćwiczenie'), findsOneWidget);
-      expect(find.text('Powt. + waga'), findsOneWidget);
-      expect(find.text('Powtórzenia'), findsWidgets);
-      expect(find.text('Powtórzenia + waga'), findsNothing);
-      expect(find.text('Same powtórzenia'), findsNothing);
-      expect(_textContaining('\n'), findsNothing);
-
-      await _tapButton(tester, 'Dodaj do zestawu');
-      expect(find.text('Wyciskanie sztangi'), findsOneWidget);
-
-      await _tapButton(tester, 'Zapisz zestaw');
-      await tester.pumpAndSettle();
-
-      expect(find.text('Moje zestawy'), findsOneWidget);
-      expect(seen.where((path) => path == 'POST /workout-sets'), hasLength(1));
     });
 
-    testWidgets('trainer edits an existing set exercise through the exercise editor', (tester) async {
-      Map<String, dynamic>? updateBody;
-
-      await tester.pumpWidget(_testApp(
-        httpClient: MockClient((request) async {
-          if (request.url.path == '/auth/me') {
-            return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
-          }
-          if (request.url.path == '/trainer/relationship') {
-            return http.Response(jsonEncode(_relationshipJson()), 200);
-          }
-          if (request.url.path == '/workout-sets' && request.method == 'GET') {
-            return http.Response(jsonEncode([_summaryJson(rowCount: 3)]), 200);
-          }
-          if (request.url.path == '/workout-sets/set-1' && request.method == 'GET') {
-            return http.Response(jsonEncode(_detailJson(rows: _benchRows())), 200);
-          }
-          if (request.url.path == '/workout-sets/set-1' && request.method == 'PUT') {
-            updateBody = jsonDecode(request.body) as Map<String, dynamic>;
-            return http.Response(jsonEncode(_detailJson(name: 'Push A')), 200);
-          }
-
-          fail('Unexpected request: ${request.method} ${request.url}');
-        }),
-      ));
+    testWidgets('confirmed deletion removes the card and shows success', (
+      tester,
+    ) async {
+      var deleteRequests = 0;
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: _deleteTestClient((request) async {
+            deleteRequests += 1;
+            return http.Response('', 204);
+          }),
+        ),
+      );
 
       await tester.pumpAndSettle();
       await _tapButton(tester, 'Zestawy');
-      await _tapButton(tester, 'Edytuj');
-      await tester.pumpAndSettle();
+      await _openDeleteDialog(tester);
+      await _tapButton(tester, 'Usuń');
 
-      expect(find.text('Bench press'), findsOneWidget);
-      expect(find.text('Seria 1'), findsNothing);
-
-      await tester.tap(find.text('Bench press'));
-      await tester.pumpAndSettle();
-      expect(find.text('Edytuj ćwiczenie'), findsOneWidget);
-
-      await tester.enterText(find.byType(TextField).first, 'Incline press');
-      await _tapButton(tester, 'Zapisz ćwiczenie');
-      await _tapButton(tester, 'Zapisz zestaw');
-      await tester.pumpAndSettle();
-
-      final rows = updateBody?['rows'] as List<dynamic>;
-      expect(rows, hasLength(3));
-      expect(rows.first['exerciseName'], 'Incline press');
-      expect(rows.map((row) => row['setIndex']), [1, 2, 3]);
+      expect(deleteRequests, 1);
+      expect(find.text('Push A'), findsNothing);
+      expect(find.text('Nowy zestaw'), findsOneWidget);
+      expect(find.text('Zestaw „Push A” został usunięty.'), findsOneWidget);
     });
 
-    testWidgets('trainer deletes an exercise from an existing set draft', (tester) async {
+    testWidgets(
+      'active session conflict keeps the card and shows dedicated message',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            httpClient: _deleteTestClient((request) async {
+              return http.Response(
+                jsonEncode({'error': 'Workout set has an active session.'}),
+                409,
+              );
+            }),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await _tapButton(tester, 'Zestawy');
+        await _openDeleteDialog(tester);
+        await _tapButton(tester, 'Usuń');
+
+        expect(find.text('Push A'), findsOneWidget);
+        expect(
+          find.text('Nie można usunąć zestawu podczas aktywnej sesji.'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('network failure keeps the card and shows generic message', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: _deleteTestClient((request) async {
+            throw http.ClientException('Network unavailable');
+          }),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await _tapButton(tester, 'Zestawy');
+      await _openDeleteDialog(tester);
+      await _tapButton(tester, 'Usuń');
+
+      expect(find.text('Push A'), findsOneWidget);
+      expect(
+        find.text('Nie udało się usunąć zestawu. Spróbuj ponownie.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+      'trainer edits an existing set exercise through the exercise editor',
+      (tester) async {
+        Map<String, dynamic>? updateBody;
+
+        await tester.pumpWidget(
+          _testApp(
+            httpClient: MockClient((request) async {
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(_userResponse(role: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainer/relationship') {
+                return http.Response(jsonEncode(_relationshipJson()), 200);
+              }
+              if (request.url.path == '/workout-sets' &&
+                  request.method == 'GET') {
+                return http.Response(
+                  jsonEncode([_summaryJson(rowCount: 3)]),
+                  200,
+                );
+              }
+              if (request.url.path == '/workout-sets/set-1' &&
+                  request.method == 'GET') {
+                return http.Response(
+                  jsonEncode(_detailJson(rows: _benchRows(), restSeconds: 120)),
+                  200,
+                );
+              }
+              if (request.url.path == '/workout-sets/set-1' &&
+                  request.method == 'PUT') {
+                updateBody = jsonDecode(request.body) as Map<String, dynamic>;
+                return http.Response(
+                  jsonEncode(_detailJson(name: 'Push A')),
+                  200,
+                );
+              }
+
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await _tapButton(tester, 'Zestawy');
+        await _tapButton(tester, 'Edytuj');
+        await tester.pumpAndSettle();
+
+        expect(find.text('Bench press'), findsOneWidget);
+        expect(find.text('02:00'), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('builder-rest-decrease')));
+        await tester.pump();
+        expect(find.text('01:45'), findsOneWidget);
+        expect(find.text('Seria 1'), findsNothing);
+
+        await tester.tap(find.text('Bench press'));
+        await tester.pumpAndSettle();
+        expect(find.text('Edytuj ćwiczenie'), findsOneWidget);
+
+        await tester.enterText(find.byType(TextField).first, 'Incline press');
+        await _tapButton(tester, 'Zapisz ćwiczenie');
+        await _tapButton(tester, 'Zapisz zestaw');
+        await tester.pumpAndSettle();
+
+        final rows = updateBody?['rows'] as List<dynamic>;
+        expect(rows, hasLength(3));
+        expect(rows.first['exerciseName'], 'Incline press');
+        expect(rows.map((row) => row['setIndex']), [1, 2, 3]);
+        expect(updateBody?['restSeconds'], 105);
+      },
+    );
+
+    testWidgets('trainer deletes an exercise from an existing set draft', (
+      tester,
+    ) async {
       Map<String, dynamic>? updateBody;
 
-      await tester.pumpWidget(_testApp(
-        httpClient: MockClient((request) async {
-          if (request.url.path == '/auth/me') {
-            return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
-          }
-          if (request.url.path == '/trainer/relationship') {
-            return http.Response(jsonEncode(_relationshipJson()), 200);
-          }
-          if (request.url.path == '/workout-sets' && request.method == 'GET') {
-            return http.Response(jsonEncode([_summaryJson(exerciseCount: 2, rowCount: 4)]), 200);
-          }
-          if (request.url.path == '/workout-sets/set-1' && request.method == 'GET') {
-            return http.Response(jsonEncode(_detailJson(rows: [
-              ..._benchRows(),
-              ..._squatRows(),
-            ])), 200);
-          }
-          if (request.url.path == '/workout-sets/set-1' && request.method == 'PUT') {
-            updateBody = jsonDecode(request.body) as Map<String, dynamic>;
-            return http.Response(jsonEncode(_detailJson(name: 'Push A')), 200);
-          }
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(
+                jsonEncode(_userResponse(role: 'trainer')),
+                200,
+              );
+            }
+            if (request.url.path == '/trainer/relationship') {
+              return http.Response(jsonEncode(_relationshipJson()), 200);
+            }
+            if (request.url.path == '/workout-sets' &&
+                request.method == 'GET') {
+              return http.Response(
+                jsonEncode([_summaryJson(exerciseCount: 2, rowCount: 4)]),
+                200,
+              );
+            }
+            if (request.url.path == '/workout-sets/set-1' &&
+                request.method == 'GET') {
+              return http.Response(
+                jsonEncode(
+                  _detailJson(rows: [..._benchRows(), ..._squatRows()]),
+                ),
+                200,
+              );
+            }
+            if (request.url.path == '/workout-sets/set-1' &&
+                request.method == 'PUT') {
+              updateBody = jsonDecode(request.body) as Map<String, dynamic>;
+              return http.Response(
+                jsonEncode(_detailJson(name: 'Push A')),
+                200,
+              );
+            }
 
-          fail('Unexpected request: ${request.method} ${request.url}');
-        }),
-      ));
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
 
       await tester.pumpAndSettle();
       await _tapButton(tester, 'Zestawy');
@@ -172,28 +341,41 @@ void main() {
 
     testWidgets('trainer assigns a set to multiple trainees', (tester) async {
       final seenBodies = <Map<String, dynamic>>[];
-      await tester.pumpWidget(_testApp(
-        httpClient: MockClient((request) async {
-          if (request.url.path == '/auth/me') {
-            return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
-          }
-          if (request.url.path == '/trainer/relationship') {
-            return http.Response(jsonEncode(_relationshipJson(twoTrainees: true)), 200);
-          }
-          if (request.url.path == '/workout-sets' && request.method == 'GET') {
-            return http.Response(jsonEncode([_summaryJson()]), 200);
-          }
-          if (request.url.path == '/workout-sets/set-1' && request.method == 'GET') {
-            return http.Response(jsonEncode(_detailJson(assignments: [])), 200);
-          }
-          if (request.url.path == '/workout-sets/set-1/assignments') {
-            seenBodies.add(jsonDecode(request.body) as Map<String, dynamic>);
-            return http.Response(jsonEncode(_detailJson()), 200);
-          }
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            if (request.url.path == '/auth/me') {
+              return http.Response(
+                jsonEncode(_userResponse(role: 'trainer')),
+                200,
+              );
+            }
+            if (request.url.path == '/trainer/relationship') {
+              return http.Response(
+                jsonEncode(_relationshipJson(twoTrainees: true)),
+                200,
+              );
+            }
+            if (request.url.path == '/workout-sets' &&
+                request.method == 'GET') {
+              return http.Response(jsonEncode([_summaryJson()]), 200);
+            }
+            if (request.url.path == '/workout-sets/set-1' &&
+                request.method == 'GET') {
+              return http.Response(
+                jsonEncode(_detailJson(assignments: [])),
+                200,
+              );
+            }
+            if (request.url.path == '/workout-sets/set-1/assignments') {
+              seenBodies.add(jsonDecode(request.body) as Map<String, dynamic>);
+              return http.Response(jsonEncode(_detailJson()), 200);
+            }
 
-          fail('Unexpected request: ${request.method} ${request.url}');
-        }),
-      ));
+            fail('Unexpected request: ${request.method} ${request.url}');
+          }),
+        ),
+      );
 
       await tester.pumpAndSettle();
       await _tapButton(tester, 'Zestawy');
@@ -212,83 +394,108 @@ void main() {
       });
     });
 
-    testWidgets('trainer can unassign the last trainee without assigning another', (tester) async {
-      final seen = <String>[];
-      var detailGets = 0;
+    testWidgets(
+      'trainer can unassign the last trainee without assigning another',
+      (tester) async {
+        final seen = <String>[];
+        var detailGets = 0;
 
-      await tester.pumpWidget(_testApp(
-        httpClient: MockClient((request) async {
-          seen.add('${request.method} ${request.url.path}');
-          if (request.url.path == '/auth/me') {
-            return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
-          }
-          if (request.url.path == '/trainer/relationship') {
-            return http.Response(jsonEncode(_relationshipJson()), 200);
-          }
-          if (request.url.path == '/workout-sets' && request.method == 'GET') {
-            return http.Response(jsonEncode([_summaryJson()]), 200);
-          }
-          if (request.url.path == '/workout-sets/set-1' && request.method == 'GET') {
-            detailGets += 1;
-            return http.Response(
-              jsonEncode(_detailJson(
-                assignments: detailGets == 1
-                    ? [
-                        {
-                          'traineeUserId': 'trainee-1',
-                          'traineeEmail': 'anna@example.test',
-                          'traineeDisplayName': 'Anna Nowak',
-                          'assignedAt': '2026-06-16T12:10:00Z',
-                        },
-                      ]
-                    : [],
-              )),
-              200,
-            );
-          }
-          if (request.url.path == '/workout-sets/set-1/assignments/trainee-1') {
-            return http.Response('', 204);
-          }
-          if (request.url.path == '/workout-sets/set-1/assignments') {
-            fail('Assign should not be called with an empty trainee list');
-          }
+        await tester.pumpWidget(
+          _testApp(
+            httpClient: MockClient((request) async {
+              seen.add('${request.method} ${request.url.path}');
+              if (request.url.path == '/auth/me') {
+                return http.Response(
+                  jsonEncode(_userResponse(role: 'trainer')),
+                  200,
+                );
+              }
+              if (request.url.path == '/trainer/relationship') {
+                return http.Response(jsonEncode(_relationshipJson()), 200);
+              }
+              if (request.url.path == '/workout-sets' &&
+                  request.method == 'GET') {
+                return http.Response(jsonEncode([_summaryJson()]), 200);
+              }
+              if (request.url.path == '/workout-sets/set-1' &&
+                  request.method == 'GET') {
+                detailGets += 1;
+                return http.Response(
+                  jsonEncode(
+                    _detailJson(
+                      assignments: detailGets == 1
+                          ? [
+                              {
+                                'traineeUserId': 'trainee-1',
+                                'traineeEmail': 'anna@example.test',
+                                'traineeDisplayName': 'Anna Nowak',
+                                'assignedAt': '2026-06-16T12:10:00Z',
+                              },
+                            ]
+                          : [],
+                    ),
+                  ),
+                  200,
+                );
+              }
+              if (request.url.path ==
+                  '/workout-sets/set-1/assignments/trainee-1') {
+                return http.Response('', 204);
+              }
+              if (request.url.path == '/workout-sets/set-1/assignments') {
+                fail('Assign should not be called with an empty trainee list');
+              }
 
-          fail('Unexpected request: ${request.method} ${request.url}');
-        }),
-      ));
+              fail('Unexpected request: ${request.method} ${request.url}');
+            }),
+          ),
+        );
 
-      await tester.pumpAndSettle();
-      await _tapButton(tester, 'Zestawy');
-      await _tapButton(tester, 'Przypisz');
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
+        await _tapButton(tester, 'Zestawy');
+        await _tapButton(tester, 'Przypisz');
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Anna Nowak'));
-      await tester.pumpAndSettle();
-      await _tapButton(tester, 'Zapisz (0)');
+        await tester.tap(find.text('Anna Nowak'));
+        await tester.pumpAndSettle();
+        await _tapButton(tester, 'Zapisz (0)');
 
-      expect(seen.where((path) => path == 'DELETE /workout-sets/set-1/assignments/trainee-1'), hasLength(1));
-      expect(seen.where((path) => path == 'POST /workout-sets/set-1/assignments'), isEmpty);
-    });
+        expect(
+          seen.where(
+            (path) =>
+                path == 'DELETE /workout-sets/set-1/assignments/trainee-1',
+          ),
+          hasLength(1),
+        );
+        expect(
+          seen.where((path) => path == 'POST /workout-sets/set-1/assignments'),
+          isEmpty,
+        );
+      },
+    );
 
-    testWidgets('trainee detail shows assigned sets without unassign action',
-        (tester) async {
+    testWidgets('trainee detail shows assigned sets without unassign action', (
+      tester,
+    ) async {
       AssignedWorkoutSetSummary? started;
       var openedSets = false;
 
-      await tester.pumpWidget(MaterialApp(
-        home: TrainerTraineeDetailScreen(
-          trainee: const TrainerTraineeSummary(
-            id: 'trainee-1',
-            email: 'anna@example.test',
-            displayName: 'Anna Nowak',
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TrainerTraineeDetailScreen(
+            trainee: const TrainerTraineeSummary(
+              id: 'trainee-1',
+              email: 'anna@example.test',
+              displayName: 'Anna Nowak',
+            ),
+            assignedSets: [_assignedSummary()],
+            onBack: () {},
+            onLogout: () async {},
+            onOpenWorkoutSets: () => openedSets = true,
+            onStartSession: (set) => started = set,
           ),
-          assignedSets: [_assignedSummary()],
-          onBack: () {},
-          onLogout: () async {},
-          onOpenWorkoutSets: () => openedSets = true,
-          onStartSession: (set) => started = set,
         ),
-      ));
+      );
 
       await tester.scrollUntilVisible(
         find.text('PRZYPISANE ZESTAWY'),
@@ -307,41 +514,45 @@ void main() {
       expect(openedSets, isTrue);
     });
 
-    testWidgets('trainee detail switches to join action when session is active',
-        (tester) async {
-      var joined = false;
+    testWidgets(
+      'trainee detail switches to join action when session is active',
+      (tester) async {
+        var joined = false;
 
-      await tester.pumpWidget(MaterialApp(
-        home: TrainerTraineeDetailScreen(
-          trainee: TrainerTraineeSummary(
-            id: 'trainee-1',
-            email: 'anna@example.test',
-            displayName: 'Anna Nowak',
-            activeSession: ActiveSharedSessionSummary(
-              sessionId: 'session-1',
-              workoutSetId: 'set-1',
-              workoutSetName: 'Push A',
-              startedByUserId: 'trainee-1',
-              startedByRole: 'trainee',
-              updatedAt: DateTime.utc(2026, 6, 17),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: TrainerTraineeDetailScreen(
+              trainee: TrainerTraineeSummary(
+                id: 'trainee-1',
+                email: 'anna@example.test',
+                displayName: 'Anna Nowak',
+                activeSession: ActiveSharedSessionSummary(
+                  sessionId: 'session-1',
+                  workoutSetId: 'set-1',
+                  workoutSetName: 'Push A',
+                  startedByUserId: 'trainee-1',
+                  startedByRole: 'trainee',
+                  updatedAt: DateTime.utc(2026, 6, 17),
+                ),
+              ),
+              assignedSets: [_assignedSummary()],
+              onBack: () {},
+              onLogout: () async {},
+              onOpenWorkoutSets: () {},
+              onJoinActiveSession: () => joined = true,
+              onStartSession: (_) {},
             ),
           ),
-          assignedSets: [_assignedSummary()],
-          onBack: () {},
-          onLogout: () async {},
-          onOpenWorkoutSets: () {},
-          onJoinActiveSession: () => joined = true,
-          onStartSession: (_) {},
-        ),
-      ));
+        );
 
-      expect(find.text('Aktywna sesja'), findsOneWidget);
-      expect(find.textContaining('sesji'), findsOneWidget);
-      expect(find.text('Rozpocznij wspólny trening'), findsNothing);
+        expect(find.text('Aktywna sesja'), findsOneWidget);
+        expect(find.textContaining('sesji'), findsOneWidget);
+        expect(find.text('Rozpocznij wspólny trening'), findsNothing);
 
-      await _tapButton(tester, 'Dołącz do sesji');
-      expect(joined, isTrue);
-    });
+        await _tapButton(tester, 'Dołącz do sesji');
+        expect(joined, isTrue);
+      },
+    );
   });
 }
 
@@ -351,6 +562,13 @@ Future<void> _tapButton(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
   await tester.tap(finder);
   await tester.pumpAndSettle();
+}
+
+Future<void> _openDeleteDialog(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('workout-set-menu-set-1')));
+  await tester.pumpAndSettle();
+  expect(find.text('Usuń zestaw'), findsOneWidget);
+  await _tapButton(tester, 'Usuń zestaw');
 }
 
 Finder _textContaining(String value) {
@@ -377,6 +595,7 @@ Widget _testApp({required http.Client httpClient}) {
           ),
         ),
       ),
+      onboardingStateStore: FakeOnboardingStateStore(),
       relationshipApiClient: RelationshipApiClient(
         baseUrl: 'https://api.example.test',
         httpClient: httpClient,
@@ -387,6 +606,28 @@ Widget _testApp({required http.Client httpClient}) {
       ),
     ),
   );
+}
+
+http.Client _deleteTestClient(
+  Future<http.Response> Function(http.Request request) onDelete,
+) {
+  return MockClient((request) async {
+    if (request.url.path == '/auth/me') {
+      return http.Response(jsonEncode(_userResponse(role: 'trainer')), 200);
+    }
+    if (request.url.path == '/trainer/relationship') {
+      return http.Response(jsonEncode(_relationshipJson()), 200);
+    }
+    if (request.url.path == '/workout-sets' && request.method == 'GET') {
+      return http.Response(jsonEncode([_summaryJson()]), 200);
+    }
+    if (request.url.path == '/workout-sets/set-1' &&
+        request.method == 'DELETE') {
+      return onDelete(request);
+    }
+
+    fail('Unexpected request: ${request.method} ${request.url}');
+  });
 }
 
 Map<String, Object?> _userResponse({required String role}) {
@@ -418,10 +659,7 @@ Map<String, Object?> _relationshipJson({bool twoTrainees = false}) {
   };
 }
 
-Map<String, Object?> _summaryJson({
-  int exerciseCount = 1,
-  int rowCount = 3,
-}) {
+Map<String, Object?> _summaryJson({int exerciseCount = 1, int rowCount = 3}) {
   return {
     'id': 'set-1',
     'name': 'Push A',
@@ -448,14 +686,17 @@ AssignedWorkoutSetSummary _assignedSummary({
 
 Map<String, Object?> _detailJson({
   String name = 'Push A',
+  int restSeconds = 90,
   List<Map<String, Object?>>? rows,
   List<Map<String, Object?>>? assignments,
 }) {
   return {
     'id': 'set-1',
     'name': name,
+    'restSeconds': restSeconds,
     'rows': rows ?? _benchRows(setCount: 1),
-    'assignments': assignments ??
+    'assignments':
+        assignments ??
         [
           {
             'traineeUserId': 'trainee-1',

@@ -101,6 +101,107 @@ public sealed class SharedSessionHubTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task ConcurrentUpdatesBroadcastDistinctCanonicalVersions()
+    {
+        using var setupClient = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(setupClient, "trainer");
+        var trainee = await AuthEndpointTests.Register(setupClient, "trainee");
+        var session = await CreateSession(setupClient, trainer, trainee);
+        var value = Assert.Single(session.Values);
+        var received = new List<SharedSessionResponse>();
+        var receivedBoth = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var gate = new object();
+
+        await using var connection = CreateConnection(trainee.AccessToken);
+        connection.On<SharedSessionResponse>("sessionUpdated", response =>
+        {
+            if (response.Id != session.Id)
+            {
+                return;
+            }
+
+            lock (gate)
+            {
+                received.Add(response);
+                if (received.Count == 2)
+                {
+                    receivedBoth.TrySetResult();
+                }
+            }
+        });
+
+        await connection.StartAsync();
+        await connection.InvokeAsync("JoinSession", session.Id);
+
+        using var firstClient = factory.CreateClient();
+        using var secondClient = factory.CreateClient();
+        firstClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        secondClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+
+        var responses = await Task.WhenAll(
+            firstClient.PatchAsJsonAsync(
+                $"/shared-sessions/{session.Id}/values/{value.Id}",
+                new UpdateSharedSessionValueRequest(8, 42.5m, null)),
+            secondClient.PatchAsJsonAsync(
+                $"/shared-sessions/{session.Id}/values/{value.Id}",
+                new UpdateSharedSessionValueRequest(10, 45m, null)));
+        await receivedBoth.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.All(responses, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
+        SharedSessionResponse[] broadcasts;
+        lock (gate)
+        {
+            broadcasts = received.ToArray();
+        }
+
+        Assert.Equal(2, broadcasts.Select(item => item.Version).Distinct().Count());
+        setupClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var canonical = await setupClient.GetFromJsonAsync<SharedSessionResponse>($"/shared-sessions/{session.Id}");
+        Assert.NotNull(canonical);
+        var latest = broadcasts.MaxBy(item => item.Version)!;
+
+        Assert.Equal(latest.Version, canonical.Version);
+        Assert.Equal(Assert.Single(latest.Values).Reps, Assert.Single(canonical.Values).Reps);
+        Assert.Equal(Assert.Single(latest.Values).Weight, Assert.Single(canonical.Values).Weight);
+    }
+
+    [Fact]
+    public async Task TraineeReceivesCompletedSnapshotWhenTrainerCompletesSession()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        var session = await CreateSession(client, trainer, trainee);
+        var receivedCompletion = new TaskCompletionSource<SharedSessionResponse>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using var connection = CreateConnection(trainee.AccessToken);
+        connection.On<SharedSessionResponse>("sessionUpdated", response =>
+        {
+            if (response.Id == session.Id && response.Status == "completed")
+            {
+                receivedCompletion.TrySetResult(response);
+            }
+        });
+
+        await connection.StartAsync();
+        await connection.InvokeAsync("JoinSession", session.Id);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var completeResponse = await client.PostAsync(
+            $"/shared-sessions/{session.Id}/complete",
+            null);
+        var completed = await receivedCompletion.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(HttpStatusCode.OK, completeResponse.StatusCode);
+        Assert.Equal(session.Id, completed.Id);
+        Assert.Equal("completed", completed.Status);
+        Assert.NotNull(completed.ClosedAt);
+        Assert.True(completed.Version > session.Version);
+    }
+
+    [Fact]
     public async Task NonParticipantCannotJoinSessionGroup()
     {
         using var client = factory.CreateClient();

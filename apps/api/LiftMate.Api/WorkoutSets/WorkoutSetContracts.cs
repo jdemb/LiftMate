@@ -2,11 +2,13 @@ namespace LiftMate.Api.WorkoutSets;
 
 public sealed record CreateWorkoutSetRequest(
     string Name,
-    IReadOnlyList<WorkoutSetRowRequest> Rows);
+    IReadOnlyList<WorkoutSetRowRequest> Rows,
+    int? RestSeconds = null);
 
 public sealed record UpdateWorkoutSetRequest(
     string Name,
-    IReadOnlyList<WorkoutSetRowRequest> Rows);
+    IReadOnlyList<WorkoutSetRowRequest> Rows,
+    int? RestSeconds = null);
 
 public sealed record WorkoutSetRowRequest(
     int ExerciseOrder,
@@ -15,7 +17,9 @@ public sealed record WorkoutSetRowRequest(
     string ExerciseType,
     int? Reps,
     decimal? Weight,
-    int? Seconds);
+    int? Seconds,
+    Guid? Id = null,
+    Guid? ExerciseId = null);
 
 public sealed record AssignWorkoutSetRequest(IReadOnlyList<string> TraineeUserIds);
 
@@ -31,6 +35,7 @@ public sealed record WorkoutSetSummaryResponse(
 public sealed record WorkoutSetDetailResponse(
     Guid Id,
     string Name,
+    int RestSeconds,
     IReadOnlyList<WorkoutSetRowResponse> Rows,
     IReadOnlyList<WorkoutSetAssignmentResponse> Assignments,
     DateTimeOffset CreatedAt,
@@ -38,6 +43,7 @@ public sealed record WorkoutSetDetailResponse(
 
 public sealed record WorkoutSetRowResponse(
     Guid Id,
+    Guid ExerciseId,
     int ExerciseOrder,
     int SetIndex,
     string ExerciseName,
@@ -55,6 +61,7 @@ public sealed record WorkoutSetAssignmentResponse(
 public sealed record TraineeAssignedWorkoutSetResponse(
     Guid Id,
     string Name,
+    int RestSeconds,
     string TrainerDisplayName,
     IReadOnlyList<WorkoutSetRowResponse> Rows,
     DateTimeOffset AssignedAt,

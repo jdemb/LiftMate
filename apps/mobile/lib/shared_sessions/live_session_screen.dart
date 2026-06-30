@@ -13,7 +13,10 @@ class LiveSessionScreen extends StatefulWidget {
     required this.controller,
     required this.editable,
     required this.onBack,
+    this.trainerDisplayName,
+    this.traineeDisplayName,
     this.onSessionClosed,
+    this.now = DateTime.now,
     super.key,
   });
 
@@ -21,7 +24,10 @@ class LiveSessionScreen extends StatefulWidget {
   final SharedSessionController controller;
   final bool editable;
   final VoidCallback onBack;
+  final String? trainerDisplayName;
+  final String? traineeDisplayName;
   final Future<void> Function()? onSessionClosed;
+  final DateTime Function() now;
 
   @override
   State<LiveSessionScreen> createState() => _LiveSessionScreenState();
@@ -33,6 +39,7 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
   int _currentExerciseIndex = 0;
   int _restRemaining = _restTotal;
   Timer? _restTimer;
+  String? _restSessionId;
 
   @override
   void dispose() {
@@ -61,6 +68,7 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
                 title: 'Trening live',
                 subtitle: null,
                 onBack: widget.onBack,
+                trailing: const SizedBox(width: 48),
               ),
               const SizedBox(height: 18),
               RelationshipCard(
@@ -73,6 +81,7 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
           );
         }
 
+        _syncRestConfiguration(session);
         final groups = _groupValues(session.values);
         if (groups.isEmpty) {
           return ListView(
@@ -82,6 +91,10 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
                 title: 'Trening live',
                 subtitle: _sessionSubtitle(session),
                 onBack: widget.onBack,
+                trailing: _ElapsedSessionTime(
+                  startedAt: session.createdAt,
+                  now: widget.now,
+                ),
               ),
               const SizedBox(height: 18),
               const RelationshipCard(
@@ -100,20 +113,32 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
         if (!widget.editable) {
           return _ReadOnlyLiveView(
             session: session,
+            errorMessage: state.message,
+            trainerDisplayName: widget.trainerDisplayName,
             group: currentGroup,
             exerciseIndex: currentIndex,
             exerciseTotal: groups.length,
             restRemaining: _restRemaining,
+            onBack: widget.onBack,
           );
         }
 
         return Column(
           children: [
             _LiveTopBar(
-              title: session.traineeEmail,
+              title: _traineeFirstName(session, widget.traineeDisplayName),
               subtitle: _sessionSubtitle(session),
               onBack: widget.onBack,
+              trailing: _ElapsedSessionTime(
+                startedAt: session.createdAt,
+                now: widget.now,
+              ),
             ),
+            if (state.message != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22, 10, 22, 0),
+                child: _RealtimeErrorBanner(message: state.message!),
+              ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
@@ -143,27 +168,30 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
                       user: widget.user,
                       controller: widget.controller,
                       value: value,
+                      onToggleDone: (value, isDone) =>
+                          _toggleDone(session, value, isDone),
                     ),
-                  const SizedBox(height: 6),
-                  _RestTimerCard(
-                    remaining: _restRemaining,
-                    total: _restTotal,
-                    onStart: _startRest,
-                    onPause: _pauseRest,
-                    onAdd: _addRest,
-                    onReset: _resetRest,
-                  ),
                   const SizedBox(height: 14),
                   _NextExerciseCard(
                     name: currentIndex + 1 < groups.length
                         ? groups[currentIndex + 1].exerciseName
                         : 'Koniec treningu',
                     onNext: currentIndex + 1 < groups.length
-                        ? () => setState(() => _currentExerciseIndex = currentIndex + 1)
+                        ? () => setState(
+                            () => _currentExerciseIndex = currentIndex + 1,
+                          )
                         : null,
                   ),
                 ],
               ),
+            ),
+            _CompactRestFooter(
+              key: const ValueKey('live-rest-footer'),
+              remaining: _restRemaining,
+              isRunning: _restTimer != null,
+              onToggle: _restTimer == null ? _startRest : _pauseRest,
+              onAdd: _addRest,
+              onReset: () => _resetRest(session.restSeconds),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(22, 12, 22, 16),
@@ -173,7 +201,9 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
                 label: const Text('Zakończ i zapisz trening'),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
-                  backgroundColor: const Color(0xFF21C97A).withValues(alpha: 0.16),
+                  backgroundColor: const Color(
+                    0xFF21C97A,
+                  ).withValues(alpha: 0.16),
                   foregroundColor: const Color(0xFF7EE0AD),
                   side: BorderSide(
                     color: const Color(0xFF21C97A).withValues(alpha: 0.4),
@@ -196,35 +226,70 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
     await widget.onSessionClosed?.call();
   }
 
+  void _syncRestConfiguration(SharedSession session) {
+    if (_restSessionId == session.id) return;
+    _restTimer?.cancel();
+    _restTimer = null;
+    _restSessionId = session.id;
+    _restRemaining = session.restSeconds;
+  }
+
+  Future<void> _toggleDone(
+    SharedSession session,
+    SharedSessionValue value,
+    bool isDone,
+  ) async {
+    final result = await widget.controller.toggleDone(
+      user: widget.user,
+      value: value,
+      isDone: isDone,
+    );
+    if (!mounted || !result.isSuccess || !isDone) return;
+    _restartRest(session.restSeconds);
+  }
+
   void _startRest() {
     _restTimer?.cancel();
-    _restTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      if (_restRemaining <= 1) {
-        timer.cancel();
-        setState(() => _restRemaining = 0);
-        return;
-      }
-      setState(() => _restRemaining -= 1);
+    setState(() {
+      _restTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
+        if (_restRemaining <= 1) {
+          timer.cancel();
+          setState(() {
+            _restRemaining = 0;
+            _restTimer = null;
+          });
+          return;
+        }
+        setState(() => _restRemaining -= 1);
+      });
     });
   }
 
   void _pauseRest() {
     _restTimer?.cancel();
-    _restTimer = null;
+    setState(() => _restTimer = null);
   }
 
   void _addRest() {
     setState(() => _restRemaining += 15);
   }
 
-  void _resetRest() {
+  void _resetRest(int seconds) {
     _restTimer?.cancel();
-    _restTimer = null;
-    setState(() => _restRemaining = _restTotal);
+    setState(() {
+      _restTimer = null;
+      _restRemaining = seconds;
+    });
+  }
+
+  void _restartRest(int seconds) {
+    _restTimer?.cancel();
+    setState(() => _restRemaining = seconds);
+    _startRest();
   }
 }
 
@@ -233,11 +298,13 @@ class _LiveTopBar extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onBack,
+    required this.trailing,
   });
 
   final String title;
   final String? subtitle;
   final VoidCallback onBack;
+  final Widget trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -263,7 +330,10 @@ class _LiveTopBar extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
@@ -277,7 +347,51 @@ class _LiveTopBar extends StatelessWidget {
               ],
             ),
           ),
-          const _LiveBadge(),
+          trailing,
+        ],
+      ),
+    );
+  }
+}
+
+class _RealtimeErrorBanner extends StatelessWidget {
+  const _RealtimeErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('realtime-error-banner'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFB74D).withValues(alpha: 0.12),
+        border: Border.all(
+          color: const Color(0xFFFFB74D).withValues(alpha: 0.35),
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.sync_problem_rounded,
+            color: Color(0xFFFFC66D),
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Synchronizacja treningu została przerwana. '
+              'Spróbujemy ponownie po odzyskaniu połączenia.\n$message',
+              style: const TextStyle(
+                color: Color(0xFFFFD9A0),
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -287,17 +401,23 @@ class _LiveTopBar extends StatelessWidget {
 class _ReadOnlyLiveView extends StatelessWidget {
   const _ReadOnlyLiveView({
     required this.session,
+    required this.errorMessage,
+    required this.trainerDisplayName,
     required this.group,
     required this.exerciseIndex,
     required this.exerciseTotal,
     required this.restRemaining,
+    required this.onBack,
   });
 
   final SharedSession session;
+  final String? errorMessage;
+  final String? trainerDisplayName;
   final _ExerciseValueGroup group;
   final int exerciseIndex;
   final int exerciseTotal;
   final int restRemaining;
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -316,35 +436,71 @@ class _ReadOnlyLiveView extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(22, 14, 22, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFF4D4D),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 9),
-                Flexible(
-                  child: Text(
-                    session.isTrainerLed
-                        ? 'Trener prowadzi · ${session.trainerEmail}'
-                        : 'Trening własny',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFFFF8D8D),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
+            child: SizedBox(
+              key: const ValueKey('read-only-live-header'),
+              width: double.infinity,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          tooltip: 'Wróć',
+                          onPressed: onBack,
+                          icon: const Icon(
+                            Icons.chevron_left_rounded,
+                            size: 30,
+                          ),
+                        ),
+                      ),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: constraints.maxWidth - 112,
+                        ),
+                        child: Row(
+                          key: const ValueKey('read-only-live-trainer-status'),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFF4D4D),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 9),
+                            Flexible(
+                              child: Text(
+                                _readOnlySessionLabel(
+                                  session,
+                                  trainerDisplayName,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFFFF8D8D),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
+          if (errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 10, 22, 0),
+              child: _RealtimeErrorBanner(message: errorMessage!),
+            ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -398,7 +554,10 @@ class _ReadOnlyLiveView extends StatelessWidget {
                   ),
                   const SizedBox(height: 26),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(999),
@@ -407,7 +566,7 @@ class _ReadOnlyLiveView extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'Ukończone serie: $completed',
+                      completedSeriesLabel(completed),
                       style: const TextStyle(
                         color: Color(0xFF7EE0AD),
                         fontWeight: FontWeight.w700,
@@ -430,11 +589,14 @@ class _EditableSetCard extends StatelessWidget {
     required this.user,
     required this.controller,
     required this.value,
+    required this.onToggleDone,
   });
 
   final AuthUser user;
   final SharedSessionController controller;
   final SharedSessionValue value;
+  final Future<void> Function(SharedSessionValue value, bool isDone)
+  onToggleDone;
 
   @override
   Widget build(BuildContext context) {
@@ -449,26 +611,33 @@ class _EditableSetCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                'Seria ${value.setIndex}',
-                style: const TextStyle(
-                  color: Color(0xFFC2C7CE),
-                  fontWeight: FontWeight.w800,
+              Expanded(
+                child: Text(
+                  'Seria ${value.setIndex}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFC2C7CE),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
-              const Spacer(),
-              IconButton(
-                tooltip: value.isDone ? 'Cofnij serię' : 'Oznacz serię',
-                onPressed: () => controller.toggleDone(
-                  user: user,
-                  value: value,
-                  isDone: !value.isDone,
-                ),
-                icon: Icon(
-                  value.isDone
-                      ? Icons.check_box_rounded
-                      : Icons.check_box_outline_blank_rounded,
-                  color: value.isDone ? const Color(0xFF21C97A) : lmMuted,
+              SizedBox.square(
+                dimension: 40,
+                child: IconButton(
+                  tooltip: value.isDone ? 'Cofnij serię' : 'Oznacz serię',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 40,
+                    height: 40,
+                  ),
+                  onPressed: () => onToggleDone(value, !value.isDone),
+                  icon: Icon(
+                    value.isDone
+                        ? Icons.check_box_rounded
+                        : Icons.check_box_outline_blank_rounded,
+                    color: value.isDone ? const Color(0xFF21C97A) : lmMuted,
+                  ),
                 ),
               ),
             ],
@@ -640,76 +809,92 @@ class _RoundStepButton extends StatelessWidget {
   }
 }
 
-class _RestTimerCard extends StatelessWidget {
-  const _RestTimerCard({
+class _CompactRestFooter extends StatelessWidget {
+  const _CompactRestFooter({
     required this.remaining,
-    required this.total,
-    required this.onStart,
-    required this.onPause,
+    required this.isRunning,
+    required this.onToggle,
     required this.onAdd,
     required this.onReset,
+    super.key,
   });
 
   final int remaining;
-  final int total;
-  final VoidCallback onStart;
-  final VoidCallback onPause;
+  final bool isRunning;
+  final VoidCallback onToggle;
   final VoidCallback onAdd;
   final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
-    final progress = total == 0 ? 0.0 : (remaining / total).clamp(0.0, 1.0);
-    return RelationshipCard(
-      padding: const EdgeInsets.all(16),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 10, 22, 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E1015),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              const Text(
-                'ODPOCZYNEK',
-                style: TextStyle(
-                  color: lmMuted,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
+              const Expanded(
+                child: Text(
+                  'Odpoczynek',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: lmMuted, fontWeight: FontWeight.w700),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Text(
                 _formatDuration(remaining),
                 style: const TextStyle(
                   fontFamily: 'Space Grotesk',
-                  fontSize: 24,
+                  fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 6,
-              color: lmBlue,
-              backgroundColor: const Color(0xFF22262E),
-            ),
-          ),
-          const SizedBox(height: 13),
+          const SizedBox(height: 6),
           Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Expanded(child: FilledButton(onPressed: onStart, child: const Text('Start'))),
-              const SizedBox(width: 9),
-              Expanded(
-                child: OutlinedButton(onPressed: onPause, child: const Text('Pauza')),
+              _FooterAction(
+                tooltip: isRunning ? 'Pauza' : 'Start',
+                onTap: onToggle,
+                icon: Icon(
+                  isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                ),
               ),
-              const SizedBox(width: 9),
-              OutlinedButton(onPressed: onAdd, child: const Text('+15s')),
-              const SizedBox(width: 9),
-              IconButton.outlined(
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 52,
+                height: 40,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: onAdd,
+                    child: const Center(
+                      child: Text(
+                        '+15s',
+                        style: TextStyle(
+                          color: lmBlueSoft,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              _FooterAction(
                 tooltip: 'Reset',
-                onPressed: onReset,
+                onTap: onReset,
                 icon: const Icon(Icons.restart_alt_rounded),
               ),
             ],
@@ -720,11 +905,39 @@ class _RestTimerCard extends StatelessWidget {
   }
 }
 
-class _NextExerciseCard extends StatelessWidget {
-  const _NextExerciseCard({
-    required this.name,
-    required this.onNext,
+class _FooterAction extends StatelessWidget {
+  const _FooterAction({
+    required this.tooltip,
+    required this.onTap,
+    required this.icon,
   });
+
+  final String tooltip;
+  final VoidCallback onTap;
+  final Widget icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: SizedBox.square(
+        dimension: 40,
+        child: Material(
+          color: const Color(0xFF22262E),
+          borderRadius: BorderRadius.circular(20),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: onTap,
+            child: Center(child: icon),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NextExerciseCard extends StatelessWidget {
+  const _NextExerciseCard({required this.name, required this.onNext});
 
   final String name;
   final VoidCallback? onNext;
@@ -758,10 +971,7 @@ class _NextExerciseCard extends StatelessWidget {
               ],
             ),
           ),
-          TextButton(
-            onPressed: onNext,
-            child: const Text('Dalej'),
-          ),
+          TextButton(onPressed: onNext, child: const Text('Dalej')),
         ],
       ),
     );
@@ -828,20 +1038,50 @@ class _ReadOnlyRestFooter extends StatelessWidget {
   }
 }
 
-class _LiveBadge extends StatelessWidget {
-  const _LiveBadge();
+class _ElapsedSessionTime extends StatefulWidget {
+  const _ElapsedSessionTime({required this.startedAt, required this.now});
+
+  final DateTime startedAt;
+  final DateTime Function() now;
+
+  @override
+  State<_ElapsedSessionTime> createState() => _ElapsedSessionTimeState();
+}
+
+class _ElapsedSessionTimeState extends State<_ElapsedSessionTime> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final seconds = widget
+        .now()
+        .toUtc()
+        .difference(widget.startedAt.toUtc())
+        .inSeconds
+        .clamp(0, 1 << 31);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFFFF4D4D).withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: const Text(
-        'żywo',
-        style: TextStyle(
+      child: Text(
+        formatElapsedSessionTime(seconds),
+        style: const TextStyle(
           color: Color(0xFFFF8D8D),
           fontWeight: FontWeight.w800,
           fontSize: 11,
@@ -851,8 +1091,34 @@ class _LiveBadge extends StatelessWidget {
   }
 }
 
+String formatElapsedSessionTime(int seconds) {
+  final minutes = seconds ~/ 60;
+  final remainder = seconds % 60;
+  return '${minutes.toString().padLeft(2, '0')}:'
+      '${remainder.toString().padLeft(2, '0')}';
+}
+
+String completedSeriesLabel(int count) {
+  if (count == 1) return '1 ukończona seria';
+  final lastTwo = count % 100;
+  final last = count % 10;
+  if ((lastTwo < 12 || lastTwo > 14) && last >= 2 && last <= 4) {
+    return '$count ukończone serie';
+  }
+  return '$count ukończonych serii';
+}
+
+String _traineeFirstName(SharedSession session, String? traineeDisplayName) {
+  final trimmedName = traineeDisplayName?.trim();
+  if (trimmedName == null || trimmedName.isEmpty) {
+    return session.traineeEmail;
+  }
+  return trimmedName.split(RegExp(r'\s+')).first;
+}
+
 List<_ExerciseValueGroup> _groupValues(List<SharedSessionValue> values) {
-  final sorted = [...values]..sort((a, b) {
+  final sorted = [...values]
+    ..sort((a, b) {
       final order = a.exerciseOrder.compareTo(b.exerciseOrder);
       if (order != 0) {
         return order;
@@ -863,11 +1129,13 @@ List<_ExerciseValueGroup> _groupValues(List<SharedSessionValue> values) {
   final groups = <_ExerciseValueGroup>[];
   for (final value in sorted) {
     if (groups.isEmpty || groups.last.exerciseOrder != value.exerciseOrder) {
-      groups.add(_ExerciseValueGroup(
-        exerciseOrder: value.exerciseOrder,
-        exerciseName: value.exerciseName,
-        values: [value],
-      ));
+      groups.add(
+        _ExerciseValueGroup(
+          exerciseOrder: value.exerciseOrder,
+          exerciseName: value.exerciseName,
+          values: [value],
+        ),
+      );
     } else {
       groups.last.values.add(value);
     }
@@ -881,7 +1149,24 @@ SharedSessionValue _firstOpenValue(List<SharedSessionValue> values) {
 }
 
 String _sessionSubtitle(SharedSession session) {
-  return session.workoutSetId == null ? 'Aktywny trening' : 'Zestaw ${session.workoutSetId}';
+  final name = session.workoutSetName.trim();
+  return name.isEmpty ? 'Trening' : 'Zestaw $name';
+}
+
+String _readOnlySessionLabel(
+  SharedSession session,
+  String? trainerDisplayName,
+) {
+  if (!session.isTrainerLed) {
+    return 'Trening własny';
+  }
+
+  final trimmedName = trainerDisplayName?.trim();
+  final trainerLabel = trimmedName == null || trimmedName.isEmpty
+      ? session.trainerEmail
+      : trimmedName.split(RegExp(r'\s+')).first;
+
+  return 'Prowadzi trener $trainerLabel';
 }
 
 String _primaryValueLabel(SharedSessionValue value) {
@@ -910,7 +1195,8 @@ String _formatNumber(num value) {
 String _formatDuration(int totalSeconds) {
   final minutes = totalSeconds ~/ 60;
   final seconds = totalSeconds % 60;
-  return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  return '${minutes.toString().padLeft(2, '0')}:'
+      '${seconds.toString().padLeft(2, '0')}';
 }
 
 class _ExerciseValueGroup {

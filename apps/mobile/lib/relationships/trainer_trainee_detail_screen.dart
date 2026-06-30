@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
+import '../trainer_guidance/trainer_guidance_controller.dart';
+import '../trainer_guidance/trainer_guidance_models.dart';
 import '../workout_sets/workout_set_text.dart';
 import 'relationship_models.dart';
+import 'relationship_formatters.dart';
 import 'relationship_screen_styles.dart';
 
 class TrainerTraineeDetailScreen extends StatelessWidget {
@@ -10,7 +14,9 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
     required this.onBack,
     required this.onLogout,
     required this.onOpenWorkoutSets,
+    this.onOpenHistory,
     this.assignedSets = const [],
+    this.guidanceController,
     this.onStartSession,
     this.onJoinActiveSession,
     this.sessionErrorMessage,
@@ -21,7 +27,9 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
   final VoidCallback onBack;
   final Future<void> Function() onLogout;
   final VoidCallback onOpenWorkoutSets;
+  final VoidCallback? onOpenHistory;
   final List<AssignedWorkoutSetSummary> assignedSets;
+  final TrainerGuidanceController? guidanceController;
   final void Function(AssignedWorkoutSetSummary set)? onStartSession;
   final VoidCallback? onJoinActiveSession;
   final String? sessionErrorMessage;
@@ -32,6 +40,7 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
       children: [
         Expanded(
           child: ListView(
+            scrollCacheExtent: const ScrollCacheExtent.pixels(10000),
             padding: const EdgeInsets.fromLTRB(22, 14, 22, 24),
             children: [
               Row(
@@ -74,9 +83,15 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 3),
-                        const Text(
-                          'Połączona',
-                          style: TextStyle(color: lmMuted, fontSize: 13.5),
+                        Text(
+                          formatTraineeConnectionStatus(
+                            trainee.displayName,
+                            trainee.connectedAt,
+                          ),
+                          style: const TextStyle(
+                            color: lmMuted,
+                            fontSize: 13.5,
+                          ),
                         ),
                         if (trainee.activeSession != null) ...[
                           const SizedBox(height: 8),
@@ -85,9 +100,12 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  _WeeklyStreakStats(summary: trainee.weeklyStreak),
                 ],
               ),
-              if (trainee.activeSession != null && onJoinActiveSession != null) ...[
+              if (trainee.activeSession != null &&
+                  onJoinActiveSession != null) ...[
                 const SizedBox(height: 18),
                 FilledButton.icon(
                   onPressed: onJoinActiveSession,
@@ -104,20 +122,33 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                   ),
                 ),
               ],
-              const SizedBox(height: 20),
-              RelationshipCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              if (onOpenHistory != null) ...[
+                const SizedBox(height: 18),
+                Row(
                   children: [
-                    const RelationshipSectionLabel('Dane relacji'),
-                    const SizedBox(height: 12),
-                    _DetailRow(label: 'E-mail', value: trainee.email),
-                    const SizedBox(height: 10),
-                    const _DetailRow(label: 'Status', value: 'Aktywna relacja'),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        key: const ValueKey('trainer-open-trainee-history'),
+                        onPressed: onOpenHistory,
+                        icon: const Icon(Icons.history_rounded),
+                        label: const Text('Historia'),
+                      ),
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onOpenWorkoutSets,
+                        child: const Text('Zmień zestaw'),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 18),
+              ],
+              if (guidanceController != null) ...[
+                const SizedBox(height: 18),
+                _GuidanceSection(controller: guidanceController!),
+              ],
+              const SizedBox(height: 20),
               const RelationshipSectionLabel('Przypisane zestawy'),
               const SizedBox(height: 12),
               if (assignedSets.isEmpty)
@@ -147,8 +178,8 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                     set: set,
                     onStartSession:
                         trainee.activeSession == null && onStartSession != null
-                            ? () => onStartSession!(set)
-                            : null,
+                        ? () => onStartSession!(set)
+                        : null,
                   ),
             ],
           ),
@@ -166,10 +197,6 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
               onTap: onOpenWorkoutSets,
             ),
             const RelationshipBottomNavItem(
-              icon: Icons.play_circle_rounded,
-              label: 'Trening',
-            ),
-            const RelationshipBottomNavItem(
               icon: Icons.menu_rounded,
               label: 'Profil',
             ),
@@ -180,11 +207,298 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
   }
 }
 
-class _AssignedSetCard extends StatelessWidget {
-  const _AssignedSetCard({
-    required this.set,
-    required this.onStartSession,
+class _WeeklyStreakStats extends StatelessWidget {
+  const _WeeklyStreakStats({required this.summary});
+
+  final WeeklyStreakSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 76,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            formatWeeklyStreakFlame(summary.currentStreak),
+            style: const TextStyle(
+              fontFamily: 'Space Grotesk',
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'najlepsza ${summary.bestStreak}',
+            maxLines: 1,
+            style: const TextStyle(color: lmMutedDark, fontSize: 10.5),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuidanceSection extends StatelessWidget {
+  const _GuidanceSection({required this.controller});
+
+  final TrainerGuidanceController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final state = controller.state;
+        if (state.status == TrainerGuidanceStatus.loaded &&
+            state.items.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        if (state.status == TrainerGuidanceStatus.loading ||
+            state.status == TrainerGuidanceStatus.idle) {
+          return const SizedBox.shrink();
+        }
+
+        if (state.status == TrainerGuidanceStatus.error) {
+          if (state.message == 'API_BASE_URL is not configured.') {
+            return const SizedBox.shrink();
+          }
+          return RelationshipCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Podpowiedzi',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  state.message ??
+                      'Nie udało się pobrać podpowiedzi, spróbuj ponownie.',
+                  style: const TextStyle(color: lmMuted, height: 1.45),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: controller.load,
+                  child: const Text('Spróbuj ponownie'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final visibleItems = state.items.take(3).toList(growable: false);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Podpowiedzi',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Na podstawie 3 ostatnich treningów',
+              style: TextStyle(color: lmMuted, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            for (final item in visibleItems)
+              _GuidanceCard(
+                guidance: item,
+                isMarkingRead: state.markingReadId == item.id,
+                onMarkAsRead: () => controller.markAsRead(item.id),
+              ),
+            if (state.message != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                state.message!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _GuidanceCard extends StatelessWidget {
+  const _GuidanceCard({
+    required this.guidance,
+    required this.isMarkingRead,
+    required this.onMarkAsRead,
   });
+
+  final TrainerGuidance guidance;
+  final bool isMarkingRead;
+  final VoidCallback onMarkAsRead;
+
+  @override
+  Widget build(BuildContext context) {
+    final evidenceText = _evidenceText(guidance);
+    final style = _GuidanceVisualStyle.forType(guidance.type);
+    return RelationshipCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      color: style.cardColor,
+      borderColor: style.borderColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _title(guidance),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Space Grotesk',
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              _GuidanceBadge(style: style),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: isMarkingRead ? null : onMarkAsRead,
+              icon: const Icon(Icons.check_circle_outline_rounded),
+              label: Text(
+                isMarkingRead ? 'Oznaczanie...' : 'Oznacz jako przeczytaną',
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(guidance.message, style: const TextStyle(height: 1.45)),
+          if (evidenceText != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              evidenceText,
+              style: const TextStyle(color: lmMuted, fontSize: 13.5),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  static String _title(TrainerGuidance guidance) {
+    return switch (guidance.type) {
+      TrainerGuidanceType.weightStagnation => 'Stagnacja ciężaru',
+      TrainerGuidanceType.lowWellbeing => 'Niższe samopoczucie',
+      TrainerGuidanceType.unknown => 'Podpowiedź',
+    };
+  }
+
+  static String? _evidenceText(TrainerGuidance guidance) {
+    if (guidance.weightEvidence.isNotEmpty) {
+      return guidance.weightEvidence
+          .map((item) => '${_formatNumber(item.maxWeight)} kg')
+          .join(' → ');
+    }
+    if (guidance.wellbeingEvidence.isNotEmpty) {
+      final ratings = guidance.wellbeingEvidence
+          .map((item) => item.rating.toString())
+          .join(', ');
+      final average = guidance.averageRating;
+      if (average == null) {
+        return 'Oceny: $ratings';
+      }
+      return 'Oceny: $ratings · średnia ${_formatNumber(average)}/5';
+    }
+    return null;
+  }
+
+  static String _formatNumber(double value) {
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    return value.toStringAsFixed(1);
+  }
+}
+
+class _GuidanceBadge extends StatelessWidget {
+  const _GuidanceBadge({required this.style});
+
+  final _GuidanceVisualStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: style.badgeColor,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: style.badgeBorderColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        child: Text(
+          style.label,
+          style: TextStyle(
+            color: style.badgeTextColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GuidanceVisualStyle {
+  const _GuidanceVisualStyle({
+    required this.label,
+    required this.cardColor,
+    required this.borderColor,
+    required this.badgeColor,
+    required this.badgeBorderColor,
+    required this.badgeTextColor,
+  });
+
+  final String label;
+  final Color cardColor;
+  final Color borderColor;
+  final Color badgeColor;
+  final Color badgeBorderColor;
+  final Color badgeTextColor;
+
+  static _GuidanceVisualStyle forType(TrainerGuidanceType type) {
+    return switch (type) {
+      TrainerGuidanceType.weightStagnation => _GuidanceVisualStyle(
+        label: 'stagnacja',
+        cardColor: const Color(0x1A3A82F6),
+        borderColor: const Color(0x473A82F6),
+        badgeColor: const Color(0x263A82F6),
+        badgeBorderColor: const Color(0x473A82F6),
+        badgeTextColor: lmBlueSoft,
+      ),
+      TrainerGuidanceType.lowWellbeing => const _GuidanceVisualStyle(
+        label: 'samopoczucie',
+        cardColor: Color(0x14FFC107),
+        borderColor: Color(0x3DFFC107),
+        badgeColor: Color(0x1FFFC107),
+        badgeBorderColor: Color(0x3DFFC107),
+        badgeTextColor: Color(0xFFD7B36A),
+      ),
+      TrainerGuidanceType.unknown => _GuidanceVisualStyle(
+        label: 'info',
+        cardColor: lmSurface,
+        borderColor: Colors.white.withValues(alpha: 0.07),
+        badgeColor: lmBlue.withValues(alpha: 0.14),
+        badgeBorderColor: lmBlue.withValues(alpha: 0.28),
+        badgeTextColor: lmBlueSoft,
+      ),
+    };
+  }
+}
+
+class _AssignedSetCard extends StatelessWidget {
+  const _AssignedSetCard({required this.set, required this.onStartSession});
 
   final AssignedWorkoutSetSummary set;
   final VoidCallback? onStartSession;
@@ -244,36 +558,6 @@ class _ActiveStatusPill extends StatelessWidget {
           fontWeight: FontWeight.w700,
         ),
       ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 72,
-          child: Text(label, style: const TextStyle(color: lmMuted)),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
-      ],
     );
   }
 }

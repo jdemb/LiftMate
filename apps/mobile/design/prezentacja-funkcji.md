@@ -38,7 +38,7 @@ Formularz wyjaśnia błędy w języku polskim i pozwala niezależnie odsłonić 
 
 **Ekrany:** Powitanie, Rejestracja
 
-Po zalogowaniu aplikacja bezpiecznie utrzymuje sesję i odnawia dostęp w tle. Użytkownik nie jest niepotrzebnie wylogowywany podczas wykonywania ważnych działań.
+Po zalogowaniu aplikacja bezpiecznie utrzymuje sesję i odnawia dostęp. Użytkownik nie jest niepotrzebnie wylogowywany podczas wykonywania innych akcji na urządzeniu, gdy aplikacja działa w tle.
 
 <a id="parowanie-kont-za-pomoca-kodu"></a>
 ### Parowanie kont za pomocą kodu

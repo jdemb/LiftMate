@@ -405,58 +405,88 @@ public static class SharedSessionEndpoints
         SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
-        var session = await FindSession(dbContext, sessionId, cancellationToken);
-        if (session is null)
-        {
-            return Results.NotFound();
-        }
-
         var userId = SharedSessionAccess.UserId(principal);
         if (userId is null)
         {
             return Results.Unauthorized();
         }
 
-        if (!CanUpdateValues(session, principal, userId))
+        IResult? terminalResult = null;
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+
+        await executionStrategy.ExecuteAsync(async () =>
         {
-            return Results.Forbid();
+            terminalResult = null;
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken);
+            dbContext.ChangeTracker.Clear();
+
+            var session = await FindSession(dbContext, sessionId, cancellationToken);
+            if (session is null)
+            {
+                terminalResult = Results.NotFound();
+                return;
+            }
+
+            if (!CanUpdateValues(session, principal, userId))
+            {
+                terminalResult = Results.Forbid();
+                return;
+            }
+
+            if (session.Status != SharedSessionStatus.Active)
+            {
+                terminalResult = Results.Conflict(new { error = "Shared session is not active." });
+                return;
+            }
+
+            var value = session.Values.SingleOrDefault(value => value.Id == valueId);
+            if (value is null)
+            {
+                terminalResult = Results.NotFound();
+                return;
+            }
+
+            var validationError = ValidateUpdatedValue(value, request, out var reps, out var weight, out var seconds);
+            if (validationError is not null)
+            {
+                terminalResult = Results.BadRequest(new { error = validationError });
+                return;
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            value.Reps = reps;
+            value.Weight = weight;
+            value.Seconds = seconds;
+            if (request.IsDone.HasValue)
+            {
+                value.IsDone = request.IsDone.Value;
+                value.CompletedAt = value.IsDone ? value.CompletedAt ?? now : null;
+            }
+            value.UpdatedByUserId = userId;
+            value.UpdatedAt = now;
+            session.Version += 1;
+            session.UpdatedAt = now;
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
+
+        if (terminalResult is not null)
+        {
+            return terminalResult;
         }
 
-        if (session.Status != SharedSessionStatus.Active)
+        dbContext.ChangeTracker.Clear();
+        var updatedSession = await FindSession(dbContext, sessionId, cancellationToken);
+        if (updatedSession is null)
         {
-            return Results.Conflict(new { error = "Shared session is not active." });
+            return Results.Problem("Shared session update did not produce a result.");
         }
 
-        var value = session.Values.SingleOrDefault(value => value.Id == valueId);
-        if (value is null)
-        {
-            return Results.NotFound();
-        }
-
-        var validationError = ValidateUpdatedValue(value, request, out var reps, out var weight, out var seconds);
-        if (validationError is not null)
-        {
-            return Results.BadRequest(new { error = validationError });
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        value.Reps = reps;
-        value.Weight = weight;
-        value.Seconds = seconds;
-        if (request.IsDone.HasValue)
-        {
-            value.IsDone = request.IsDone.Value;
-            value.CompletedAt = value.IsDone ? value.CompletedAt ?? now : null;
-        }
-        value.UpdatedByUserId = userId;
-        value.UpdatedAt = now;
-        session.Version += 1;
-        session.UpdatedAt = now;
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await broadcaster.BroadcastUpdatedAsync(session, cancellationToken);
-
-        return Results.Ok(SharedSessionMapping.ToResponse(session));
+        await broadcaster.BroadcastUpdatedAsync(updatedSession, cancellationToken);
+        return Results.Ok(SharedSessionMapping.ToResponse(updatedSession));
     }
 
     private static async Task<IResult> Complete(
@@ -532,8 +562,15 @@ public static class SharedSessionEndpoints
             return Results.Problem("Shared session completion did not produce a result.");
         }
 
-        await broadcaster.BroadcastUpdatedAsync(completedSession, cancellationToken);
-        return Results.Ok(SharedSessionMapping.ToResponse(completedSession));
+        dbContext.ChangeTracker.Clear();
+        var canonicalSession = await FindSession(dbContext, sessionId, cancellationToken);
+        if (canonicalSession is null)
+        {
+            return Results.Problem("Shared session completion did not produce a result.");
+        }
+
+        await broadcaster.BroadcastUpdatedAsync(canonicalSession, cancellationToken);
+        return Results.Ok(SharedSessionMapping.ToResponse(canonicalSession));
     }
 
     private static Task<IResult> Cancel(
@@ -555,37 +592,66 @@ public static class SharedSessionEndpoints
         SharedSessionBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
-        var session = await FindSession(dbContext, sessionId, cancellationToken);
-        if (session is null)
+        IResult? terminalResult = null;
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+
+        await executionStrategy.ExecuteAsync(async () =>
         {
-            return Results.NotFound();
+            terminalResult = null;
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken);
+            dbContext.ChangeTracker.Clear();
+
+            var session = await FindSession(dbContext, sessionId, cancellationToken);
+            if (session is null)
+            {
+                terminalResult = Results.NotFound();
+                return;
+            }
+
+            if (!SharedSessionAccess.CanAccess(session, principal))
+            {
+                terminalResult = Results.Forbid();
+                return;
+            }
+
+            if (session.Status == targetStatus)
+            {
+                terminalResult = Results.Ok(SharedSessionMapping.ToResponse(session));
+                return;
+            }
+
+            if (session.Status == conflictStatus)
+            {
+                terminalResult = Results.Conflict(new { error = $"Shared session is already {conflictStatus}." });
+                return;
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            session.Status = targetStatus;
+            session.Version += 1;
+            session.UpdatedAt = now;
+            session.ClosedAt = now;
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
+
+        if (terminalResult is not null)
+        {
+            return terminalResult;
         }
 
-        if (!SharedSessionAccess.CanAccess(session, principal))
+        dbContext.ChangeTracker.Clear();
+        var closedSession = await FindSession(dbContext, sessionId, cancellationToken);
+        if (closedSession is null)
         {
-            return Results.Forbid();
+            return Results.Problem("Shared session close did not produce a result.");
         }
 
-        if (session.Status == targetStatus)
-        {
-            return Results.Ok(SharedSessionMapping.ToResponse(session));
-        }
-
-        if (session.Status == conflictStatus)
-        {
-            return Results.Conflict(new { error = $"Shared session is already {conflictStatus}." });
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        session.Status = targetStatus;
-        session.Version += 1;
-        session.UpdatedAt = now;
-        session.ClosedAt = now;
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await broadcaster.BroadcastUpdatedAsync(session, cancellationToken);
-
-        return Results.Ok(SharedSessionMapping.ToResponse(session));
+        await broadcaster.BroadcastUpdatedAsync(closedSession, cancellationToken);
+        return Results.Ok(SharedSessionMapping.ToResponse(closedSession));
     }
 
     private static Task<SharedSession?> FindSession(

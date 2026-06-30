@@ -560,6 +560,135 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task ConcurrentValueUpdatesHaveDistinctVersionsAndCanonicalResult()
+    {
+        using var setupClient = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(setupClient, "trainer");
+        var trainee = await AuthEndpointTests.Register(setupClient, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(setupClient, trainer, trainee);
+        var session = await CreateSession(setupClient, trainer, trainee);
+        var value = Assert.Single(session.Values);
+
+        using var firstClient = factory.CreateClient();
+        using var secondClient = factory.CreateClient();
+        firstClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        secondClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+
+        var responses = await Task.WhenAll(
+            firstClient.PatchAsJsonAsync(
+                $"/shared-sessions/{session.Id}/values/{value.Id}",
+                new UpdateSharedSessionValueRequest(8, 42.5m, null)),
+            secondClient.PatchAsJsonAsync(
+                $"/shared-sessions/{session.Id}/values/{value.Id}",
+                new UpdateSharedSessionValueRequest(10, 45m, null)));
+
+        Assert.All(responses, response => Assert.NotEqual(HttpStatusCode.InternalServerError, response.StatusCode));
+        Assert.All(responses, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
+
+        var snapshots = await Task.WhenAll(
+            responses.Select(response => response.Content.ReadFromJsonAsync<SharedSessionResponse>()));
+        Assert.All(snapshots, Assert.NotNull);
+        Assert.Equal(2, snapshots.Select(snapshot => snapshot!.Version).Distinct().Count());
+
+        setupClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var canonical = await setupClient.GetFromJsonAsync<SharedSessionResponse>($"/shared-sessions/{session.Id}");
+        Assert.NotNull(canonical);
+        var latest = snapshots.MaxBy(snapshot => snapshot!.Version)!;
+
+        Assert.Equal(latest!.Version, canonical.Version);
+        Assert.Equal(Assert.Single(latest.Values).Reps, Assert.Single(canonical.Values).Reps);
+        Assert.Equal(Assert.Single(latest.Values).Weight, Assert.Single(canonical.Values).Weight);
+    }
+
+    [Fact]
+    public async Task ConcurrentValueUpdateAndCompleteHaveLinearTerminalResult()
+    {
+        using var setupClient = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(setupClient, "trainer");
+        var trainee = await AuthEndpointTests.Register(setupClient, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(setupClient, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(setupClient, trainer, "Concurrent completion", DefaultWorkoutSetRows());
+        await AssignWorkoutSet(setupClient, trainer, workoutSet.Id, [trainee.User.Id]);
+        var session = await StartFromWorkoutSet(setupClient, trainer, workoutSet.Id, trainee.User.Id);
+        var value = Assert.Single(session.Values);
+
+        using var updateClient = factory.CreateClient();
+        using var completeClient = factory.CreateClient();
+        updateClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        completeClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+
+        var updateTask = updateClient.PatchAsJsonAsync(
+            $"/shared-sessions/{session.Id}/values/{value.Id}",
+            new UpdateSharedSessionValueRequest(9, 55m, null));
+        var completeTask = completeClient.PostAsync($"/shared-sessions/{session.Id}/complete", null);
+        await Task.WhenAll(updateTask, completeTask);
+
+        var updateResponse = await updateTask;
+        var completeResponse = await completeTask;
+        Assert.NotEqual(HttpStatusCode.InternalServerError, updateResponse.StatusCode);
+        Assert.NotEqual(HttpStatusCode.InternalServerError, completeResponse.StatusCode);
+        Assert.Contains(updateResponse.StatusCode, new[] { HttpStatusCode.OK, HttpStatusCode.Conflict });
+        Assert.Equal(HttpStatusCode.OK, completeResponse.StatusCode);
+
+        setupClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var terminal = await setupClient.GetFromJsonAsync<SharedSessionResponse>($"/shared-sessions/{session.Id}");
+        Assert.NotNull(terminal);
+        Assert.Equal("completed", terminal.Status);
+        Assert.NotNull(terminal.ClosedAt);
+
+        var updateWon = updateResponse.StatusCode == HttpStatusCode.OK;
+        Assert.Equal(updateWon ? 3 : 2, terminal.Version);
+        Assert.Equal(updateWon ? 9 : 6, Assert.Single(terminal.Values).Reps);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var progress = await dbContext.WorkoutProgresses
+            .Include(item => item.Values)
+            .SingleAsync(item => item.SourceSessionId == session.Id);
+        Assert.Equal(Assert.Single(terminal.Values).Reps, Assert.Single(progress.Values).Reps);
+        Assert.Equal(Assert.Single(terminal.Values).Weight, Assert.Single(progress.Values).Weight);
+    }
+
+    [Fact]
+    public async Task ConcurrentValueUpdateAndCancelHaveLinearTerminalResult()
+    {
+        using var setupClient = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(setupClient, "trainer");
+        var trainee = await AuthEndpointTests.Register(setupClient, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(setupClient, trainer, trainee);
+        var session = await CreateSession(setupClient, trainer, trainee);
+        var value = Assert.Single(session.Values);
+
+        using var updateClient = factory.CreateClient();
+        using var cancelClient = factory.CreateClient();
+        updateClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        cancelClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+
+        var updateTask = updateClient.PatchAsJsonAsync(
+            $"/shared-sessions/{session.Id}/values/{value.Id}",
+            new UpdateSharedSessionValueRequest(9, 55m, null));
+        var cancelTask = cancelClient.PostAsync($"/shared-sessions/{session.Id}/cancel", null);
+        await Task.WhenAll(updateTask, cancelTask);
+
+        var updateResponse = await updateTask;
+        var cancelResponse = await cancelTask;
+        Assert.NotEqual(HttpStatusCode.InternalServerError, updateResponse.StatusCode);
+        Assert.NotEqual(HttpStatusCode.InternalServerError, cancelResponse.StatusCode);
+        Assert.Contains(updateResponse.StatusCode, new[] { HttpStatusCode.OK, HttpStatusCode.Conflict });
+        Assert.Equal(HttpStatusCode.OK, cancelResponse.StatusCode);
+
+        setupClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var terminal = await setupClient.GetFromJsonAsync<SharedSessionResponse>($"/shared-sessions/{session.Id}");
+        Assert.NotNull(terminal);
+        Assert.Equal("cancelled", terminal.Status);
+        Assert.NotNull(terminal.ClosedAt);
+
+        var updateWon = updateResponse.StatusCode == HttpStatusCode.OK;
+        Assert.Equal(updateWon ? 3 : 2, terminal.Version);
+        Assert.Equal(updateWon ? 9 : 6, Assert.Single(terminal.Values).Reps);
+    }
+
+    [Fact]
     public async Task CreateRequiresTrainerTraineePairing()
     {
         using var client = factory.CreateClient();

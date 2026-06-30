@@ -39,7 +39,7 @@ evidence that raised the risk, never a presumed code anchor.
 | # | Risk (failure scenario) | Impact | Likelihood | Source (evidence — not anchor) |
 |---|---|---|---|---|
 | 1 | Po reconnect trener i podopieczny widzą różne sesje lub wartości bez widocznego ostrzeżenia. | High | High | interview Q1, Q4; PRD US-03 i NFR realtime; hot-spot dirs `apps/mobile/lib/shared_sessions` (33) i `apps/api/LiftMate.Api/SharedSessions` (44) |
-| 2 | Współbieżny zapis aktywnej sesji kończy się `500`, utratą wartości albo nieokreślonym wynikiem. | High | High | interview Q1, Q2; roadmap S-05; hot-spot dir `apps/api/LiftMate.Api/SharedSessions` (44) |
+| 2 | Równoległy zapis wartości albo zapis ścigający się z zakończeniem sesji zwraca nieokreślony wynik, duplikuje wersję, modyfikuje terminalny trening lub kończy się `500`. | High | High | interview Q1, Q2; roadmap S-05; hot-spot dir `apps/api/LiftMate.Api/SharedSessions` (44); Phase 1 research correction |
 | 3 | Migracja działa lokalnie, ale podczas wdrożenia blokuje API albo uszkadza istniejące dane. | High | High | interview Q2; roadmap Baseline; deployment constraint: migrations execute during deploy |
 | 4 | Wygaśnięcie tokenu podczas zapisu lub reconnect powoduje utratę, duplikację operacji albo trwałe wylogowanie. | High | High | interview Q3; hot-spot dirs `apps/mobile/lib/auth` (40) i `apps/api/LiftMate.Api/Auth` (38) |
 | 5 | Zalogowany użytkownik odczytuje lub modyfikuje sesję albo dane obcej relacji trener–podopieczny. | High | Medium | PRD Access Control; roadmap F-02 i S-01; abuse/security lens |
@@ -51,7 +51,7 @@ evidence that raised the risk, never a presumed code anchor.
 | Risk | What would prove protection | Must challenge | Context `/10x-research` must ground | Likely cheapest layer | Anti-pattern to avoid |
 |---|---|---|---|---|---|
 | #1 | Po utracie sieci wraca ta sama kanoniczna sesja, a przerwa synchronizacji jest widoczna. | `connected` oznacza pełne odtworzenie subskrypcji. | Lifecycle transportu, członkostwo grupy, fallback i tożsamość sesji. | controller/widget + integration | Happy-path-only reconnect. |
-| #2 | Równoległe zapisy mają zdefiniowany wynik, bez `500` i niespójnego stanu. | Końcowe `200` dowodzi braku utraconego zapisu. | Granica transakcji, reguła współbieżności, idempotency i provider bazy. | API integration | Sekwencyjny test lub oracle skopiowany z implementacji. |
+| #2 | Równoległe mutacje mają zdefiniowany wynik: unikalne monotoniczne wersje albo jawny konflikt; terminalna sesja pozostaje niezmienna. | Końcowe `200` lub istniejący fix historycznego `500` dowodzi poprawności równoległych `PATCH` i lifecycle races. | Brak `expectedVersion` i concurrency tokenu, granica transakcji `complete`, broadcast zatwierdzonego snapshotu oraz różnice SQLite/SQL Server. | API integration | Duplikowanie naprawionego testu projekcji progresu, sekwencyjny happy path lub test oparty na `Task.Delay`. |
 | #3 | Upgrade istniejącej bazy przechodzi bez utraty danych i zachowuje kompatybilność API. | Migracja pustej bazy reprezentuje produkcję. | Łańcuch migracji, produkcyjny provider, kolejność deploy i punkt odzyskania. | migration integration + pre-prod smoke | Testowanie wygenerowanych linii migracji. |
 | #4 | Refresh podczas zapisu ponawia operację najwyżej raz i zachowuje właściwą rolę oraz sesję. | Test loginu pokrywa runtime refresh. | Replay HTTP, przechowywanie tokenów, równoległe żądania i kontrakt błędu. | mobile unit/controller + API integration | Nadmierne mockowanie wnętrza klienta. |
 | #5 | Obcy trener lub podopieczny zawsze otrzymuje odmowę odczytu i mutacji. | Poprawna rola wystarcza bez ownership. | Granica zasobu, uczestnicy sesji, relacja i źródło tożsamości. | API integration | Test samej polityki bez zasobu. |
@@ -65,7 +65,7 @@ parser contracts for `/10x-test-plan`.
 
 | # | Phase name | Goal (one line) | Risks covered | Test types | Status | Change folder |
 |---|---|---|---|---|---|---|
-| 1 | Spójność realtime i zapis współbieżny | Udowodnić reconnect, ordering oraz bezpieczny zapis aktywnej sesji. | #1, #2, #6 | API integration, controller, widget | change opened | `testing-spojnosc-realtime-zapis-wspolbiezny` |
+| 1 | Spójność realtime i zapis współbieżny | Udowodnić reconnect, ordering oraz bezpieczny zapis aktywnej sesji. | #1, #2, #6 | API integration, controller, widget | researched | `testing-spojnosc-realtime-zapis-wspolbiezny` |
 | 2 | Odporność auth i granice własności | Chronić zapis podczas refresh oraz izolację danych i rejestracji. | #4, #5, #7 | API integration, unit, widget | not started | — |
 | 3 | Realistyczne migracje i smoke wdrożeniowy | Zweryfikować upgrade istniejącej bazy i zapis po migracji. | #2, #3 | migration integration, pre-prod smoke | not started | — |
 | 4 | Selektywna kontrola krytycznego przepływu | Sprawdzić granicę urządzenie–API i widoczność awarii bez dublowania tańszych testów. | #1, #2, cross-cutting | minimal device integration, selective multimodal review, gates | not started | — |

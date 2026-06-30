@@ -252,22 +252,22 @@ Ta faza dostarcza widoczną funkcję trenera: trzy kropki na karcie, zakotwiczon
 
 #### Automated
 
-- [x] 1.1 Migracja i model zapisują nullable `DeletedAt`, a istniejące zestawy pozostają aktywne.
-- [x] 1.2 Testy endpointów potwierdzają archiwizację, idempotencję, autoryzację i usunięcie przypisań.
-- [x] 1.3 Testy sesji potwierdzają konflikt dla aktywnej sesji, zachowanie historii oraz zakaz rozpoczęcia nowej sesji z archiwalnego zestawu.
-- [x] 1.4 `dotnet restore LiftMate.slnx`, `dotnet build LiftMate.slnx --no-restore` i `dotnet test LiftMate.slnx --no-build --verbosity minimal` kończą się sukcesem z `apps/api`.
-- [x] 1.5 Test współbieżności potwierdza, że start i usunięcie nie mogą pozostawić aktywnej sesji dla zarchiwizowanego zestawu.
-- [x] 1.6 Test relacji potwierdza brak zarchiwizowanego zestawu w `AssignedWorkoutSets`.
-- [x] 1.7 Test skryptu migracji SQL Server potwierdza nullable `DeletedAt` i indeks aktywnych zestawów.
+- [x] 1.1 Migracja i model zapisują nullable `DeletedAt`, a istniejące zestawy pozostają aktywne. — d8b0c68
+- [x] 1.2 Testy endpointów potwierdzają archiwizację, idempotencję, autoryzację i usunięcie przypisań. — d8b0c68
+- [x] 1.3 Testy sesji potwierdzają konflikt dla aktywnej sesji, zachowanie historii oraz zakaz rozpoczęcia nowej sesji z archiwalnego zestawu. — d8b0c68
+- [x] 1.4 `dotnet restore LiftMate.slnx`, `dotnet build LiftMate.slnx --no-restore` i `dotnet test LiftMate.slnx --no-build --verbosity minimal` kończą się sukcesem z `apps/api`. — d8b0c68
+- [x] 1.5 Test współbieżności potwierdza, że start i usunięcie nie mogą pozostawić aktywnej sesji dla zarchiwizowanego zestawu. — d8b0c68
+- [x] 1.6 Test relacji potwierdza brak zarchiwizowanego zestawu w `AssignedWorkoutSets`. — d8b0c68
+- [x] 1.7 Test skryptu migracji SQL Server potwierdza nullable `DeletedAt` i indeks aktywnych zestawów. — d8b0c68
 
 ### Phase 2: Obsługa usuwania w kliencie mobilnym
 
 #### Automated
 
-- [ ] 2.1 Test klienta potwierdza `DELETE /workout-sets/{id}`, brak body oraz obsługę `204` i `409`.
-- [ ] 2.2 Test kontrolera potwierdza usunięcie właściwej karty dopiero po sukcesie.
-- [ ] 2.3 Testy kontrolera potwierdzają zachowanie listy i możliwość ponowienia po konflikcie, błędzie sieci lub braku tokenu.
-- [ ] 2.4 `flutter test test/workout_set_api_client_test.dart test/workout_set_controller_test.dart` kończy się sukcesem z `apps/mobile`.
+- [x] 2.1 Test klienta potwierdza `DELETE /workout-sets/{id}`, brak body oraz obsługę `204` i `409`.
+- [x] 2.2 Test kontrolera potwierdza usunięcie właściwej karty dopiero po sukcesie.
+- [x] 2.3 Testy kontrolera potwierdzają zachowanie listy i możliwość ponowienia po konflikcie, błędzie sieci lub braku tokenu.
+- [x] 2.4 `flutter test test/workout_set_api_client_test.dart test/workout_set_controller_test.dart` kończy się sukcesem z `apps/mobile`.
 
 ### Phase 3: Menu i potwierdzenie zgodne z designem
 

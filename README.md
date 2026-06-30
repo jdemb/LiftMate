@@ -1,6 +1,6 @@
 # LiftMate
 
-**Mobilna aplikacja treningowa, która łączy trenera z podopiecznym. Wspiera cały proces, od przygotowania planu i wspólnej sesji na żywo po informację zwrotną oraz mierzalne postępy.**
+**Aplikacja treningowa, dzięki której trener przygotowuje plan i prowadzi trening, a podopieczny może skupić się na ćwiczeniach i własnych postępach.**
 
 [**Zobacz interaktywną prezentację**](https://jdemb.github.io/liftmate-demo) · [**Pobierz aplikację na Androida**](https://github.com/jdemb/PrototypApka/releases/download/v1.0.0/LiftMate-v1.0.0-android.apk)
 
@@ -17,9 +17,9 @@
   </tr>
 </table>
 
-## O projekcie
+## Czym jest LiftMate?
 
-LiftMate ułatwia podejmowanie decyzji podczas treningu. Trener przygotowuje i przypisuje plan, a podopieczny ćwiczy zgodnie z aktualnymi założeniami i zachowuje ciągłość postępów między kolejnymi sesjami.
+LiftMate łączy trenera z podopiecznym w jednym procesie. Trener przygotowuje i przypisuje zestawy, może prowadzić wspólną sesję oraz obserwować historię. Podopieczny wykonuje trening pod jego nadzorem lub samodzielnie i zachowuje ciągłość między kolejnymi wizytami na siłowni.
 
 Projekt ma strukturę monorepo i obejmuje aplikację mobilną stworzoną we Flutterze oraz interfejs API zbudowany w ASP.NET Core. Obsługuje cały proces, od rejestracji i połączenia kont po historię treningów, informacje zwrotne oraz analizę postępów.
 
@@ -30,17 +30,25 @@ Projekt ma strukturę monorepo i obejmuje aplikację mobilną stworzoną we Flut
 
 ## Główne funkcje
 
-- współpraca jednego trenera z wieloma podopiecznymi, nawiązywana za pomocą kodu zaproszenia;
-- tworzenie, edycja, usuwanie i wielokrotne przypisywanie zestawów ćwiczeń;
-- dane wspólnej sesji aktualizowane u trenera i podopiecznego bez ręcznego odświeżania;
-- samodzielny trening podopiecznego z możliwością edycji własnych wyników;
-- zapisywanie wykonanych serii jako punktu wyjścia do kolejnego treningu;
-- historia sesji i postępy w poszczególnych ćwiczeniach;
-- ocena samopoczucia oraz opcjonalny komentarz po treningu;
-- aktualna oraz najlepsza seria kolejnych tygodni, w których ukończono trening;
-- podpowiedzi dla trenera dotyczące braku postępów w zwiększaniu obciążenia oraz obniżonego samopoczucia podopiecznego.
+- współpraca jednego trenera z wieloma podopiecznymi, nawiązywana za pomocą kodu zaproszenia
+- tworzenie, edycja, usuwanie i wielokrotne przypisywanie zestawów ćwiczeń
+- dane wspólnej sesji aktualizowane u trenera i podopiecznego bez ręcznego odświeżania
+- samodzielny trening podopiecznego z możliwością edycji własnych wyników
+- zapisywanie wykonanych serii jako punktu wyjścia do kolejnego treningu
+- historia sesji i postępy w poszczególnych ćwiczeniach
+- ocena samopoczucia oraz opcjonalny komentarz po treningu
+- aktualna oraz najlepsza seria kolejnych tygodni, w których ukończono trening
+- podpowiedzi dla trenera dotyczące braku postępów w zwiększaniu obciążenia oraz obniżonego samopoczucia podopiecznego
 
 Rozszerzony opis znajduje się w [prezentacji funkcji](apps/mobile/design/prezentacja-funkcji.md), a powiązania z kodem, API i testami w [mapie implementacji](apps/mobile/design/mapa-implementacji.md).
+
+## Jak powstawał projekt?
+
+Największym wyzwaniem nie była pojedyncza funkcja, lecz kontrolowanie liczby pomysłów. Kreatywna głowa podsuwała kolejne funkcjonalności, a flow projektu nie ograniczało, tylko pozwalało to wszystko kontrolować. Zamiast zlecać agentowi implementację wszystkiego jednocześnie, dzieliłem rozwój aplikacji na niewielkie, kompletne fragmenty zapisane w roadmapie.
+
+Przed rozpoczęciem implementacji przygotowywałem szczegółowy plan i poddawałem go osobnemu przeglądowi. Dzięki temu większość niejasności znikała przed napisaniem kodu, a liczba błędów po wdrożeniu pozostawała niewielka. Jeżeli pojawiały się niedociągnięcia, zwykle wystarczała krótka iteracja, aby je poprawić.
+
+Dokumentacja pełniła rolę pamięci projektu. Nowe pomysły nie ginęły i nie rozszerzały przypadkowo bieżącego zakresu. Trafiały do roadmapy, a następnie były realizowane w odpowiednim dla nich momencie jako kolejne funkcje.
 
 ## Architektura
 

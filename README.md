@@ -4,7 +4,7 @@
 
 [**Zobacz interaktywną prezentację**](https://jdemb.github.io/liftmate-demo) · [**Pobierz aplikację na Androida**](https://github.com/jdemb/PrototypApka/releases/download/v1.0.0/LiftMate-v1.0.0-android.apk)
 
-> Prezentacja pozwala przejść przez wszystkie ekrany bez instalowania aplikacji. APK jest wersją demonstracyjną instalowaną ręcznie poza Google Play; rejestracja w publicznym środowisku wymaga kodu beta przekazanego testerowi.
+> Prezentacja pozwala przejść przez wszystkie ekrany bez instalowania aplikacji. APK jest wersją demonstracyjną instalowaną ręcznie poza Google Play. Rejestracja w publicznym środowisku wymaga kodu beta.
 
 <table>
   <tr>

@@ -4,6 +4,12 @@ public static class SharedSessionMapping
 {
     public static SharedSessionResponse ToResponse(SharedSession session)
     {
+        var serverNow = DateTimeOffset.UtcNow;
+        var remainingSeconds = session.RestTimerEndsAt is null
+            ? session.RestTimerRemainingSeconds
+            : (int)Math.Ceiling((session.RestTimerEndsAt.Value - serverNow).TotalSeconds);
+        remainingSeconds = Math.Clamp(remainingSeconds, 0, 3600);
+
         return new SharedSessionResponse(
             session.Id,
             session.TrainerUserId,
@@ -20,6 +26,11 @@ public static class SharedSessionMapping
             session.CreatedAt,
             session.UpdatedAt,
             session.ClosedAt,
+            new SharedSessionRestTimerResponse(
+                Math.Clamp(session.RestTimerTotalSeconds, 0, 3600),
+                remainingSeconds,
+                session.RestTimerEndsAt,
+                serverNow),
             session.Values
                 .OrderBy(value => value.ExerciseOrder)
                 .ThenBy(value => value.SetIndex)

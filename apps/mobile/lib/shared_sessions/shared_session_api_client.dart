@@ -148,6 +148,22 @@ class SharedSessionApiClient {
     );
   }
 
+  Future<SharedSessionApiResult<SharedSession>> updateRest({
+    required String accessToken,
+    required String sessionId,
+    required UpdateSharedSessionRest update,
+  }) {
+    return _send<SharedSession>(
+      method: 'PATCH',
+      path: '/shared-sessions/$sessionId/rest',
+      accessToken: accessToken,
+      body: update.toJson(),
+      successStatusCodes: {200},
+      parse: SharedSession.fromJson,
+      invalidJsonMessage: 'Invalid shared session response JSON.',
+    );
+  }
+
   Future<SharedSessionApiResult<SharedSession>> complete({
     required String accessToken,
     required String sessionId,

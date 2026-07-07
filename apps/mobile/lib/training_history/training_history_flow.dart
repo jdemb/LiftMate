@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../auth/auth_models.dart';
 import '../relationships/relationship_screen_styles.dart';
 import '../shared_sessions/shared_session_models.dart';
+import '../theme/motion.dart';
 import '../widgets/motion/motion_reveals.dart';
 import '../widgets/motion/pressable_scale.dart';
 import 'training_history_controller.dart';
@@ -668,15 +669,17 @@ class _ProgressLevel extends StatelessWidget {
                     spacing: 10,
                     runSpacing: 4,
                     children: [
-                      Text(
-                        formatHistoryValue(
-                          progress.currentValue,
-                          progress.type,
-                        ),
-                        style: const TextStyle(
-                          fontFamily: 'Space Grotesk',
-                          fontSize: 40,
-                          fontWeight: FontWeight.w700,
+                      MotionPop(
+                        child: Text(
+                          formatHistoryValue(
+                            progress.currentValue,
+                            progress.type,
+                          ),
+                          style: const TextStyle(
+                            fontFamily: 'Space Grotesk',
+                            fontSize: 40,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                       Text(
@@ -762,17 +765,20 @@ class _ProgressChart extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 5),
-                  Container(
-                    height: math.max(
-                      16,
-                      100 * (points[index].value / math.max(maxValue, 1)),
-                    ),
-                    decoration: BoxDecoration(
-                      color: index == points.length - 1
-                          ? lmBlue
-                          : const Color(0xFF2C333D),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(5),
+                  _AnimatedProgressBar(
+                    position: index,
+                    child: Container(
+                      height: math.max(
+                        16,
+                        100 * (points[index].value / math.max(maxValue, 1)),
+                      ),
+                      decoration: BoxDecoration(
+                        color: index == points.length - 1
+                            ? lmBlue
+                            : const Color(0xFF2C333D),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(5),
+                        ),
                       ),
                     ),
                   ),
@@ -796,6 +802,58 @@ class _ProgressChart extends StatelessWidget {
     's' => ExerciseValueType.time,
     _ => ExerciseValueType.repsOnly,
   };
+}
+
+class _AnimatedProgressBar extends StatefulWidget {
+  const _AnimatedProgressBar({
+    required this.position,
+    required this.child,
+  });
+
+  final int position;
+  final Widget child;
+
+  @override
+  State<_AnimatedProgressBar> createState() => _AnimatedProgressBarState();
+}
+
+class _AnimatedProgressBarState extends State<_AnimatedProgressBar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: LiftMateMotion.reveal,
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_controller.isAnimating || _controller.value > 0) return;
+    if (LiftMateMotion.animationsDisabled(context)) {
+      _controller.value = 1;
+      return;
+    }
+    Future<void>.delayed(
+      Duration(milliseconds: 70 * LiftMateMotion.staggerPosition(widget.position)),
+      () {
+        if (mounted) _controller.forward();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      alignment: Alignment.bottomCenter,
+      scale: CurvedAnimation(parent: _controller, curve: LiftMateMotion.standard),
+      child: widget.child,
+    );
+  }
 }
 
 class _ProgressRow extends StatelessWidget {

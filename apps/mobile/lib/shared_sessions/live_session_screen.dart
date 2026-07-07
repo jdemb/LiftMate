@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../auth/auth_models.dart';
 import '../relationships/relationship_screen_styles.dart';
@@ -36,16 +37,19 @@ class LiveSessionScreen extends StatefulWidget {
 }
 
 class _LiveSessionScreenState extends State<LiveSessionScreen> {
-  static const _restTotal = 90;
-
   int _currentExerciseIndex = 0;
-  int _restRemaining = _restTotal;
-  Timer? _restTimer;
-  String? _restSessionId;
+  int _restRemaining = 0;
+  int _restTotal = 1;
+  double _restProgress = 0;
+  bool _restRunning = false;
+  Timer? _restProjectionTicker;
+  Duration _restProjectionElapsed = Duration.zero;
+  String? _restSnapshotKey;
+  String? _completedRestIntervalKey;
 
   @override
   void dispose() {
-    _restTimer?.cancel();
+    _restProjectionTicker?.cancel();
     super.dispose();
   }
 
@@ -83,7 +87,7 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
           );
         }
 
-        _syncRestConfiguration(session);
+        _syncRestSnapshot(session);
         final groups = _groupValues(session.values);
         if (groups.isEmpty) {
           return ListView(
@@ -121,6 +125,7 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
             exerciseIndex: currentIndex,
             exerciseTotal: groups.length,
             restRemaining: _restRemaining,
+            restTotal: _restTotal,
             onBack: widget.onBack,
           );
         }
@@ -193,10 +198,16 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
             _CompactRestFooter(
               key: const ValueKey('live-rest-footer'),
               remaining: _restRemaining,
-              isRunning: _restTimer != null,
-              onToggle: _restTimer == null ? _startRest : _pauseRest,
-              onAdd: _addRest,
-              onReset: () => _resetRest(session.restSeconds),
+              total: _restTotal,
+              progress: _restProgress,
+              isRunning: _restRunning,
+              onToggle: () => _updateRest(
+                _restRunning
+                    ? SharedSessionRestAction.pause
+                    : SharedSessionRestAction.start,
+              ),
+              onAdd: () => _updateRest(SharedSessionRestAction.add),
+              onReset: () => _updateRest(SharedSessionRestAction.reset),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(22, 12, 22, 16),
@@ -233,12 +244,26 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
     await widget.onSessionClosed?.call();
   }
 
-  void _syncRestConfiguration(SharedSession session) {
-    if (_restSessionId == session.id) return;
-    _restTimer?.cancel();
-    _restTimer = null;
-    _restSessionId = session.id;
-    _restRemaining = session.restSeconds;
+  void _syncRestSnapshot(SharedSession session) {
+    final snapshot = session.restTimer;
+    final snapshotKey = '${session.id}:${session.version}:'
+        '${snapshot.totalSeconds}:${snapshot.remainingSeconds}:'
+        '${snapshot.endsAt?.toIso8601String()}';
+    if (_restSnapshotKey == snapshotKey) return;
+
+    _restProjectionTicker?.cancel();
+    _restSnapshotKey = snapshotKey;
+    _restProjectionElapsed = Duration.zero;
+    _restTotal = snapshot.totalSeconds.clamp(1, 3600);
+    _restRemaining = snapshot.remainingSeconds.clamp(0, 3600);
+    _restProgress = (_restRemaining / _restTotal).clamp(0, 1);
+    _restRunning = snapshot.endsAt != null && _restRemaining > 0;
+    if (!_restRunning) return;
+
+    _restProjectionTicker = Timer.periodic(
+      const Duration(milliseconds: 100),
+      (_) => _tickRestProjection(snapshot, snapshotKey),
+    );
   }
 
   Future<void> _toggleDone(
@@ -252,51 +277,40 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
       isDone: isDone,
     );
     if (!mounted || !result.isSuccess || !isDone) return;
-    _restartRest(session.restSeconds);
+    HapticFeedback.mediumImpact();
   }
 
-  void _startRest() {
-    _restTimer?.cancel();
+  Future<void> _updateRest(SharedSessionRestAction action) async {
+    await widget.controller.updateRest(user: widget.user, action: action);
+  }
+
+  void _tickRestProjection(
+    SharedSessionRestTimer snapshot,
+    String intervalKey,
+  ) {
+    if (!mounted || _restSnapshotKey != intervalKey) return;
+    _restProjectionElapsed += const Duration(milliseconds: 100);
+    final remainingMilliseconds = snapshot.endsAt!
+        .difference(snapshot.serverNow)
+        .inMilliseconds -
+        _restProjectionElapsed.inMilliseconds;
+    final remaining = (remainingMilliseconds / 1000).ceil().clamp(0, 3600);
+    final progress = (remainingMilliseconds / (_restTotal * 1000)).clamp(
+      0.0,
+      1.0,
+    );
+    if (remainingMilliseconds <= 0) {
+      _restProjectionTicker?.cancel();
+      _restRunning = false;
+      if (_completedRestIntervalKey != intervalKey) {
+        _completedRestIntervalKey = intervalKey;
+        HapticFeedback.heavyImpact();
+      }
+    }
     setState(() {
-      _restTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (!mounted) {
-          timer.cancel();
-          return;
-        }
-        if (_restRemaining <= 1) {
-          timer.cancel();
-          setState(() {
-            _restRemaining = 0;
-            _restTimer = null;
-          });
-          return;
-        }
-        setState(() => _restRemaining -= 1);
-      });
+      _restRemaining = remaining;
+      _restProgress = progress;
     });
-  }
-
-  void _pauseRest() {
-    _restTimer?.cancel();
-    setState(() => _restTimer = null);
-  }
-
-  void _addRest() {
-    setState(() => _restRemaining += 15);
-  }
-
-  void _resetRest(int seconds) {
-    _restTimer?.cancel();
-    setState(() {
-      _restTimer = null;
-      _restRemaining = seconds;
-    });
-  }
-
-  void _restartRest(int seconds) {
-    _restTimer?.cancel();
-    setState(() => _restRemaining = seconds);
-    _startRest();
   }
 }
 
@@ -416,6 +430,7 @@ class _ReadOnlyLiveView extends StatelessWidget {
     required this.exerciseIndex,
     required this.exerciseTotal,
     required this.restRemaining,
+    required this.restTotal,
     required this.onBack,
   });
 
@@ -426,6 +441,7 @@ class _ReadOnlyLiveView extends StatelessWidget {
   final int exerciseIndex;
   final int exerciseTotal;
   final int restRemaining;
+  final int restTotal;
   final VoidCallback onBack;
 
   @override
@@ -588,7 +604,10 @@ class _ReadOnlyLiveView extends StatelessWidget {
               ),
             ),
           ),
-          _ReadOnlyRestFooter(restRemaining: restRemaining),
+          _ReadOnlyRestFooter(
+            restRemaining: restRemaining,
+            restTotal: restTotal,
+          ),
         ],
       ),
     );
@@ -645,11 +664,14 @@ class _EditableSetCard extends StatelessWidget {
                     height: 40,
                   ),
                   onPressed: () => onToggleDone(value, !value.isDone),
-                  icon: Icon(
-                    value.isDone
-                        ? Icons.check_box_rounded
-                        : Icons.check_box_outline_blank_rounded,
-                    color: value.isDone ? const Color(0xFF21C97A) : lmMuted,
+                  icon: MotionSwitcher(
+                    child: Icon(
+                      value.isDone
+                          ? Icons.check_box_rounded
+                          : Icons.check_box_outline_blank_rounded,
+                      key: ValueKey(value.isDone),
+                      color: value.isDone ? const Color(0xFF21C97A) : lmMuted,
+                    ),
                   ),
                   ),
                 ),
@@ -828,6 +850,8 @@ class _RoundStepButton extends StatelessWidget {
 class _CompactRestFooter extends StatelessWidget {
   const _CompactRestFooter({
     required this.remaining,
+    required this.total,
+    required this.progress,
     required this.isRunning,
     required this.onToggle,
     required this.onAdd,
@@ -836,6 +860,8 @@ class _CompactRestFooter extends StatelessWidget {
   });
 
   final int remaining;
+  final int total;
+  final double progress;
   final bool isRunning;
   final VoidCallback onToggle;
   final VoidCallback onAdd;
@@ -874,6 +900,16 @@ class _CompactRestFooter extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: progress.clamp(0, 1),
+              minHeight: 5,
+              color: lmBlue,
+              backgroundColor: const Color(0xFF22262E),
+            ),
           ),
           const SizedBox(height: 6),
           Row(
@@ -1002,9 +1038,13 @@ class _NextExerciseCard extends StatelessWidget {
 }
 
 class _ReadOnlyRestFooter extends StatelessWidget {
-  const _ReadOnlyRestFooter({required this.restRemaining});
+  const _ReadOnlyRestFooter({
+    required this.restRemaining,
+    required this.restTotal,
+  });
 
   final int restRemaining;
+  final int restTotal;
 
   @override
   Widget build(BuildContext context) {
@@ -1043,7 +1083,7 @@ class _ReadOnlyRestFooter extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(3),
             child: LinearProgressIndicator(
-              value: restRemaining / _LiveSessionScreenState._restTotal,
+              value: (restRemaining / restTotal.clamp(1, 3600)).clamp(0, 1),
               minHeight: 5,
               color: lmBlue,
               backgroundColor: const Color(0xFF22262E),

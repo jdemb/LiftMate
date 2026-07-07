@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/motion.dart';
 import '../widgets/motion/pressable_scale.dart';
 
 const lmBackground = Color(0xFF101216);
@@ -43,7 +44,9 @@ class RelationshipCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: LiftMateMotion.duration(context, LiftMateMotion.fast),
+      curve: LiftMateMotion.standard,
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(

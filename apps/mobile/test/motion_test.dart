@@ -150,4 +150,23 @@ void main() {
     expect(find.text('view-0'), findsNothing);
     expect(find.text('view-1'), findsOneWidget);
   });
+
+  testWidgets('reduced motion renders pop values at final scale', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(disableAnimations: true),
+          child: MotionPop(child: Text('42')),
+        ),
+      ),
+    );
+
+    final transition = tester.widget<ScaleTransition>(
+      find.byType(ScaleTransition),
+    );
+    expect(transition.scale.value, 1);
+    expect(find.text('42'), findsOneWidget);
+  });
 }

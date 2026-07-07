@@ -246,6 +246,34 @@ class SharedSessionController extends ChangeNotifier {
     );
   }
 
+  Future<SharedSessionApiResult<SharedSession>> updateRest({
+    required AuthUser user,
+    required SharedSessionRestAction action,
+  }) async {
+    final session = _state.session;
+    final accessToken = authController.tokens?.accessToken;
+    if (session == null || accessToken == null) {
+      const result = SharedSessionApiResult<SharedSession>(
+        status: SharedSessionApiStatus.unauthorized,
+        message: 'Shared session is not loaded.',
+      );
+      _setError(user, result.message);
+      return result;
+    }
+
+    _setState(_state.copyWith(status: SharedSessionControllerStatus.saving));
+    final result = await apiClient.updateRest(
+      accessToken: accessToken,
+      sessionId: session.id,
+      update: UpdateSharedSessionRest(
+        action,
+        deltaSeconds: action == SharedSessionRestAction.add ? 15 : null,
+      ),
+    );
+    await _acceptResult(user, result, joinLoadedSession: false);
+    return result;
+  }
+
   Future<SharedSessionApiResult<SharedSession>> complete(AuthUser user) async {
     final result = await _close(user, (accessToken, sessionId) {
       return apiClient.complete(accessToken: accessToken, sessionId: sessionId);
@@ -357,6 +385,13 @@ class SharedSessionController extends ChangeNotifier {
     final previousSession = _state.session;
     if (!result.isSuccess || session == null) {
       _setError(user, result.message);
+      return;
+    }
+
+    if (previousSession != null &&
+        previousSession.id == session.id &&
+        session.version < previousSession.version) {
+      _setState(_state.copyWith(status: SharedSessionControllerStatus.loaded));
       return;
     }
 

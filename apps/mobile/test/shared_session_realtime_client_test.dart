@@ -48,6 +48,8 @@ void main() {
         expect(updates, hasLength(2));
         expect(updates.first.version, 1);
         expect(updates.last.version, 2);
+        expect(updates.last.restTimer.totalSeconds, 105);
+        expect(updates.last.restTimer.endsAt, isNotNull);
 
         await updateSubscription.cancel();
         await statusSubscription.cancel();
@@ -260,6 +262,12 @@ Map<String, dynamic> _sessionJson({int version = 2}) {
     'startedByRole': 'trainer',
     'status': 'active',
     'version': version,
+    'restTimer': {
+      'totalSeconds': 105,
+      'remainingSeconds': 75,
+      'endsAt': '2026-06-03T12:01:15Z',
+      'serverNow': '2026-06-03T12:00:00Z',
+    },
     'createdAt': '2026-06-03T12:00:00Z',
     'updatedAt': '2026-06-03T12:00:00Z',
     'closedAt': null,

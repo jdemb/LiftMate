@@ -538,10 +538,10 @@ Zmiana wymaga migracji `AddSharedSessionRestTimer`, która dodaje pola timera i 
 
 #### Automated
 
-- [x] 3.1 Testy przejść i ekranów przechodzą: `flutter test test/auth_screen_test.dart test/post_auth_relationship_screen_test.dart test/training_history_flow_test.dart --reporter compact`
-- [x] 3.2 Test potwierdza limit staggeru po dziesiątym elemencie
-- [x] 3.3 Test potwierdza brak restartu animacji po odświeżeniu danych w tym samym widoku
-- [x] 3.4 Analiza statyczna przechodzi: `flutter analyze`
+- [x] 3.1 Testy przejść i ekranów przechodzą: `flutter test test/auth_screen_test.dart test/post_auth_relationship_screen_test.dart test/training_history_flow_test.dart --reporter compact` — fd190bf
+- [x] 3.2 Test potwierdza limit staggeru po dziesiątym elemencie — fd190bf
+- [x] 3.3 Test potwierdza brak restartu animacji po odświeżeniu danych w tym samym widoku — fd190bf
+- [x] 3.4 Analiza statyczna przechodzi: `flutter analyze` — fd190bf
 
 #### Manual
 
@@ -552,12 +552,12 @@ Zmiana wymaga migracji `AddSharedSessionRestTimer`, która dodaje pola timera i 
 
 #### Automated
 
-- [ ] 4.1 Migracja i backend budują się poprawnie: `dotnet build LiftMate.slnx --no-restore`
-- [ ] 4.2 Testy API i realtime przechodzą: `dotnet test LiftMate.slnx --no-build --filter "FullyQualifiedName~SharedSession"`
-- [ ] 4.3 Testy sesji i progresu przechodzą: `flutter test test/shared_session_models_test.dart test/shared_session_api_client_test.dart test/shared_session_controller_test.dart test/shared_session_realtime_client_test.dart test/live_session_screen_test.dart test/training_history_flow_test.dart test/post_auth_relationship_screen_test.dart --reporter compact`
-- [ ] 4.4 Test timera potwierdza dynamiczny mianownik, start/pauzę/reset/`+15 s`, reconnect, uprawnienia, broadcast do read-only oraz dokładnie jeden sygnał końca
-- [ ] 4.5 Test reduced motion potwierdza natychmiastowe checkboxy, liczby i słupki
-- [ ] 4.6 Analiza statyczna przechodzi: `flutter analyze`
+- [x] 4.1 Migracja i backend budują się poprawnie: `dotnet build LiftMate.slnx --no-restore`
+- [x] 4.2 Testy API i realtime przechodzą: `dotnet test LiftMate.slnx --no-build --filter "FullyQualifiedName~SharedSession"`
+- [x] 4.3 Testy sesji i progresu przechodzą: `flutter test test/shared_session_models_test.dart test/shared_session_api_client_test.dart test/shared_session_controller_test.dart test/shared_session_realtime_client_test.dart test/live_session_screen_test.dart test/training_history_flow_test.dart test/post_auth_relationship_screen_test.dart --reporter compact`
+- [x] 4.4 Test timera potwierdza dynamiczny mianownik, start/pauzę/reset/`+15 s`, reconnect, uprawnienia, broadcast do read-only oraz dokładnie jeden sygnał końca
+- [x] 4.5 Test reduced motion potwierdza natychmiastowe checkboxy, liczby i słupki
+- [x] 4.6 Analiza statyczna przechodzi: `flutter analyze`
 
 #### Manual
 

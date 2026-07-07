@@ -101,6 +101,40 @@ public sealed class SharedSessionHubTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task ReadOnlyTraineeReceivesCanonicalRestTimerBroadcast()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        var session = await CreateSession(client, trainer, trainee);
+        var receivedUpdate = new TaskCompletionSource<SharedSessionResponse>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using var connection = CreateConnection(trainee.AccessToken);
+        connection.On<SharedSessionResponse>("sessionUpdated", response =>
+        {
+            if (response.Id == session.Id && response.RestTimer?.EndsAt is not null)
+            {
+                receivedUpdate.TrySetResult(response);
+            }
+        });
+        await connection.StartAsync();
+        await connection.InvokeAsync("JoinSession", session.Id);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.PatchAsJsonAsync(
+            $"/shared-sessions/{session.Id}/rest",
+            new { action = "start", deltaSeconds = (int?)null });
+        var broadcast = await receivedUpdate.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(broadcast.RestTimer);
+        Assert.NotNull(broadcast.RestTimer.EndsAt);
+        Assert.Equal(90, broadcast.RestTimer.TotalSeconds);
+        Assert.InRange(broadcast.RestTimer.RemainingSeconds, 89, 90);
+    }
+
+    [Fact]
     public async Task ConcurrentUpdatesBroadcastDistinctCanonicalVersions()
     {
         using var setupClient = factory.CreateClient();
@@ -362,7 +396,14 @@ public sealed class SharedSessionHubTests(TestApplicationFactory factory)
         DateTimeOffset CreatedAt,
         DateTimeOffset UpdatedAt,
         DateTimeOffset? ClosedAt,
+        SharedSessionRestTimerResponse? RestTimer,
         IReadOnlyList<SharedSessionValueResponse> Values);
+
+    private sealed record SharedSessionRestTimerResponse(
+        int TotalSeconds,
+        int RemainingSeconds,
+        DateTimeOffset? EndsAt,
+        DateTimeOffset ServerNow);
 
     private sealed record SharedSessionValueResponse(
         Guid Id,

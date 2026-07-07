@@ -161,6 +161,59 @@ void main() {
       expect(controller.state.session?.values.single.isDone, isTrue);
     });
 
+    test('rest update sends canonical add command', () async {
+      final authController = await _authController(role: UserRole.trainee);
+      final apiClient = _FakeSharedSessionApiClient();
+      final controller = SharedSessionController(
+        apiClient: apiClient,
+        authController: authController,
+        realtimeClientFactory: _FakeSharedSessionRealtimeClient.new,
+      );
+      addTearDown(controller.dispose);
+      await controller.startTraineeSession(
+        user: authController.state.user!,
+        workoutSetId: 'set-1',
+      );
+
+      await controller.updateRest(
+        user: authController.state.user!,
+        action: SharedSessionRestAction.add,
+      );
+
+      expect(apiClient.updatedRest?.action, SharedSessionRestAction.add);
+      expect(apiClient.updatedRest?.deltaSeconds, 15);
+    });
+
+    test('newer realtime snapshot restores the canonical rest deadline', () async {
+      final authController = await _authController(role: UserRole.trainee);
+      final realtimeClient = _FakeSharedSessionRealtimeClient();
+      final controller = SharedSessionController(
+        apiClient: _FakeSharedSessionApiClient(),
+        authController: authController,
+        realtimeClientFactory: () => realtimeClient,
+      );
+      addTearDown(controller.dispose);
+      await controller.loadActive(authController.state.user!);
+      final serverNow = DateTime.utc(2026, 7, 7, 12);
+
+      realtimeClient.emit(
+        _session(
+          version: 2,
+          restTimer: SharedSessionRestTimer(
+            totalSeconds: 105,
+            remainingSeconds: 75,
+            endsAt: serverNow.add(const Duration(seconds: 75)),
+            serverNow: serverNow,
+          ),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.state.session?.restTimer.totalSeconds, 105);
+      expect(controller.state.session?.restTimer.remainingSeconds, 75);
+      expect(controller.state.session?.restTimer.endsAt, isNotNull);
+    });
+
     test(
       'successful completion exposes saved-for-next-session outcome',
       () async {
@@ -502,6 +555,7 @@ SharedSession _session({
   int? version,
   int reps = 6,
   List<SharedSessionValue>? values,
+  SharedSessionRestTimer? restTimer,
 }) {
   return SharedSession(
     id: id,
@@ -518,6 +572,7 @@ SharedSession _session({
     version: version ?? (isDone ? 2 : 1),
     createdAt: DateTime.parse('2026-06-03T12:00:00Z').toUtc(),
     updatedAt: DateTime.parse('2026-06-03T12:00:00Z').toUtc(),
+    restTimerSnapshot: restTimer,
     values:
         values ??
         [
@@ -548,6 +603,7 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
   String? startedTraineeWorkoutSetId;
   String? loadedSessionId;
   UpdateSharedSessionValue? updatedValue;
+  UpdateSharedSessionRest? updatedRest;
 
   @override
   Future<SharedSessionApiResult<SharedSession>> getActive({
@@ -605,6 +661,20 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
       startedByRole: _currentSession.startedByRole,
       isDone: value.isDone ?? false,
     );
+    return SharedSessionApiResult(
+      status: SharedSessionApiStatus.success,
+      message: 'Request succeeded.',
+      data: _currentSession,
+    );
+  }
+
+  @override
+  Future<SharedSessionApiResult<SharedSession>> updateRest({
+    required String accessToken,
+    required String sessionId,
+    required UpdateSharedSessionRest update,
+  }) async {
+    updatedRest = update;
     return SharedSessionApiResult(
       status: SharedSessionApiStatus.success,
       message: 'Request succeeded.',

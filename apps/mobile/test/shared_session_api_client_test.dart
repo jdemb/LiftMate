@@ -60,12 +60,19 @@ void main() {
           expect(request.headers['Authorization'], 'Bearer access-token');
 
           if (request.method == 'PATCH') {
-            expect(jsonDecode(request.body), {
-              'reps': 8,
-              'weight': 42.5,
-              'seconds': null,
-              'isDone': true,
-            });
+            if (request.url.path.endsWith('/rest')) {
+              expect(jsonDecode(request.body), {
+                'action': 'add',
+                'deltaSeconds': 15,
+              });
+            } else {
+              expect(jsonDecode(request.body), {
+                'reps': 8,
+                'weight': 42.5,
+                'seconds': null,
+                'isDone': true,
+              });
+            }
           }
 
           return http.Response(jsonEncode(_sessionJson()), 200);
@@ -80,6 +87,14 @@ void main() {
         valueId: 'value-1',
         value: const UpdateSharedSessionValue(reps: 8, weight: 42.5, isDone: true),
       );
+      await client.updateRest(
+        accessToken: 'access-token',
+        sessionId: 'session-1',
+        update: const UpdateSharedSessionRest(
+          SharedSessionRestAction.add,
+          deltaSeconds: 15,
+        ),
+      );
       await client.complete(accessToken: 'access-token', sessionId: 'session-1');
       await client.cancel(accessToken: 'access-token', sessionId: 'session-1');
 
@@ -87,6 +102,7 @@ void main() {
         'GET /shared-sessions/active',
         'GET /shared-sessions/session-1',
         'PATCH /shared-sessions/session-1/values/value-1',
+        'PATCH /shared-sessions/session-1/rest',
         'POST /shared-sessions/session-1/complete',
         'POST /shared-sessions/session-1/cancel',
       ]);

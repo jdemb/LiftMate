@@ -200,13 +200,15 @@ class _CounterCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontFamily: 'Space Grotesk',
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
-              color: accent ? lmBlue : Colors.white,
+          MotionPop(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontFamily: 'Space Grotesk',
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: accent ? lmBlue : Colors.white,
+              ),
             ),
           ),
           const SizedBox(height: 2),

@@ -22,6 +22,7 @@ public static class SharedSessionEndpoints
         group.MapGet("/active", GetActive).RequireAuthorization();
         group.MapGet("/{sessionId:guid}", Get).RequireAuthorization();
         group.MapPatch("/{sessionId:guid}/values/{valueId:guid}", UpdateValue).RequireAuthorization();
+        group.MapPatch("/{sessionId:guid}/rest", UpdateRest).RequireAuthorization();
         group.MapPost("/{sessionId:guid}/complete", Complete).RequireAuthorization();
         group.MapPost("/{sessionId:guid}/cancel", Cancel).RequireAuthorization();
 
@@ -124,6 +125,8 @@ public static class SharedSessionEndpoints
             StartedByRole = UserRole.Trainer,
             WorkoutSetName = "Trening",
             RestSeconds = 90,
+            RestTimerTotalSeconds = 90,
+            RestTimerRemainingSeconds = 90,
             Status = SharedSessionStatus.Active,
             Version = 1,
             CreatedAt = now,
@@ -302,6 +305,8 @@ public static class SharedSessionEndpoints
                 WorkoutSet = workoutSet,
                 WorkoutSetName = workoutSet.Name,
                 RestSeconds = workoutSet.RestSeconds,
+                RestTimerTotalSeconds = workoutSet.RestSeconds,
+                RestTimerRemainingSeconds = workoutSet.RestSeconds,
                 StartedByUserId = currentUserId,
                 StartedByRole = startedByRole,
                 Status = SharedSessionStatus.Active,
@@ -456,6 +461,7 @@ public static class SharedSessionEndpoints
             }
 
             var now = DateTimeOffset.UtcNow;
+            var wasDone = value.IsDone;
             value.Reps = reps;
             value.Weight = weight;
             value.Seconds = seconds;
@@ -463,6 +469,10 @@ public static class SharedSessionEndpoints
             {
                 value.IsDone = request.IsDone.Value;
                 value.CompletedAt = value.IsDone ? value.CompletedAt ?? now : null;
+                if (!wasDone && value.IsDone)
+                {
+                    StartFullRestTimer(session, now);
+                }
             }
             value.UpdatedByUserId = userId;
             value.UpdatedAt = now;
@@ -483,6 +493,109 @@ public static class SharedSessionEndpoints
         if (updatedSession is null)
         {
             return Results.Problem("Shared session update did not produce a result.");
+        }
+
+        await broadcaster.BroadcastUpdatedAsync(updatedSession, cancellationToken);
+        return Results.Ok(SharedSessionMapping.ToResponse(updatedSession));
+    }
+
+    private static async Task<IResult> UpdateRest(
+        Guid sessionId,
+        UpdateSharedSessionRestRequest request,
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext,
+        SharedSessionBroadcaster broadcaster,
+        CancellationToken cancellationToken)
+    {
+        var userId = SharedSessionAccess.UserId(principal);
+        if (userId is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var action = request.Action.Trim().ToLowerInvariant();
+        if (action is not ("start" or "pause" or "add" or "reset"))
+        {
+            return Results.BadRequest(new { error = "Unsupported rest timer action." });
+        }
+        if (action == "add" && request.DeltaSeconds != 15)
+        {
+            return Results.BadRequest(new { error = "Rest timer add requires deltaSeconds 15." });
+        }
+
+        IResult? terminalResult = null;
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+        await executionStrategy.ExecuteAsync(async () =>
+        {
+            terminalResult = null;
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken);
+            dbContext.ChangeTracker.Clear();
+
+            var session = await FindSession(dbContext, sessionId, cancellationToken);
+            if (session is null)
+            {
+                terminalResult = Results.NotFound();
+                return;
+            }
+            if (!CanUpdateValues(session, principal, userId))
+            {
+                terminalResult = Results.Forbid();
+                return;
+            }
+            if (session.Status != SharedSessionStatus.Active)
+            {
+                terminalResult = Results.Conflict(new { error = "Shared session is not active." });
+                return;
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            var remaining = CurrentRestRemaining(session, now);
+            switch (action)
+            {
+                case "start":
+                    session.RestTimerRemainingSeconds = remaining;
+                    session.RestTimerEndsAt = remaining == 0 ? null : now.AddSeconds(remaining);
+                    break;
+                case "pause":
+                    session.RestTimerRemainingSeconds = remaining;
+                    session.RestTimerEndsAt = null;
+                    break;
+                case "add":
+                    session.RestTimerTotalSeconds = Math.Clamp(
+                        session.RestTimerTotalSeconds + 15,
+                        0,
+                        3600);
+                    remaining = Math.Clamp(remaining + 15, 0, 3600);
+                    session.RestTimerRemainingSeconds = remaining;
+                    session.RestTimerEndsAt = session.RestTimerEndsAt is null
+                        ? null
+                        : now.AddSeconds(remaining);
+                    break;
+                case "reset":
+                    session.RestTimerTotalSeconds = session.RestSeconds;
+                    session.RestTimerRemainingSeconds = session.RestSeconds;
+                    session.RestTimerEndsAt = null;
+                    break;
+            }
+
+            session.Version += 1;
+            session.UpdatedAt = now;
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
+
+        if (terminalResult is not null)
+        {
+            return terminalResult;
+        }
+
+        dbContext.ChangeTracker.Clear();
+        var updatedSession = await FindSession(dbContext, sessionId, cancellationToken);
+        if (updatedSession is null)
+        {
+            return Results.Problem("Rest timer update did not produce a result.");
         }
 
         await broadcaster.BroadcastUpdatedAsync(updatedSession, cancellationToken);
@@ -681,6 +794,26 @@ public static class SharedSessionEndpoints
         return string.Equals(session.TraineeUserId, userId, StringComparison.Ordinal) &&
             string.Equals(session.StartedByRole, UserRole.Trainee, StringComparison.Ordinal) &&
             string.Equals(session.StartedByUserId, userId, StringComparison.Ordinal);
+    }
+
+    private static int CurrentRestRemaining(SharedSession session, DateTimeOffset now)
+    {
+        if (session.RestTimerEndsAt is null)
+        {
+            return Math.Clamp(session.RestTimerRemainingSeconds, 0, 3600);
+        }
+
+        return Math.Clamp(
+            (int)Math.Ceiling((session.RestTimerEndsAt.Value - now).TotalSeconds),
+            0,
+            3600);
+    }
+
+    private static void StartFullRestTimer(SharedSession session, DateTimeOffset now)
+    {
+        session.RestTimerTotalSeconds = session.RestSeconds;
+        session.RestTimerRemainingSeconds = session.RestSeconds;
+        session.RestTimerEndsAt = now.AddSeconds(session.RestSeconds);
     }
 
     private static string? ValidateUpdatedValue(

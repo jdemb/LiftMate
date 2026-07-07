@@ -119,6 +119,18 @@ class StaggeredReveal extends StatelessWidget {
   }
 }
 
+class MotionStaggerScope extends StatelessWidget {
+  const MotionStaggerScope({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (LiftMateMotion.animationsDisabled(context)) return child;
+    return AnimationLimiter(child: child);
+  }
+}
+
 class MotionSwitcher extends StatelessWidget {
   const MotionSwitcher({required this.child, super.key});
 

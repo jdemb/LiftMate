@@ -8,6 +8,7 @@ import '../workout_sets/trainee_assigned_workout_set_view.dart';
 import '../workout_sets/workout_set_controller.dart';
 import '../workout_sets/workout_set_models.dart';
 import '../widgets/motion/pressable_scale.dart';
+import '../widgets/motion/motion_reveals.dart';
 import 'relationship_controller.dart';
 import 'relationship_formatters.dart';
 import 'relationship_models.dart';
@@ -66,7 +67,13 @@ class _TraineeHomeScreenState extends State<TraineeHomeScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
               children: [
-                _TraineeHeader(user: widget.user, onLogout: widget.onLogout),
+                StaggeredReveal(
+                  position: 0,
+                  child: _TraineeHeader(
+                    user: widget.user,
+                    onLogout: widget.onLogout,
+                  ),
+                ),
                 const SizedBox(height: 22),
                 if (isLoading && widget.state.traineeSummary == null)
                   const Center(
@@ -76,18 +83,23 @@ class _TraineeHomeScreenState extends State<TraineeHomeScreen> {
                     ),
                   )
                 else if (trainer == null)
-                  _UnlinkedTrainerCard(
-                    controller: _codeController,
-                    errorMessage:
-                        widget.state.status ==
-                            RelationshipControllerStatus.error
-                        ? widget.state.message
-                        : null,
-                    isLoading: isLoading,
-                    onSubmit: _submit,
+                  StaggeredReveal(
+                    position: 1,
+                    child: _UnlinkedTrainerCard(
+                      controller: _codeController,
+                      errorMessage:
+                          widget.state.status ==
+                              RelationshipControllerStatus.error
+                          ? widget.state.message
+                          : null,
+                      isLoading: isLoading,
+                      onSubmit: _submit,
+                    ),
                   )
                 else
-                  _LinkedTrainerCard(
+                  StaggeredReveal(
+                    position: 1,
+                    child: _LinkedTrainerCard(
                     trainerName: trainer.displayName,
                     trainerEmail: trainer.email,
                     controller: _codeController,
@@ -103,6 +115,7 @@ class _TraineeHomeScreenState extends State<TraineeHomeScreen> {
                     onStartWorkout: widget.onStartWorkout,
                     onJoinActiveWorkout: widget.onJoinActiveWorkout,
                     weeklyStreak: widget.state.traineeSummary!.weeklyStreak,
+                    ),
                   ),
               ],
             ),

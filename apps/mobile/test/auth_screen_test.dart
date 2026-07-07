@@ -855,6 +855,27 @@ void main() {
       expect(find.text('Kod dostępu'), findsNothing);
       expect(find.text('Kod rejestracji'), findsNothing);
     });
+
+    testWidgets('onboarding transition follows the active step key', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            fail('No auth request should be sent before submitting');
+          }),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('auth-step-welcome')), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Załóż konto'));
+      await tester.tap(find.text('Załóż konto'));
+      await tester.pump(const Duration(milliseconds: 1));
+
+      expect(find.byKey(const ValueKey('auth-step-role')), findsOneWidget);
+    });
   });
 }
 

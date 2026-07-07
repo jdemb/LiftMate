@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import '../trainer_guidance/trainer_guidance_controller.dart';
 import '../trainer_guidance/trainer_guidance_models.dart';
+import '../widgets/motion/motion_reveals.dart';
 import '../widgets/motion/pressable_scale.dart';
 import '../workout_sets/workout_set_text.dart';
 import 'relationship_models.dart';
@@ -185,12 +186,15 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                 )
               else
                 for (final set in assignedSets)
-                  _AssignedSetCard(
-                    set: set,
-                    onStartSession:
-                        trainee.activeSession == null && onStartSession != null
-                        ? () => onStartSession!(set)
-                        : null,
+                  StaggeredReveal(
+                    position: assignedSets.indexOf(set),
+                    child: _AssignedSetCard(
+                      set: set,
+                      onStartSession:
+                          trainee.activeSession == null && onStartSession != null
+                          ? () => onStartSession!(set)
+                          : null,
+                    ),
                   ),
             ],
           ),

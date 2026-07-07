@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../auth/auth_models.dart';
 import '../relationships/relationship_screen_styles.dart';
 import '../shared_sessions/shared_session_models.dart';
+import '../widgets/motion/motion_reveals.dart';
 import '../widgets/motion/pressable_scale.dart';
 import 'training_history_controller.dart';
 import 'training_history_formatters.dart';
@@ -140,9 +141,12 @@ class _ListLevel extends StatelessWidget {
                     ),
                     const SizedBox(height: 18),
                     for (final session in state.items)
-                      _SessionCard(
-                        session: session,
-                        onTap: () => onOpenSession(session.id),
+                      StaggeredReveal(
+                        position: state.items.indexOf(session),
+                        child: _SessionCard(
+                          session: session,
+                          onTap: () => onOpenSession(session.id),
+                        ),
                       ),
                     if (state.paginationError != null) ...[
                       const SizedBox(height: 6),
@@ -412,11 +416,14 @@ class _DetailLevel extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   for (final exercise in session.exercises)
-                    _ExerciseCard(
-                      exercise: exercise,
-                      onTap: exercise.exerciseId == null
-                          ? null
-                          : () => onOpenProgress(exercise.exerciseId!),
+                    StaggeredReveal(
+                      position: session.exercises.indexOf(exercise),
+                      child: _ExerciseCard(
+                        exercise: exercise,
+                        onTap: exercise.exerciseId == null
+                            ? null
+                            : () => onOpenProgress(exercise.exerciseId!),
+                      ),
                     ),
                 ],
               ),

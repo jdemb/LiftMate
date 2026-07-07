@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_models.dart';
 import '../relationships/relationship_screen_styles.dart';
+import '../widgets/motion/motion_reveals.dart';
 import '../widgets/motion/pressable_scale.dart';
 import 'shared_session_controller.dart';
 import 'shared_session_models.dart';
@@ -165,12 +166,15 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
                   ),
                   const SizedBox(height: 18),
                   for (final value in currentGroup.values)
-                    _EditableSetCard(
-                      user: widget.user,
-                      controller: widget.controller,
-                      value: value,
-                      onToggleDone: (value, isDone) =>
-                          _toggleDone(session, value, isDone),
+                    StaggeredReveal(
+                      position: currentGroup.values.indexOf(value),
+                      child: _EditableSetCard(
+                        user: widget.user,
+                        controller: widget.controller,
+                        value: value,
+                        onToggleDone: (value, isDone) =>
+                            _toggleDone(session, value, isDone),
+                      ),
                     ),
                   const SizedBox(height: 14),
                   _NextExerciseCard(

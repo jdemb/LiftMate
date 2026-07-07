@@ -10,6 +10,7 @@ import '../training_history/training_history_api_client.dart';
 import '../trainer_guidance/trainer_guidance_api_client.dart';
 import '../workout_sets/workout_set_api_client.dart';
 import '../widgets/motion/pressable_scale.dart';
+import '../widgets/motion/motion_reveals.dart';
 import 'auth_api_client.dart';
 import 'auth_controller.dart';
 import 'auth_models.dart';
@@ -429,7 +430,12 @@ class _AuthScreenState extends State<AuthScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (_pendingPairRole != null)
-                    _PairingPanel(
+                    MotionSwitcher(
+                      child: KeyedSubtree(
+                        key: ValueKey(
+                          'auth-step-pair-${_pendingPairRole!.name}',
+                        ),
+                        child: _PairingPanel(
                       role: _pendingPairRole!,
                       trainerInviteCode: _trainerInviteCode,
                       trainerCodeController: _trainerCodeController,
@@ -443,9 +449,14 @@ class _AuthScreenState extends State<AuthScreen> {
                           ? _finishPairing
                           : _backToSignupFromPairing,
                       onTrainerCodeChanged: () => setState(() {}),
+                        ),
+                      ),
                     )
                   else
-                    _OnboardingPanel(
+                    MotionSwitcher(
+                      child: KeyedSubtree(
+                        key: ValueKey('auth-step-${_step.name}'),
+                        child: _OnboardingPanel(
                       step: _step,
                       selectedRole: _selectedRole,
                       isLoading: isLoading || _isRegistering,
@@ -474,6 +485,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       onToggleSignupPassword: () => setState(() {
                         _isSignupPasswordVisible = !_isSignupPasswordVisible;
                       }),
+                        ),
+                      ),
                     ),
                 ],
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../relationships/relationship_models.dart';
 import '../relationships/relationship_screen_styles.dart';
+import '../widgets/motion/motion_reveals.dart';
 import '../widgets/motion/pressable_scale.dart';
 import 'workout_set_controller.dart';
 import 'workout_set_models.dart';
@@ -39,7 +40,8 @@ class _AssignWorkoutSetScreenState extends State<AssignWorkoutSetScreen> {
           children: [
             _Header(title: 'Przypisz zestaw', onBack: widget.onBack),
             Expanded(
-              child: ListView(
+              child: MotionStaggerScope(
+                child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 10, 22, 16),
                 children: [
                   RelationshipCard(
@@ -77,22 +79,26 @@ class _AssignWorkoutSetScreenState extends State<AssignWorkoutSetScreen> {
                     )
                   else
                     for (final trainee in widget.trainees)
-                      _TraineeAssignRow(
-                        trainee: trainee,
-                        selected: _selected.contains(trainee.id),
-                        onTap: () {
-                          setState(() {
-                            if (!_selected.add(trainee.id)) {
-                              _selected.remove(trainee.id);
-                            }
-                          });
-                        },
+                      StaggeredReveal(
+                        position: widget.trainees.indexOf(trainee),
+                        child: _TraineeAssignRow(
+                          trainee: trainee,
+                          selected: _selected.contains(trainee.id),
+                          onTap: () {
+                            setState(() {
+                              if (!_selected.add(trainee.id)) {
+                                _selected.remove(trainee.id);
+                              }
+                            });
+                          },
+                        ),
                       ),
                   if (state.status == WorkoutSetControllerStatus.error && state.message != null) ...[
                     const SizedBox(height: 12),
                     Text(state.message!, style: const TextStyle(color: Colors.redAccent)),
                   ],
                 ],
+                ),
               ),
             ),
             _BottomAction(

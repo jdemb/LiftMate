@@ -5,6 +5,7 @@ import 'relationship_controller.dart';
 import 'relationship_formatters.dart';
 import 'relationship_models.dart';
 import 'relationship_screen_styles.dart';
+import '../widgets/motion/motion_reveals.dart';
 import '../widgets/motion/pressable_scale.dart';
 
 class TrainerDashboardScreen extends StatelessWidget {
@@ -42,7 +43,8 @@ class TrainerDashboardScreen extends StatelessWidget {
         Expanded(
           child: RefreshIndicator(
             onRefresh: onReload,
-            child: ListView(
+            child: MotionStaggerScope(
+              child: ListView(
               padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
               children: [
                 _TrainerHeader(user: user, onLogout: onLogout),
@@ -96,14 +98,18 @@ class TrainerDashboardScreen extends StatelessWidget {
                   const _TrainerEmptyState()
                 else
                   ...trainees.map(
-                    (trainee) => _TraineeListItem(
-                      trainee: trainee,
-                      isOpening: openingTraineeId == trainee.id,
-                      isDisabled: openingTraineeId != null,
-                      onTap: () => onOpenTrainee(trainee),
+                    (trainee) => StaggeredReveal(
+                      position: trainees.indexOf(trainee),
+                      child: _TraineeListItem(
+                        trainee: trainee,
+                        isOpening: openingTraineeId == trainee.id,
+                        isDisabled: openingTraineeId != null,
+                        onTap: () => onOpenTrainee(trainee),
+                      ),
                     ),
                   ),
               ],
+              ),
             ),
           ),
         ),

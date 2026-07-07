@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../relationships/relationship_screen_styles.dart';
 import '../widgets/motion/pressable_scale.dart';
+import '../widgets/motion/motion_reveals.dart';
 import 'add_workout_set_exercise_screen.dart';
 import 'workout_set_controller.dart';
 import 'workout_set_draft.dart';
@@ -62,7 +63,8 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
           children: [
             _Header(title: 'Kreator zestawu', onBack: widget.onBack),
             Expanded(
-              child: ListView(
+              child: MotionStaggerScope(
+                child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 10, 22, 16),
                 children: [
                   const _FieldLabel('Nazwa zestawu'),
@@ -88,11 +90,14 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
                       ),
                     ),
                   for (var i = 0; i < _draft.length; i += 1)
-                    _DraftExerciseCard(
-                      index: i + 1,
-                      exercise: _draft[i],
-                      onTap: () => _openExerciseEditor(_draft[i].draftId),
-                      onDelete: () => _deleteDraftExercise(_draft[i].draftId),
+                    StaggeredReveal(
+                      position: i,
+                      child: _DraftExerciseCard(
+                        index: i + 1,
+                        exercise: _draft[i],
+                        onTap: () => _openExerciseEditor(_draft[i].draftId),
+                        onDelete: () => _deleteDraftExercise(_draft[i].draftId),
+                      ),
                     ),
                   const SizedBox(height: 4),
                   PressableScale(
@@ -114,6 +119,7 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
                     Text(state.message!, style: const TextStyle(color: Colors.redAccent)),
                   ],
                 ],
+                ),
               ),
             ),
             _BottomAction(

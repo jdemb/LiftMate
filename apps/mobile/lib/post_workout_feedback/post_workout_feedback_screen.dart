@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../relationships/relationship_screen_styles.dart';
+import '../widgets/motion/motion_reveals.dart';
 import '../widgets/motion/pressable_scale.dart';
 import 'post_workout_feedback_controller.dart';
 
@@ -92,11 +93,14 @@ class _PostWorkoutFeedbackScreenState extends State<PostWorkoutFeedbackScreen> {
                     children: [
                       for (var rating = 1; rating <= 5; rating++) ...[
                         Expanded(
-                          child: _RatingButton(
-                            rating: rating,
-                            selected: state.wellbeingRating == rating,
-                            enabled: !isSubmitting,
-                            onTap: () => widget.controller.setRating(rating),
+                          child: StaggeredReveal(
+                            position: rating - 1,
+                            child: _RatingButton(
+                              rating: rating,
+                              selected: state.wellbeingRating == rating,
+                              enabled: !isSubmitting,
+                              onTap: () => widget.controller.setRating(rating),
+                            ),
                           ),
                         ),
                         if (rating < 5) const SizedBox(width: 7),

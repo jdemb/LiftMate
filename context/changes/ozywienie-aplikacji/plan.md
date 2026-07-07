@@ -525,9 +525,9 @@ Zmiana wymaga migracji `AddSharedSessionRestTimer`, która dodaje pola timera i 
 
 #### Automated
 
-- [x] 2.1 Testy ekranów interaktywnych przechodzą: `flutter test test/auth_screen_test.dart test/post_auth_relationship_screen_test.dart test/workout_set_trainer_screens_test.dart test/trainer_trainee_detail_screen_test.dart test/trainee_assigned_workout_sets_screen_test.dart test/weekly_streak_screen_test.dart test/live_session_screen_test.dart test/training_history_flow_test.dart test/post_workout_feedback_screen_test.dart --reporter compact`
-- [x] 2.2 Testy `PressableScale` potwierdzają dokładnie jeden callback i jeden feedback dla aktywacji
-- [x] 2.3 Analiza statyczna przechodzi: `flutter analyze`
+- [x] 2.1 Testy ekranów interaktywnych przechodzą: `flutter test test/auth_screen_test.dart test/post_auth_relationship_screen_test.dart test/workout_set_trainer_screens_test.dart test/trainer_trainee_detail_screen_test.dart test/trainee_assigned_workout_sets_screen_test.dart test/weekly_streak_screen_test.dart test/live_session_screen_test.dart test/training_history_flow_test.dart test/post_workout_feedback_screen_test.dart --reporter compact` — 23bb2c8
+- [x] 2.2 Testy `PressableScale` potwierdzają dokładnie jeden callback i jeden feedback dla aktywacji — 23bb2c8
+- [x] 2.3 Analiza statyczna przechodzi: `flutter analyze` — 23bb2c8
 
 #### Manual
 
@@ -538,10 +538,10 @@ Zmiana wymaga migracji `AddSharedSessionRestTimer`, która dodaje pola timera i 
 
 #### Automated
 
-- [ ] 3.1 Testy przejść i ekranów przechodzą: `flutter test test/auth_screen_test.dart test/post_auth_relationship_screen_test.dart test/training_history_flow_test.dart --reporter compact`
-- [ ] 3.2 Test potwierdza limit staggeru po dziesiątym elemencie
-- [ ] 3.3 Test potwierdza brak restartu animacji po odświeżeniu danych w tym samym widoku
-- [ ] 3.4 Analiza statyczna przechodzi: `flutter analyze`
+- [x] 3.1 Testy przejść i ekranów przechodzą: `flutter test test/auth_screen_test.dart test/post_auth_relationship_screen_test.dart test/training_history_flow_test.dart --reporter compact`
+- [x] 3.2 Test potwierdza limit staggeru po dziesiątym elemencie
+- [x] 3.3 Test potwierdza brak restartu animacji po odświeżeniu danych w tym samym widoku
+- [x] 3.4 Analiza statyczna przechodzi: `flutter analyze`
 
 #### Manual
 

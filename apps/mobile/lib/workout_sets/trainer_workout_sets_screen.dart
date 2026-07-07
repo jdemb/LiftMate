@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../relationships/relationship_screen_styles.dart';
+import '../widgets/motion/motion_reveals.dart';
 import '../widgets/motion/pressable_scale.dart';
 import 'workout_set_api_client.dart';
 import 'workout_set_controller.dart';
@@ -92,7 +93,8 @@ class TrainerWorkoutSetsScreen extends StatelessWidget {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: onReload,
-                child: ListView(
+                child: MotionStaggerScope(
+                  child: ListView(
                   padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
                   children: [
                     const Text(
@@ -127,17 +129,21 @@ class TrainerWorkoutSetsScreen extends StatelessWidget {
                       )
                     else ...[
                       for (final set in sets)
-                        _WorkoutSetCard(
-                          set: set,
-                          onEdit: () => onEditSet(set),
-                          onAssign: () => onAssignSet(set),
-                          onDelete: () => _deleteSet(context, set),
-                          isDeleting: state.deletingSetId == set.id,
+                        StaggeredReveal(
+                          position: sets.indexOf(set),
+                          child: _WorkoutSetCard(
+                            set: set,
+                            onEdit: () => onEditSet(set),
+                            onAssign: () => onAssignSet(set),
+                            onDelete: () => _deleteSet(context, set),
+                            isDeleting: state.deletingSetId == set.id,
+                          ),
                         ),
                       _NewSetButton(onPressed: onCreateSet),
                     ],
                   ],
                 ),
+              ),
               ),
             ),
             RelationshipBottomNav(
@@ -262,7 +268,7 @@ class _WorkoutSetCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                ),
+                  ),
             ],
           ),
           const SizedBox(height: 6),

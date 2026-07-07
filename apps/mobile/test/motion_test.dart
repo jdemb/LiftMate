@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:liftmate/theme/motion.dart';
+import 'package:liftmate/widgets/motion/motion_reveals.dart';
 
 void main() {
   test('motion tokens match the LiftMate prototype', () {
@@ -94,5 +95,59 @@ void main() {
     expect(LiftMateMotion.staggerPosition(8), 8);
     expect(LiftMateMotion.staggerPosition(10), 10);
     expect(LiftMateMotion.staggerPosition(25), 10);
+  });
+
+  testWidgets('same view key updates without an outgoing transition', (
+    tester,
+  ) async {
+    final value = ValueNotifier(0);
+    addTearDown(value.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ValueListenableBuilder<int>(
+          valueListenable: value,
+          builder: (context, current, _) => MotionSwitcher(
+            child: KeyedSubtree(
+              key: const ValueKey('stable-view'),
+              child: Text('value-$current'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    value.value = 1;
+    await tester.pump(const Duration(milliseconds: 1));
+
+    expect(find.byKey(const ValueKey('stable-view')), findsOneWidget);
+    expect(find.text('value-0'), findsNothing);
+    expect(find.text('value-1'), findsOneWidget);
+  });
+
+  testWidgets('reduced motion switches views immediately', (tester) async {
+    final value = ValueNotifier(0);
+    addTearDown(value.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: ValueListenableBuilder<int>(
+            valueListenable: value,
+            builder: (context, current, _) => MotionSwitcher(
+              child: Text('view-$current', key: ValueKey(current)),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    value.value = 1;
+    await tester.pump();
+
+    expect(find.text('view-0'), findsNothing);
+    expect(find.text('view-1'), findsOneWidget);
   });
 }

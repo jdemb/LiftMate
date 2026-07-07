@@ -20,6 +20,7 @@ import '../workout_sets/workout_set_api_client.dart';
 import '../workout_sets/workout_set_builder_screen.dart';
 import '../workout_sets/workout_set_controller.dart';
 import '../workout_sets/workout_set_models.dart';
+import '../widgets/motion/motion_reveals.dart';
 import '../workout_sets/trainer_workout_sets_screen.dart';
 import 'relationship_api_client.dart';
 import 'relationship_controller.dart';
@@ -145,11 +146,20 @@ class _AuthenticatedRelationshipShellState
     return AnimatedBuilder(
       animation: _relationshipController,
       builder: (context, _) {
+        Widget show(String viewId, Widget child) {
+          return MotionSwitcher(
+            child: KeyedSubtree(
+              key: ValueKey('relationship-view-$viewId'),
+              child: child,
+            ),
+          );
+        }
+
         final state = _relationshipController.state;
         if (widget.user.role == UserRole.trainer) {
           final selected = _selectedTrainee;
           if (_trainerView == _TrainerView.live) {
-            return LiveSessionScreen(
+            return show('trainer-live', LiveSessionScreen(
               user: widget.user,
               controller: _sharedSessionController,
               editable: true,
@@ -159,12 +169,12 @@ class _AuthenticatedRelationshipShellState
                 setState(() => _trainerView = _TrainerView.dashboard);
                 _relationshipController.reload();
               },
-            );
+            ));
           }
 
           if (_trainerView == _TrainerView.history &&
               _trainerHistoryController != null) {
-            return TrainingHistoryFlow(
+            return show('trainer-history', TrainingHistoryFlow(
               controller: _trainerHistoryController!,
               viewerRole: UserRole.trainer,
               showLevelOneBack: true,
@@ -173,11 +183,11 @@ class _AuthenticatedRelationshipShellState
                 _trainerHistoryController = null;
                 setState(() => _trainerView = _TrainerView.dashboard);
               },
-            );
+            ));
           }
 
           if (selected != null) {
-            return TrainerTraineeDetailScreen(
+            return show('trainee-${selected.id}', TrainerTraineeDetailScreen(
               trainee: selected,
               onBack: () {
                 _disposeTrainerGuidanceController();
@@ -198,11 +208,11 @@ class _AuthenticatedRelationshipShellState
                       SharedSessionControllerStatus.error
                   ? _sharedSessionController.state.message
                   : null,
-            );
+            ));
           }
 
           if (_trainerView == _TrainerView.sets) {
-            return TrainerWorkoutSetsScreen(
+            return show('trainer-sets', TrainerWorkoutSetsScreen(
               controller: _workoutSetController,
               onReload: _loadWorkoutSets,
               onOpenDashboard: () =>
@@ -214,27 +224,30 @@ class _AuthenticatedRelationshipShellState
               onEditSet: _openBuilder,
               onAssignSet: _openAssign,
               onLogout: widget.onLogout,
-            );
+            ));
           }
 
           if (_trainerView == _TrainerView.builder) {
-            return WorkoutSetBuilderScreen(
+            return show('trainer-builder', WorkoutSetBuilderScreen(
               controller: _workoutSetController,
               initialDetail: _builderDetail,
               onBack: () {
                 setState(() => _trainerView = _TrainerView.sets);
                 _loadWorkoutSets();
               },
-            );
+            ));
           }
 
           if (_trainerView == _TrainerView.assign) {
             final detail = _workoutSetController.state.selectedSet;
             if (detail == null) {
-              return const Center(child: CircularProgressIndicator());
+              return show(
+                'trainer-assign-loading',
+                const Center(child: CircularProgressIndicator()),
+              );
             }
 
-            return AssignWorkoutSetScreen(
+            return show('trainer-assign', AssignWorkoutSetScreen(
               controller: _workoutSetController,
               workoutSet: detail,
               trainees: state.trainerSummary?.trainees ?? const [],
@@ -242,10 +255,10 @@ class _AuthenticatedRelationshipShellState
                 setState(() => _trainerView = _TrainerView.sets);
                 _loadWorkoutSets();
               },
-            );
+            ));
           }
 
-          return TrainerDashboardScreen(
+          return show('trainer-dashboard', TrainerDashboardScreen(
             user: widget.user,
             state: state,
             openingTraineeId: _openingTraineeId,
@@ -257,29 +270,29 @@ class _AuthenticatedRelationshipShellState
             onReload: _relationshipController.reload,
             onCopyInviteCode: _copyTrainerInviteCode,
             onLogout: widget.onLogout,
-          );
+          ));
         }
 
         final traineeTrainer = state.traineeSummary?.trainer;
         final feedbackController = _feedbackController;
         if (feedbackController != null) {
-          return PostWorkoutFeedbackScreen(
+          return show('trainee-feedback', PostWorkoutFeedbackScreen(
             controller: feedbackController,
             onSaved: _handleFeedbackSaved,
             onSkipped: _handleFeedbackSkipped,
-          );
+          ));
         }
         if (_showTraineeHistory) {
-          return TrainingHistoryFlow(
+          return show('trainee-history', TrainingHistoryFlow(
             controller: _selfHistoryController,
             viewerRole: UserRole.trainee,
             onAddFeedback: _openFeedbackFromHistory,
             onClose: () => setState(() => _showTraineeHistory = false),
-          );
+          ));
         }
         if (_showTraineeLive) {
           final session = _sharedSessionController.state.session;
-          return LiveSessionScreen(
+          return show('trainee-live', LiveSessionScreen(
             user: widget.user,
             controller: _sharedSessionController,
             editable: session?.isTraineeSelfStarted ?? false,
@@ -289,7 +302,7 @@ class _AuthenticatedRelationshipShellState
               setState(() => _showTraineeLive = false);
               _relationshipController.reload();
             },
-          );
+          ));
         }
 
         if (traineeTrainer != null &&
@@ -311,7 +324,7 @@ class _AuthenticatedRelationshipShellState
           });
         }
 
-        return TraineeHomeScreen(
+        return show('trainee-home', TraineeHomeScreen(
           user: widget.user,
           state: state,
           onClaimCode: _relationshipController.claimTrainerCode,
@@ -326,7 +339,7 @@ class _AuthenticatedRelationshipShellState
           onStartWorkout: _startTraineeSession,
           onJoinActiveWorkout: _joinTraineeActiveSession,
           onOpenHistory: _openSelfHistory,
-        );
+        ));
       },
     );
   }

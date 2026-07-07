@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_models.dart';
 import '../relationships/relationship_screen_styles.dart';
+import '../widgets/motion/pressable_scale.dart';
 import 'shared_session_controller.dart';
 import 'shared_session_models.dart';
 
@@ -195,7 +196,8 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(22, 12, 22, 16),
-              child: FilledButton.icon(
+              child: PressableScale(
+                child: FilledButton.icon(
                 onPressed: _finishSession,
                 icon: const Icon(Icons.check_rounded),
                 label: const Text('Zakończ i zapisz trening'),
@@ -208,6 +210,7 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
                   side: BorderSide(
                     color: const Color(0xFF21C97A).withValues(alpha: 0.4),
                   ),
+                ),
                 ),
               ),
             ),
@@ -317,10 +320,12 @@ class _LiveTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          IconButton(
+          PressableScale(
+            child: IconButton(
             tooltip: 'Wróć',
             onPressed: onBack,
             icon: const Icon(Icons.chevron_left_rounded, size: 30),
+            ),
           ),
           Expanded(
             child: Column(
@@ -446,12 +451,14 @@ class _ReadOnlyLiveView extends StatelessWidget {
                     children: [
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: IconButton(
+                        child: PressableScale(
+                          child: IconButton(
                           tooltip: 'Wróć',
                           onPressed: onBack,
                           icon: const Icon(
                             Icons.chevron_left_rounded,
                             size: 30,
+                          ),
                           ),
                         ),
                       ),
@@ -624,7 +631,9 @@ class _EditableSetCard extends StatelessWidget {
               ),
               SizedBox.square(
                 dimension: 40,
-                child: IconButton(
+                child: PressableScale(
+                  haptic: PressableHaptic.none,
+                  child: IconButton(
                   tooltip: value.isDone ? 'Cofnij serię' : 'Oznacz serię',
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints.tightFor(
@@ -637,6 +646,7 @@ class _EditableSetCard extends StatelessWidget {
                         ? Icons.check_box_rounded
                         : Icons.check_box_outline_blank_rounded,
                     color: value.isDone ? const Color(0xFF21C97A) : lmMuted,
+                  ),
                   ),
                 ),
               ),
@@ -795,7 +805,8 @@ class _RoundStepButton extends StatelessWidget {
     return SizedBox(
       width: 32,
       height: 32,
-      child: IconButton.filled(
+      child: PressableScale(
+        child: IconButton.filled(
         onPressed: onTap,
         icon: Icon(icon, size: 18),
         style: IconButton.styleFrom(
@@ -803,6 +814,7 @@ class _RoundStepButton extends StatelessWidget {
           foregroundColor: Colors.white,
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+        ),
         ),
       ),
     );
@@ -874,7 +886,8 @@ class _CompactRestFooter extends StatelessWidget {
               SizedBox(
                 width: 52,
                 height: 40,
-                child: Material(
+                child: PressableScale(
+                  child: Material(
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(20),
@@ -888,6 +901,7 @@ class _CompactRestFooter extends StatelessWidget {
                         ),
                       ),
                     ),
+                  ),
                   ),
                 ),
               ),
@@ -920,7 +934,8 @@ class _FooterAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: tooltip,
-      child: SizedBox.square(
+      child: PressableScale(
+        child: SizedBox.square(
         dimension: 40,
         child: Material(
           color: const Color(0xFF22262E),
@@ -930,6 +945,7 @@ class _FooterAction extends StatelessWidget {
             onTap: onTap,
             child: Center(child: icon),
           ),
+        ),
         ),
       ),
     );
@@ -971,7 +987,10 @@ class _NextExerciseCard extends StatelessWidget {
               ],
             ),
           ),
-          TextButton(onPressed: onNext, child: const Text('Dalej')),
+          PressableScale(
+            enabled: onNext != null,
+            child: TextButton(onPressed: onNext, child: const Text('Dalej')),
+          ),
         ],
       ),
     );

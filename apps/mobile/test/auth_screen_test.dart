@@ -46,6 +46,42 @@ void main() {
       expect(find.text('Shared session diagnostics'), findsNothing);
     });
 
+    testWidgets('welcome action emits one selection haptic and still navigates', (
+      tester,
+    ) async {
+      final haptics = <MethodCall>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'HapticFeedback.vibrate') {
+            haptics.add(call);
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            fail('No auth request should be sent before submitting');
+          }),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _tapButton(tester, 'Załóż konto');
+
+      expect(find.text('Jak korzystasz\nz LiftMate?'), findsOneWidget);
+      expect(haptics, hasLength(1));
+      expect(haptics.single.arguments, 'HapticFeedbackType.selectionClick');
+    });
+
     testWidgets('role selection uses design cards and opens trainee signup', (
       tester,
     ) async {

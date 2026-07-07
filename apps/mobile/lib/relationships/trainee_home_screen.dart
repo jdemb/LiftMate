@@ -7,6 +7,7 @@ import '../shared_sessions/shared_session_models.dart';
 import '../workout_sets/trainee_assigned_workout_set_view.dart';
 import '../workout_sets/workout_set_controller.dart';
 import '../workout_sets/workout_set_models.dart';
+import '../widgets/motion/pressable_scale.dart';
 import 'relationship_controller.dart';
 import 'relationship_formatters.dart';
 import 'relationship_models.dart';
@@ -170,10 +171,12 @@ class _TraineeHeader extends StatelessWidget {
             ],
           ),
         ),
-        IconButton(
-          tooltip: 'Wyloguj',
-          onPressed: onLogout,
-          icon: const Icon(Icons.logout_rounded),
+        PressableScale(
+          child: IconButton(
+            tooltip: 'Wyloguj',
+            onPressed: onLogout,
+            icon: const Icon(Icons.logout_rounded),
+          ),
         ),
         RelationshipAvatar(label: user.displayName),
       ],
@@ -539,16 +542,19 @@ class _TrainerCodeForm extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: isLoading ? null : onSubmit,
-            icon: isLoading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.link_rounded),
-            label: Text(buttonLabel),
+          PressableScale(
+            enabled: !isLoading,
+            child: FilledButton.icon(
+              onPressed: isLoading ? null : onSubmit,
+              icon: isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.link_rounded),
+              label: Text(buttonLabel),
+            ),
           ),
         ],
       ),

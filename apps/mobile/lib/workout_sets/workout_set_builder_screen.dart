@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../relationships/relationship_screen_styles.dart';
+import '../widgets/motion/pressable_scale.dart';
 import 'add_workout_set_exercise_screen.dart';
 import 'workout_set_controller.dart';
 import 'workout_set_draft.dart';
@@ -94,7 +95,8 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
                       onDelete: () => _deleteDraftExercise(_draft[i].draftId),
                     ),
                   const SizedBox(height: 4),
-                  OutlinedButton.icon(
+                  PressableScale(
+                    child: OutlinedButton.icon(
                     key: const ValueKey('builder-add-exercise'),
                     onPressed: () => _openExerciseEditor(null),
                     icon: const Icon(Icons.add_rounded),
@@ -104,6 +106,7 @@ class _WorkoutSetBuilderScreenState extends State<WorkoutSetBuilderScreen> {
                       side: BorderSide(color: lmBlue.withValues(alpha: 0.45), width: 1.5),
                       backgroundColor: lmBlue.withValues(alpha: 0.08),
                       minimumSize: const Size.fromHeight(52),
+                    ),
                     ),
                   ),
                   if (state.status == WorkoutSetControllerStatus.error && state.message != null) ...[
@@ -243,10 +246,12 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 14, 22, 6),
       child: Row(
         children: [
-          IconButton(
+          PressableScale(
+            child: IconButton(
             tooltip: 'Wróć',
             onPressed: onBack,
             icon: const Icon(Icons.chevron_left_rounded, color: lmMuted, size: 30),
+            ),
           ),
           const SizedBox(width: 4),
           Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
@@ -290,10 +295,13 @@ class _RestSecondsField extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
-          IconButton.outlined(
+          PressableScale(
+            enabled: seconds > 15,
+            child: IconButton.outlined(
             key: const ValueKey('builder-rest-decrease'),
             onPressed: seconds <= 15 ? null : onDecrease,
             icon: const Icon(Icons.remove_rounded),
+            ),
           ),
           Expanded(
             child: Text(
@@ -306,10 +314,13 @@ class _RestSecondsField extends StatelessWidget {
               ),
             ),
           ),
-          IconButton.filled(
+          PressableScale(
+            enabled: seconds < 600,
+            child: IconButton.filled(
             key: const ValueKey('builder-rest-increase'),
             onPressed: seconds >= 600 ? null : onIncrease,
             icon: const Icon(Icons.add_rounded),
+            ),
           ),
         ],
       ),
@@ -339,7 +350,8 @@ class _DraftExerciseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RelationshipCard(
+    return PressableScale(
+      child: RelationshipCard(
       margin: const EdgeInsets.only(bottom: 10),
       padding: EdgeInsets.zero,
       child: Material(
@@ -376,6 +388,7 @@ class _DraftExerciseCard extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -443,7 +456,10 @@ class _BottomAction extends StatelessWidget {
         color: const Color(0xFF13151A),
         border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.07))),
       ),
-      child: FilledButton(onPressed: onPressed, child: Text(label)),
+      child: PressableScale(
+        enabled: onPressed != null,
+        child: FilledButton(onPressed: onPressed, child: Text(label)),
+      ),
     );
   }
 }

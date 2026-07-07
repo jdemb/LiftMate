@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../relationships/relationship_screen_styles.dart';
+import '../widgets/motion/pressable_scale.dart';
 import 'workout_set_api_client.dart';
 import 'workout_set_controller.dart';
 import 'workout_set_models.dart';
@@ -38,16 +39,20 @@ class TrainerWorkoutSetsScreen extends StatelessWidget {
           'Zestaw zniknie z listy i nie będzie można przypisać go ponownie.',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Anuluj'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFD94A4A),
+          PressableScale(
+            child: TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Anuluj'),
             ),
-            child: const Text('Usuń'),
+          ),
+          PressableScale(
+            child: FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFD94A4A),
+              ),
+              child: const Text('Usuń'),
+            ),
           ),
         ],
       ),
@@ -223,38 +228,40 @@ class _WorkoutSetCard extends StatelessWidget {
                   ),
                 )
               else
-                PopupMenuButton<_WorkoutSetAction>(
-                  key: ValueKey('workout-set-menu-${set.id}'),
-                  tooltip: 'Więcej',
-                  padding: EdgeInsets.zero,
-                  icon: const Icon(Icons.more_vert_rounded),
-                  iconSize: 20,
-                  color: const Color(0xFF22262E),
-                  position: PopupMenuPosition.under,
-                  constraints: const BoxConstraints(minWidth: 168),
-                  onSelected: (_) => onDelete(),
-                  itemBuilder: (context) => const [
-                    PopupMenuItem<_WorkoutSetAction>(
-                      value: _WorkoutSetAction.delete,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.delete_outline_rounded,
-                            color: Color(0xFFFF8D8D),
-                            size: 20,
-                          ),
-                          SizedBox(width: 10),
-                          Text(
-                            'Usuń zestaw',
-                            style: TextStyle(
+                PressableScale(
+                  child: PopupMenuButton<_WorkoutSetAction>(
+                    key: ValueKey('workout-set-menu-${set.id}'),
+                    tooltip: 'Więcej',
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.more_vert_rounded),
+                    iconSize: 20,
+                    color: const Color(0xFF22262E),
+                    position: PopupMenuPosition.under,
+                    constraints: const BoxConstraints(minWidth: 168),
+                    onSelected: (_) => onDelete(),
+                    itemBuilder: (context) => const [
+                      PopupMenuItem<_WorkoutSetAction>(
+                        value: _WorkoutSetAction.delete,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.delete_outline_rounded,
                               color: Color(0xFFFF8D8D),
-                              fontWeight: FontWeight.w600,
+                              size: 20,
                             ),
-                          ),
-                        ],
+                            SizedBox(width: 10),
+                            Text(
+                              'Usuń zestaw',
+                              style: TextStyle(
+                                color: Color(0xFFFF8D8D),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
             ],
           ),
@@ -272,18 +279,22 @@ class _WorkoutSetCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_rounded),
-                  label: const Text('Edytuj'),
+                child: PressableScale(
+                  child: OutlinedButton.icon(
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.edit_rounded),
+                    label: const Text('Edytuj'),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: FilledButton.icon(
-                  onPressed: onAssign,
-                  icon: const Icon(Icons.group_add_rounded),
-                  label: const Text('Przypisz'),
+                child: PressableScale(
+                  child: FilledButton.icon(
+                    onPressed: onAssign,
+                    icon: const Icon(Icons.group_add_rounded),
+                    label: const Text('Przypisz'),
+                  ),
                 ),
               ),
             ],
@@ -303,15 +314,17 @@ class _NewSetButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: const Icon(Icons.add_rounded),
-      label: const Text('Nowy zestaw'),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: lmBlueSoft,
-        side: BorderSide(color: lmBlue.withValues(alpha: 0.45), width: 1.5),
-        backgroundColor: lmBlue.withValues(alpha: 0.08),
-        minimumSize: const Size.fromHeight(54),
+    return PressableScale(
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Nowy zestaw'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: lmBlueSoft,
+          side: BorderSide(color: lmBlue.withValues(alpha: 0.45), width: 1.5),
+          backgroundColor: lmBlue.withValues(alpha: 0.08),
+          minimumSize: const Size.fromHeight(54),
+        ),
       ),
     );
   }

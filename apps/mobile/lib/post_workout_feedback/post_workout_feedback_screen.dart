@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../relationships/relationship_screen_styles.dart';
+import '../widgets/motion/pressable_scale.dart';
 import 'post_workout_feedback_controller.dart';
 
 class PostWorkoutFeedbackScreen extends StatefulWidget {
@@ -131,7 +132,9 @@ class _PostWorkoutFeedbackScreenState extends State<PostWorkoutFeedbackScreen> {
                     ),
                   ],
                   const SizedBox(height: 20),
-                  FilledButton(
+                  PressableScale(
+                    enabled: state.wellbeingRating != null && !isSubmitting,
+                    child: FilledButton(
                     onPressed: state.wellbeingRating == null || isSubmitting
                         ? null
                         : _submit,
@@ -148,11 +151,15 @@ class _PostWorkoutFeedbackScreenState extends State<PostWorkoutFeedbackScreen> {
                         const Text('Wyślij feedback'),
                       ],
                     ),
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  TextButton(
+                  PressableScale(
+                    enabled: !isSubmitting,
+                    child: TextButton(
                     onPressed: isSubmitting ? null : _confirmSkip,
                     child: const Text('Pomiń'),
+                    ),
                   ),
                 ],
               );
@@ -186,13 +193,17 @@ class _PostWorkoutFeedbackScreenState extends State<PostWorkoutFeedbackScreen> {
             'Możesz dodać feedback później z historii treningu.',
           ),
           actions: [
-            TextButton(
+            PressableScale(
+              child: TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Wróć'),
+              ),
             ),
-            TextButton(
+            PressableScale(
+              child: TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               child: const Text('Pomiń'),
+              ),
             ),
           ],
         );
@@ -226,7 +237,9 @@ class _RatingButton extends StatelessWidget {
       selected: selected,
       container: true,
       excludeSemantics: true,
-      child: InkWell(
+      child: PressableScale(
+        enabled: enabled,
+        child: InkWell(
         key: ValueKey('feedback-rating-$rating'),
         onTap: enabled ? onTap : null,
         borderRadius: BorderRadius.circular(14),
@@ -264,6 +277,7 @@ class _RatingButton extends StatelessWidget {
             ],
           ),
         ),
+        ),
       ),
     );
   }
@@ -284,9 +298,12 @@ class _FeedbackError extends StatelessWidget {
         children: [
           Text(message, style: const TextStyle(color: Colors.redAccent)),
           const SizedBox(height: 8),
-          OutlinedButton(
+          PressableScale(
+            enabled: onRetry != null,
+            child: OutlinedButton(
             onPressed: onRetry,
             child: const Text('Spróbuj ponownie'),
+            ),
           ),
         ],
       ),

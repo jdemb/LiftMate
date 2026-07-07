@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../auth/auth_models.dart';
 import '../relationships/relationship_screen_styles.dart';
 import '../shared_sessions/shared_session_models.dart';
+import '../widgets/motion/pressable_scale.dart';
 import 'training_history_controller.dart';
 import 'training_history_formatters.dart';
 import 'training_history_models.dart';
@@ -151,9 +152,11 @@ class _ListLevel extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.redAccent),
                       ),
-                      TextButton(
+                      PressableScale(
+                        child: TextButton(
                         onPressed: onRetry,
                         child: const Text('Spróbuj ponownie'),
+                        ),
                       ),
                     ] else if (state.nextCursor != null) ...[
                       const SizedBox(height: 6),
@@ -163,9 +166,11 @@ class _ListLevel extends StatelessWidget {
                                 padding: EdgeInsets.all(12),
                                 child: CircularProgressIndicator(),
                               )
-                            : OutlinedButton(
+                            : PressableScale(
+                                child: OutlinedButton(
                                 onPressed: onLoadMore,
                                 child: const Text('Załaduj więcej'),
+                                ),
                               ),
                       ),
                     ],
@@ -206,7 +211,8 @@ class _SessionCard extends StatelessWidget {
     final date = session.completedAt;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
+      child: PressableScale(
+        child: Material(
         color: lmSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
@@ -306,6 +312,7 @@ class _SessionCard extends StatelessWidget {
               ],
             ),
           ),
+        ),
         ),
       ),
     );
@@ -476,9 +483,11 @@ class _HistoryFeedbackCard extends StatelessWidget {
               style: const TextStyle(color: lmMuted, height: 1.4),
             ),
           ] else if (viewerRole == UserRole.trainee && onAddFeedback != null)
-            OutlinedButton(
+            PressableScale(
+              child: OutlinedButton(
               onPressed: () => onAddFeedback!(session.id),
               child: const Text('Dodaj feedback'),
+              ),
             )
           else
             const Text('Brak feedbacku', style: TextStyle(color: lmMuted)),
@@ -528,7 +537,9 @@ class _ExerciseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
+      child: PressableScale(
+        enabled: onTap != null,
+        child: Material(
         color: lmSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -602,6 +613,7 @@ class _ExerciseCard extends StatelessWidget {
               ],
             ),
           ),
+        ),
         ),
       ),
     );
@@ -845,10 +857,12 @@ class _HistoryHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(10, 10, 20, 8),
       child: Row(
         children: [
-          IconButton(
+          PressableScale(
+            child: IconButton(
             tooltip: 'Wróć',
             onPressed: onBack,
             icon: const Icon(Icons.chevron_left_rounded, size: 30),
+            ),
           ),
           const SizedBox(width: 2),
           Expanded(
@@ -893,9 +907,11 @@ class _RetryState extends StatelessWidget {
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 14),
-            FilledButton(
+            PressableScale(
+              child: FilledButton(
               onPressed: onRetry,
               child: const Text('Spróbuj ponownie'),
+              ),
             ),
           ],
         ),

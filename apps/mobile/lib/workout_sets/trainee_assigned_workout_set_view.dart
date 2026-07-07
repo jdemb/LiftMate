@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../relationships/relationship_screen_styles.dart';
+import '../widgets/motion/pressable_scale.dart';
 import '../shared_sessions/shared_session_models.dart';
 import 'workout_set_models.dart';
 import 'workout_set_text.dart';
@@ -85,13 +86,17 @@ class _AssignedSetCard extends StatelessWidget {
               rows: entry.value,
             ),
           const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: activeSession == null ? onStartWorkout : onJoinActiveWorkout,
-            icon: const Icon(Icons.play_arrow_rounded),
-            label: Text(
-              activeSession == null
-                  ? 'Rozpocznij trening'
-                  : 'Dołącz do aktywnego treningu',
+          PressableScale(
+            child: FilledButton.icon(
+              onPressed: activeSession == null
+                  ? onStartWorkout
+                  : onJoinActiveWorkout,
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: Text(
+                activeSession == null
+                    ? 'Rozpocznij trening'
+                    : 'Dołącz do aktywnego treningu',
+              ),
             ),
           ),
         ],

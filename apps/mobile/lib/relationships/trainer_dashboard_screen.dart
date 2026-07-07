@@ -5,6 +5,7 @@ import 'relationship_controller.dart';
 import 'relationship_formatters.dart';
 import 'relationship_models.dart';
 import 'relationship_screen_styles.dart';
+import '../widgets/motion/pressable_scale.dart';
 
 class TrainerDashboardScreen extends StatelessWidget {
   const TrainerDashboardScreen({
@@ -162,10 +163,12 @@ class _TrainerHeader extends StatelessWidget {
             ],
           ),
         ),
-        IconButton(
-          tooltip: 'Wyloguj',
-          onPressed: onLogout,
-          icon: const Icon(Icons.logout_rounded),
+        PressableScale(
+          child: IconButton(
+            tooltip: 'Wyloguj',
+            onPressed: onLogout,
+            icon: const Icon(Icons.logout_rounded),
+          ),
         ),
         RelationshipAvatar(label: user.displayName),
       ],
@@ -275,9 +278,11 @@ class _InviteCodeCard extends StatelessWidget {
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
-            child: Tooltip(
-              message: 'Kopiuj kod zaproszenia',
-              child: TextButton.icon(
+            child: PressableScale(
+              enabled: canCopy,
+              child: Tooltip(
+                message: 'Kopiuj kod zaproszenia',
+                child: TextButton.icon(
                 key: const ValueKey('copy-trainer-invite-code-dashboard'),
                 onPressed: canCopy ? () => onCopy(code!) : null,
                 icon: const Icon(Icons.copy_rounded, size: 17),
@@ -294,6 +299,7 @@ class _InviteCodeCard extends StatelessWidget {
                   shape: const StadiumBorder(),
                 ),
               ),
+            ),
             ),
           ),
         ],
@@ -326,10 +332,12 @@ class _TrainerEmptyState extends StatelessWidget {
             style: TextStyle(color: lmMuted, height: 1.45),
           ),
           const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.person_add_alt_1_rounded),
-            label: const Text('Zaproś podopiecznego'),
+          PressableScale(
+            child: FilledButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              label: const Text('Zaproś podopiecznego'),
+            ),
           ),
         ],
       ),
@@ -354,12 +362,14 @@ class _TraineeListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: isDisabled ? null : onTap,
-          child: RelationshipCard(
+      child: PressableScale(
+        enabled: !isDisabled,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: isDisabled ? null : onTap,
+            child: RelationshipCard(
             child: Row(
               children: [
                 RelationshipAvatar(label: trainee.displayName),
@@ -434,6 +444,7 @@ class _TraineeListItem extends StatelessWidget {
                 else
                   const Icon(Icons.chevron_right_rounded, color: lmMutedDark),
               ],
+            ),
             ),
           ),
         ),

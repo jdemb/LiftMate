@@ -517,17 +517,17 @@ Zmiana wymaga migracji `AddSharedSessionRestTimer`, która dodaje pola timera i 
 
 #### Automated
 
-- [x] 1.1 Zależności rozwiązują się poprawnie: `flutter pub get`
-- [x] 1.2 Testy fundamentu przechodzą: `flutter test test/motion_test.dart test/pressable_scale_test.dart --reporter compact`
-- [x] 1.3 Analiza statyczna przechodzi: `flutter analyze`
+- [x] 1.1 Zależności rozwiązują się poprawnie: `flutter pub get` — 725bb5d
+- [x] 1.2 Testy fundamentu przechodzą: `flutter test test/motion_test.dart test/pressable_scale_test.dart --reporter compact` — 725bb5d
+- [x] 1.3 Analiza statyczna przechodzi: `flutter analyze` — 725bb5d
 
 ### Phase 2: Dotyk i haptyka
 
 #### Automated
 
-- [ ] 2.1 Testy ekranów interaktywnych przechodzą: `flutter test test/auth_screen_test.dart test/post_auth_relationship_screen_test.dart test/workout_set_trainer_screens_test.dart test/trainer_trainee_detail_screen_test.dart test/trainee_assigned_workout_sets_screen_test.dart test/weekly_streak_screen_test.dart test/live_session_screen_test.dart test/training_history_flow_test.dart test/post_workout_feedback_screen_test.dart --reporter compact`
-- [ ] 2.2 Testy `PressableScale` potwierdzają dokładnie jeden callback i jeden feedback dla aktywacji
-- [ ] 2.3 Analiza statyczna przechodzi: `flutter analyze`
+- [x] 2.1 Testy ekranów interaktywnych przechodzą: `flutter test test/auth_screen_test.dart test/post_auth_relationship_screen_test.dart test/workout_set_trainer_screens_test.dart test/trainer_trainee_detail_screen_test.dart test/trainee_assigned_workout_sets_screen_test.dart test/weekly_streak_screen_test.dart test/live_session_screen_test.dart test/training_history_flow_test.dart test/post_workout_feedback_screen_test.dart --reporter compact`
+- [x] 2.2 Testy `PressableScale` potwierdzają dokładnie jeden callback i jeden feedback dla aktywacji
+- [x] 2.3 Analiza statyczna przechodzi: `flutter analyze`
 
 #### Manual
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:liftmate/theme/motion.dart';
 import 'package:liftmate/widgets/motion/motion_reveals.dart';
+import 'package:liftmate/widgets/motion/continuous_motion.dart';
 
 void main() {
   test('motion tokens match the LiftMate prototype', () {
@@ -168,5 +169,81 @@ void main() {
     );
     expect(transition.scale.value, 1);
     expect(find.text('42'), findsOneWidget);
+  });
+
+  testWidgets('continuous decorations run only in an enabled motion scope', (
+    tester,
+  ) async {
+    Widget harness({required bool includeScope}) {
+      Widget child = const AmbientOrb(
+        child: ContinuousSheen(child: SizedBox(width: 160, height: 80)),
+      );
+      if (includeScope) {
+        child = MotionScope(allowContinuousAnimations: true, child: child);
+      }
+      return MaterialApp(home: Scaffold(body: child));
+    }
+
+    await tester.pumpWidget(harness(includeScope: false));
+    final staticSheen = tester
+        .widget<Transform>(find.byKey(ContinuousSheen.transformKey))
+        .transform;
+    await tester.pump(const Duration(seconds: 1));
+    expect(
+      tester
+          .widget<Transform>(find.byKey(ContinuousSheen.transformKey))
+          .transform,
+      staticSheen,
+    );
+
+    await tester.pumpWidget(harness(includeScope: true));
+    final movingSheen = tester
+        .widget<Transform>(find.byKey(ContinuousSheen.transformKey))
+        .transform;
+    await tester.pump(const Duration(seconds: 1));
+    expect(
+      tester
+          .widget<Transform>(find.byKey(ContinuousSheen.transformKey))
+          .transform,
+      isNot(movingSheen),
+    );
+  });
+
+  testWidgets('reduced motion and TickerMode stop continuous loops', (
+    tester,
+  ) async {
+    Future<void> expectStatic(Widget wrapper) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MotionScope(
+            allowContinuousAnimations: true,
+            child: wrapper,
+          ),
+        ),
+      );
+      final before = tester
+          .widget<Transform>(find.byKey(AmbientOrb.transformKey))
+          .transform;
+      await tester.pump(const Duration(seconds: 2));
+      expect(
+        tester
+            .widget<Transform>(find.byKey(AmbientOrb.transformKey))
+            .transform,
+        before,
+      );
+    }
+
+    await expectStatic(
+      const MediaQuery(
+        data: MediaQueryData(disableAnimations: true),
+        child: AmbientOrb(child: SizedBox(width: 180, height: 100)),
+      ),
+    );
+    await expectStatic(
+      const TickerMode(
+        enabled: false,
+        child: AmbientOrb(child: SizedBox(width: 180, height: 100)),
+      ),
+    );
   });
 }

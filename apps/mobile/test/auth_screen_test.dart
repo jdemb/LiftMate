@@ -13,6 +13,7 @@ import 'package:liftmate/auth/onboarding_state_store.dart';
 import 'package:liftmate/auth/token_store.dart';
 import 'package:liftmate/relationships/relationship_api_client.dart';
 import 'package:liftmate/workout_sets/workout_set_api_client.dart';
+import 'package:liftmate/widgets/motion/continuous_motion.dart';
 
 void main() {
   group('AuthScreen', () {
@@ -38,6 +39,7 @@ void main() {
         findsNothing,
       );
       expect(find.text('Załóż konto'), findsOneWidget);
+      expect(find.byType(ContinuousSheen), findsOneWidget);
       expect(find.text('Mam już konto'), findsOneWidget);
       expect(find.text('Kod dostępu'), findsNothing);
       expect(find.text('Kod rejestracji'), findsNothing);
@@ -78,6 +80,7 @@ void main() {
       await _tapButton(tester, 'Załóż konto');
 
       expect(find.text('Jak korzystasz\nz LiftMate?'), findsOneWidget);
+      expect(find.byType(ContinuousSheen), findsNothing);
       expect(haptics, hasLength(1));
       expect(haptics.single.arguments, 'HapticFeedbackType.selectionClick');
     });

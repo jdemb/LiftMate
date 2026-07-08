@@ -11,6 +11,7 @@ import '../trainer_guidance/trainer_guidance_api_client.dart';
 import '../workout_sets/workout_set_api_client.dart';
 import '../widgets/motion/pressable_scale.dart';
 import '../widgets/motion/motion_reveals.dart';
+import '../widgets/motion/continuous_motion.dart';
 import 'auth_api_client.dart';
 import 'auth_controller.dart';
 import 'auth_models.dart';
@@ -664,10 +665,12 @@ class _WelcomeStep extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 296),
-          _PrimaryActionButton(
-            label: 'Załóż konto',
-            onPressed: isLoading ? null : onCreateAccount,
-            hasGlow: true,
+          ContinuousSheen(
+            child: _PrimaryActionButton(
+              label: 'Załóż konto',
+              onPressed: isLoading ? null : onCreateAccount,
+              hasGlow: true,
+            ),
           ),
           const SizedBox(height: 12),
           _SecondaryActionButton(

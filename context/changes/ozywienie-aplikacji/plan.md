@@ -552,12 +552,12 @@ Zmiana wymaga migracji `AddSharedSessionRestTimer`, która dodaje pola timera i 
 
 #### Automated
 
-- [x] 4.1 Migracja i backend budują się poprawnie: `dotnet build LiftMate.slnx --no-restore`
-- [x] 4.2 Testy API i realtime przechodzą: `dotnet test LiftMate.slnx --no-build --filter "FullyQualifiedName~SharedSession"`
-- [x] 4.3 Testy sesji i progresu przechodzą: `flutter test test/shared_session_models_test.dart test/shared_session_api_client_test.dart test/shared_session_controller_test.dart test/shared_session_realtime_client_test.dart test/live_session_screen_test.dart test/training_history_flow_test.dart test/post_auth_relationship_screen_test.dart --reporter compact`
-- [x] 4.4 Test timera potwierdza dynamiczny mianownik, start/pauzę/reset/`+15 s`, reconnect, uprawnienia, broadcast do read-only oraz dokładnie jeden sygnał końca
-- [x] 4.5 Test reduced motion potwierdza natychmiastowe checkboxy, liczby i słupki
-- [x] 4.6 Analiza statyczna przechodzi: `flutter analyze`
+- [x] 4.1 Migracja i backend budują się poprawnie: `dotnet build LiftMate.slnx --no-restore` — 650530c
+- [x] 4.2 Testy API i realtime przechodzą: `dotnet test LiftMate.slnx --no-build --filter "FullyQualifiedName~SharedSession"` — 650530c
+- [x] 4.3 Testy sesji i progresu przechodzą: `flutter test test/shared_session_models_test.dart test/shared_session_api_client_test.dart test/shared_session_controller_test.dart test/shared_session_realtime_client_test.dart test/live_session_screen_test.dart test/training_history_flow_test.dart test/post_auth_relationship_screen_test.dart --reporter compact` — 650530c
+- [x] 4.4 Test timera potwierdza dynamiczny mianownik, start/pauzę/reset/`+15 s`, reconnect, uprawnienia, broadcast do read-only oraz dokładnie jeden sygnał końca — 650530c
+- [x] 4.5 Test reduced motion potwierdza natychmiastowe checkboxy, liczby i słupki — 650530c
+- [x] 4.6 Analiza statyczna przechodzi: `flutter analyze` — 650530c
 
 #### Manual
 
@@ -570,12 +570,12 @@ Zmiana wymaga migracji `AddSharedSessionRestTimer`, która dodaje pola timera i 
 
 #### Automated
 
-- [ ] 5.1 Pełny zestaw testów API przechodzi: `dotnet test LiftMate.slnx --no-restore`
-- [ ] 5.2 Pełny zestaw testów przechodzi: `flutter test --reporter compact`
-- [ ] 5.3 Analiza statyczna przechodzi: `flutter analyze`
-- [ ] 5.4 Android debug buduje się poprawnie: `flutter build apk --debug`
-- [ ] 5.5 Web buduje się poprawnie: `flutter build web`
-- [ ] 5.6 Istniejące testy z `pumpAndSettle()` kończą się mimo obecności orb i sheen
+- [x] 5.1 Pełny zestaw testów API przechodzi: `dotnet test LiftMate.slnx --no-restore`
+- [x] 5.2 Pełny zestaw testów przechodzi: `flutter test --reporter compact`
+- [x] 5.3 Analiza statyczna przechodzi: `flutter analyze`
+- [x] 5.4 Android debug buduje się poprawnie: `flutter build apk --debug`
+- [x] 5.5 Web buduje się poprawnie: `flutter build web`
+- [x] 5.6 Istniejące testy z `pumpAndSettle()` kończą się mimo obecności orb i sheen
 
 #### Manual
 

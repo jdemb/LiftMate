@@ -17,6 +17,7 @@ import 'package:liftmate/shared_sessions/shared_session_models.dart';
 import 'package:liftmate/shared_sessions/shared_session_realtime_client.dart';
 import 'package:liftmate/training_history/training_history_api_client.dart';
 import 'package:liftmate/workout_sets/workout_set_api_client.dart';
+import 'package:liftmate/widgets/motion/continuous_motion.dart';
 
 import 'fake_onboarding_state_store.dart';
 
@@ -1079,6 +1080,8 @@ void main() {
 
         await _startAuthenticated(tester);
         await tester.pumpAndSettle();
+        expect(find.byType(AmbientOrb), findsOneWidget);
+        expect(find.byType(ContinuousSheen), findsOneWidget);
         await _tapButton(tester, 'Rozpocznij trening');
         await _tapButton(tester, 'Zakończ i zapisz trening');
 

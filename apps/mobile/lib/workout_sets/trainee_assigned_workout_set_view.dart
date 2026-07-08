@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../relationships/relationship_screen_styles.dart';
 import '../widgets/motion/pressable_scale.dart';
+import '../widgets/motion/continuous_motion.dart';
 import '../shared_sessions/shared_session_models.dart';
 import 'workout_set_models.dart';
 import 'workout_set_text.dart';
@@ -25,11 +26,12 @@ class TraineeAssignedWorkoutSetView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final set in sets)
+        for (var index = 0; index < sets.length; index++)
           _AssignedSetCard(
-            set: set,
+            set: sets[index],
+            featured: index == 0,
             activeSession: activeSession,
-            onStartWorkout: () => onStartWorkout(set),
+            onStartWorkout: () => onStartWorkout(sets[index]),
             onJoinActiveWorkout: onJoinActiveWorkout,
           ),
       ],
@@ -40,12 +42,14 @@ class TraineeAssignedWorkoutSetView extends StatelessWidget {
 class _AssignedSetCard extends StatelessWidget {
   const _AssignedSetCard({
     required this.set,
+    required this.featured,
     required this.activeSession,
     required this.onStartWorkout,
     required this.onJoinActiveWorkout,
   });
 
   final TraineeAssignedWorkoutSet set;
+  final bool featured;
   final SharedSession? activeSession;
   final VoidCallback onStartWorkout;
   final VoidCallback onJoinActiveWorkout;
@@ -54,12 +58,21 @@ class _AssignedSetCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final exerciseCount = set.rows.map((row) => row.exerciseOrder).toSet().length;
     final grouped = _groupRows(set.rows);
+    final actionButton = FilledButton.icon(
+      onPressed: activeSession == null ? onStartWorkout : onJoinActiveWorkout,
+      icon: const Icon(Icons.play_arrow_rounded),
+      label: Text(
+        activeSession == null
+            ? 'Rozpocznij trening'
+            : 'Dołącz do aktywnego treningu',
+      ),
+    );
 
-    return RelationshipCard(
-      margin: const EdgeInsets.only(bottom: 12),
-      borderColor: lmBlue.withValues(alpha: 0.25),
-      padding: const EdgeInsets.all(20),
-      child: Column(
+    final card = RelationshipCard(
+        margin: const EdgeInsets.only(bottom: 12),
+        borderColor: lmBlue.withValues(alpha: 0.25),
+        padding: const EdgeInsets.all(20),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const RelationshipSectionLabel('Dzisiejszy trening'),
@@ -87,21 +100,14 @@ class _AssignedSetCard extends StatelessWidget {
             ),
           const SizedBox(height: 16),
           PressableScale(
-            child: FilledButton.icon(
-              onPressed: activeSession == null
-                  ? onStartWorkout
-                  : onJoinActiveWorkout,
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: Text(
-                activeSession == null
-                    ? 'Rozpocznij trening'
-                    : 'Dołącz do aktywnego treningu',
-              ),
-            ),
+            child: activeSession == null && featured
+                ? ContinuousSheen(child: actionButton)
+                : actionButton,
           ),
         ],
-      ),
+        ),
     );
+    return featured ? AmbientOrb(child: card) : card;
   }
 }
 

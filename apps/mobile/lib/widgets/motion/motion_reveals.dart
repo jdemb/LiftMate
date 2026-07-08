@@ -54,6 +54,7 @@ class _MotionEntranceState extends State<MotionEntrance>
     );
     return FadeTransition(
       opacity: animation,
+      alwaysIncludeSemantics: true,
       child: SlideTransition(
         position: Tween<Offset>(
           begin: transformEnabled
@@ -89,7 +90,7 @@ class MotionPop extends StatelessWidget {
   }
 }
 
-class StaggeredReveal extends StatelessWidget {
+class StaggeredReveal extends StatefulWidget {
   const StaggeredReveal({
     required this.position,
     required this.child,
@@ -102,17 +103,62 @@ class StaggeredReveal extends StatelessWidget {
   final double verticalOffset;
 
   @override
+  State<StaggeredReveal> createState() => _StaggeredRevealState();
+}
+
+class _StaggeredRevealState extends State<StaggeredReveal>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+  );
+  bool _started = false;
+  double _delayFraction = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (LiftMateMotion.animationsDisabled(context)) {
+      _controller.value = 1;
+      return;
+    }
+
+    final delayMilliseconds = LiftMateMotion.staggerStep.inMilliseconds *
+        LiftMateMotion.staggerPosition(widget.position);
+    final totalMilliseconds =
+        delayMilliseconds + LiftMateMotion.reveal.inMilliseconds;
+    _delayFraction = delayMilliseconds / totalMilliseconds;
+    _controller.duration = Duration(milliseconds: totalMilliseconds);
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (LiftMateMotion.animationsDisabled(context)) return child;
+    final animation = CurvedAnimation(
+      parent: _controller,
+      curve: Interval(
+        _delayFraction,
+        1,
+        curve: LiftMateMotion.standard,
+      ),
+    );
     return AnimationConfiguration.staggeredList(
-      position: LiftMateMotion.staggerPosition(position),
+      position: LiftMateMotion.staggerPosition(widget.position),
       duration: LiftMateMotion.reveal,
       child: SlideAnimation(
-        verticalOffset: verticalOffset,
+        verticalOffset: widget.verticalOffset,
         curve: LiftMateMotion.standard,
-        child: FadeInAnimation(
-          curve: LiftMateMotion.standard,
-          child: child,
+        child: FadeTransition(
+          opacity: animation,
+          alwaysIncludeSemantics: true,
+          child: widget.child,
         ),
       ),
     );
@@ -146,6 +192,7 @@ class MotionSwitcher extends StatelessWidget {
       transitionBuilder: (child, animation) {
         return FadeTransition(
           opacity: animation,
+          alwaysIncludeSemantics: true,
           child: SlideTransition(
             position: Tween<Offset>(
               begin: transformEnabled ? const Offset(0, 0.04) : Offset.zero,

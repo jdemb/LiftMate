@@ -152,7 +152,7 @@ void main() {
       }),
     );
 
-    await tester.pumpWidget(_app(controller));
+    await tester.pumpWidget(_app(controller, disableAnimations: true));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('history-session-session-1')));
     await tester.pumpAndSettle();
@@ -168,6 +168,22 @@ void main() {
     expect(
       find.byKey(const ValueKey('history-progress-chart')),
       findsOneWidget,
+    );
+    final verticalTransitions = find.descendant(
+      of: find.byKey(const ValueKey('history-progress-chart')),
+      matching: find.byType(SizeTransition),
+    );
+    expect(verticalTransitions, findsWidgets);
+    expect(
+      tester
+          .widgetList<SizeTransition>(verticalTransitions)
+          .every(
+            (transition) =>
+                transition.axis == Axis.vertical &&
+                transition.alignment == Alignment.bottomCenter &&
+                transition.sizeFactor.value == 1,
+          ),
+      isTrue,
     );
   });
 
@@ -305,16 +321,20 @@ Widget _app(
   ValueChanged<String>? onAddFeedback,
   bool showLevelOneBack = false,
   VoidCallback? onClose,
+  bool disableAnimations = false,
 }) {
   return MaterialApp(
     theme: ThemeData.dark(),
-    home: Scaffold(
-      body: TrainingHistoryFlow(
-        controller: controller,
-        viewerRole: viewerRole,
-        onAddFeedback: onAddFeedback,
-        onClose: onClose ?? () {},
-        showLevelOneBack: showLevelOneBack,
+    home: MediaQuery(
+      data: MediaQueryData(disableAnimations: disableAnimations),
+      child: Scaffold(
+        body: TrainingHistoryFlow(
+          controller: controller,
+          viewerRole: viewerRole,
+          onAddFeedback: onAddFeedback,
+          onClose: onClose ?? () {},
+          showLevelOneBack: showLevelOneBack,
+        ),
       ),
     ),
   );

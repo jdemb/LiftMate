@@ -3,6 +3,8 @@ import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import '../trainer_guidance/trainer_guidance_controller.dart';
 import '../trainer_guidance/trainer_guidance_models.dart';
+import '../widgets/motion/motion_reveals.dart';
+import '../widgets/motion/pressable_scale.dart';
 import '../workout_sets/workout_set_text.dart';
 import 'relationship_models.dart';
 import 'relationship_formatters.dart';
@@ -45,10 +47,12 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  IconButton(
-                    tooltip: 'Wróć',
-                    onPressed: onBack,
-                    icon: const Icon(Icons.chevron_left_rounded, size: 30),
+                  PressableScale(
+                    child: IconButton(
+                      tooltip: 'Wróć',
+                      onPressed: onBack,
+                      icon: const Icon(Icons.chevron_left_rounded, size: 30),
+                    ),
                   ),
                   const SizedBox(width: 4),
                   const Text(
@@ -56,10 +60,12 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
                   ),
                   const Spacer(),
-                  IconButton(
-                    tooltip: 'Wyloguj',
-                    onPressed: onLogout,
-                    icon: const Icon(Icons.logout_rounded),
+                  PressableScale(
+                    child: IconButton(
+                      tooltip: 'Wyloguj',
+                      onPressed: onLogout,
+                      icon: const Icon(Icons.logout_rounded),
+                    ),
                   ),
                 ],
               ),
@@ -107,10 +113,12 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
               if (trainee.activeSession != null &&
                   onJoinActiveSession != null) ...[
                 const SizedBox(height: 18),
-                FilledButton.icon(
-                  onPressed: onJoinActiveSession,
-                  icon: const Icon(Icons.play_circle_rounded),
-                  label: const Text('Dołącz do sesji'),
+                PressableScale(
+                  child: FilledButton.icon(
+                    onPressed: onJoinActiveSession,
+                    icon: const Icon(Icons.play_circle_rounded),
+                    label: const Text('Dołącz do sesji'),
+                  ),
                 ),
               ],
               if (sessionErrorMessage != null) ...[
@@ -127,18 +135,22 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton.icon(
-                        key: const ValueKey('trainer-open-trainee-history'),
-                        onPressed: onOpenHistory,
-                        icon: const Icon(Icons.history_rounded),
-                        label: const Text('Historia'),
+                      child: PressableScale(
+                        child: OutlinedButton.icon(
+                          key: const ValueKey('trainer-open-trainee-history'),
+                          onPressed: onOpenHistory,
+                          icon: const Icon(Icons.history_rounded),
+                          label: const Text('Historia'),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 11),
                     Expanded(
-                      child: OutlinedButton(
-                        onPressed: onOpenWorkoutSets,
-                        child: const Text('Zmień zestaw'),
+                      child: PressableScale(
+                        child: OutlinedButton(
+                          onPressed: onOpenWorkoutSets,
+                          child: const Text('Zmień zestaw'),
+                        ),
                       ),
                     ),
                   ],
@@ -174,12 +186,15 @@ class TrainerTraineeDetailScreen extends StatelessWidget {
                 )
               else
                 for (final set in assignedSets)
-                  _AssignedSetCard(
-                    set: set,
-                    onStartSession:
-                        trainee.activeSession == null && onStartSession != null
-                        ? () => onStartSession!(set)
-                        : null,
+                  StaggeredReveal(
+                    position: assignedSets.indexOf(set),
+                    child: _AssignedSetCard(
+                      set: set,
+                      onStartSession:
+                          trainee.activeSession == null && onStartSession != null
+                          ? () => onStartSession!(set)
+                          : null,
+                    ),
                   ),
             ],
           ),
@@ -279,9 +294,11 @@ class _GuidanceSection extends StatelessWidget {
                   style: const TextStyle(color: lmMuted, height: 1.45),
                 ),
                 const SizedBox(height: 8),
-                TextButton(
-                  onPressed: controller.load,
-                  child: const Text('Spróbuj ponownie'),
+                PressableScale(
+                  child: TextButton(
+                    onPressed: controller.load,
+                    child: const Text('Spróbuj ponownie'),
+                  ),
                 ),
               ],
             ),
@@ -365,11 +382,14 @@ class _GuidanceCard extends StatelessWidget {
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: isMarkingRead ? null : onMarkAsRead,
-              icon: const Icon(Icons.check_circle_outline_rounded),
-              label: Text(
-                isMarkingRead ? 'Oznaczanie...' : 'Oznacz jako przeczytaną',
+            child: PressableScale(
+              enabled: !isMarkingRead,
+              child: TextButton.icon(
+                onPressed: isMarkingRead ? null : onMarkAsRead,
+                icon: const Icon(Icons.check_circle_outline_rounded),
+                label: Text(
+                  isMarkingRead ? 'Oznaczanie...' : 'Oznacz jako przeczytaną',
+                ),
               ),
             ),
           ),
@@ -527,10 +547,12 @@ class _AssignedSetCard extends StatelessWidget {
           ),
           if (onStartSession != null) ...[
             const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: onStartSession,
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: const Text('Rozpocznij wspólny trening'),
+            PressableScale(
+              child: FilledButton.icon(
+                onPressed: onStartSession,
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text('Rozpocznij wspólny trening'),
+              ),
             ),
           ],
         ],

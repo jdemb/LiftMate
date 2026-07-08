@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import '../auth/auth_models.dart';
 import '../relationships/relationship_screen_styles.dart';
 import '../shared_sessions/shared_session_models.dart';
+import '../theme/motion.dart';
+import '../widgets/motion/motion_reveals.dart';
+import '../widgets/motion/pressable_scale.dart';
 import 'training_history_controller.dart';
 import 'training_history_formatters.dart';
 import 'training_history_models.dart';
@@ -139,9 +142,12 @@ class _ListLevel extends StatelessWidget {
                     ),
                     const SizedBox(height: 18),
                     for (final session in state.items)
-                      _SessionCard(
-                        session: session,
-                        onTap: () => onOpenSession(session.id),
+                      StaggeredReveal(
+                        position: state.items.indexOf(session),
+                        child: _SessionCard(
+                          session: session,
+                          onTap: () => onOpenSession(session.id),
+                        ),
                       ),
                     if (state.paginationError != null) ...[
                       const SizedBox(height: 6),
@@ -151,9 +157,11 @@ class _ListLevel extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.redAccent),
                       ),
-                      TextButton(
-                        onPressed: onRetry,
-                        child: const Text('Spróbuj ponownie'),
+                      PressableScale(
+                        child: TextButton(
+                          onPressed: onRetry,
+                          child: const Text('Spróbuj ponownie'),
+                        ),
                       ),
                     ] else if (state.nextCursor != null) ...[
                       const SizedBox(height: 6),
@@ -163,9 +171,11 @@ class _ListLevel extends StatelessWidget {
                                 padding: EdgeInsets.all(12),
                                 child: CircularProgressIndicator(),
                               )
-                            : OutlinedButton(
-                                onPressed: onLoadMore,
-                                child: const Text('Załaduj więcej'),
+                            : PressableScale(
+                                child: OutlinedButton(
+                                  onPressed: onLoadMore,
+                                  child: const Text('Załaduj więcej'),
+                                ),
                               ),
                       ),
                     ],
@@ -206,104 +216,112 @@ class _SessionCard extends StatelessWidget {
     final date = session.completedAt;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: lmSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
-        ),
-        child: InkWell(
-          key: ValueKey('history-session-${session.id}'),
-          borderRadius: BorderRadius.circular(18),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: lmSurfaceAlt,
-                        borderRadius: BorderRadius.circular(13),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '${date.day}',
-                            style: const TextStyle(
-                              fontFamily: 'Space Grotesk',
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
+      child: PressableScale(
+        child: Material(
+          color: lmSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
+          ),
+          child: InkWell(
+            key: ValueKey('history-session-${session.id}'),
+            borderRadius: BorderRadius.circular(18),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: lmSurfaceAlt,
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '${date.day}',
+                              style: const TextStyle(
+                                fontFamily: 'Space Grotesk',
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                          Text(
-                            formatHistoryDate(
-                              date,
-                            ).split(' ').elementAt(1).toUpperCase(),
-                            style: const TextStyle(
-                              color: lmMuted,
-                              fontSize: 8.5,
-                              fontWeight: FontWeight.w700,
+                            Text(
+                              formatHistoryDate(
+                                date,
+                              ).split(' ').elementAt(1).toUpperCase(),
+                              style: const TextStyle(
+                                color: lmMuted,
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 13),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            session.workoutSetName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
+                      const SizedBox(width: 13),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              session.workoutSetName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            formatHistoryDate(date),
-                            style: const TextStyle(
-                              color: lmMuted,
-                              fontSize: 12.5,
+                            const SizedBox(height: 3),
+                            Text(
+                              formatHistoryDate(date),
+                              style: const TextStyle(
+                                color: lmMuted,
+                                fontSize: 12.5,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const Icon(Icons.chevron_right_rounded, color: lmMutedDark),
-                  ],
-                ),
-                const SizedBox(height: 13),
-                Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
-                const SizedBox(height: 13),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _MetricText(
-                        formatHistoryDuration(session.durationSeconds),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: lmMutedDark,
                       ),
-                    ),
-                    Expanded(
-                      child: _MetricText(
-                        formatExerciseCount(session.exerciseCount),
+                    ],
+                  ),
+                  const SizedBox(height: 13),
+                  Divider(
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
+                  const SizedBox(height: 13),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _MetricText(
+                          formatHistoryDuration(session.durationSeconds),
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: _MetricText(
-                        formatSeriesCount(session.seriesCount),
+                      Expanded(
+                        child: _MetricText(
+                          formatExerciseCount(session.exerciseCount),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      Expanded(
+                        child: _MetricText(
+                          formatSeriesCount(session.seriesCount),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -405,11 +423,14 @@ class _DetailLevel extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   for (final exercise in session.exercises)
-                    _ExerciseCard(
-                      exercise: exercise,
-                      onTap: exercise.exerciseId == null
-                          ? null
-                          : () => onOpenProgress(exercise.exerciseId!),
+                    StaggeredReveal(
+                      position: session.exercises.indexOf(exercise),
+                      child: _ExerciseCard(
+                        exercise: exercise,
+                        onTap: exercise.exerciseId == null
+                            ? null
+                            : () => onOpenProgress(exercise.exerciseId!),
+                      ),
                     ),
                 ],
               ),
@@ -476,9 +497,11 @@ class _HistoryFeedbackCard extends StatelessWidget {
               style: const TextStyle(color: lmMuted, height: 1.4),
             ),
           ] else if (viewerRole == UserRole.trainee && onAddFeedback != null)
-            OutlinedButton(
-              onPressed: () => onAddFeedback!(session.id),
-              child: const Text('Dodaj feedback'),
+            PressableScale(
+              child: OutlinedButton(
+                onPressed: () => onAddFeedback!(session.id),
+                child: const Text('Dodaj feedback'),
+              ),
             )
           else
             const Text('Brak feedbacku', style: TextStyle(color: lmMuted)),
@@ -528,78 +551,81 @@ class _ExerciseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: lmSurface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
-        ),
-        child: InkWell(
-          key: exercise.exerciseId == null
-              ? null
-              : ValueKey('history-exercise-${exercise.exerciseId}'),
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        exercise.exerciseName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    if (onTap != null)
-                      const Text(
-                        'postęp ›',
-                        style: TextStyle(
-                          color: lmBlue,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  '${formatSeriesCount(exercise.series.length)} · najlepsza '
-                  '${formatHistoryValue(exercise.maximumValue, exercise.type)}',
-                  style: const TextStyle(color: lmMuted, fontSize: 12.5),
-                ),
-                const SizedBox(height: 11),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final series in exercise.series)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: lmSurfaceAlt,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+      child: PressableScale(
+        enabled: onTap != null,
+        child: Material(
+          color: lmSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
+          ),
+          child: InkWell(
+            key: exercise.exerciseId == null
+                ? null
+                : ValueKey('history-exercise-${exercise.exerciseId}'),
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
                         child: Text(
-                          formatHistorySeries(series, exercise.type),
-                          style: const TextStyle(
-                            color: Color(0xFFC2C7CE),
-                            fontFamily: 'Space Grotesk',
+                          exercise.exerciseName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      if (onTap != null)
+                        const Text(
+                          'postęp ›',
+                          style: TextStyle(
+                            color: lmBlue,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    '${formatSeriesCount(exercise.series.length)} · najlepsza '
+                    '${formatHistoryValue(exercise.maximumValue, exercise.type)}',
+                    style: const TextStyle(color: lmMuted, fontSize: 12.5),
+                  ),
+                  const SizedBox(height: 11),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final series in exercise.series)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: lmSurfaceAlt,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            formatHistorySeries(series, exercise.type),
+                            style: const TextStyle(
+                              color: Color(0xFFC2C7CE),
+                              fontFamily: 'Space Grotesk',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -649,15 +675,17 @@ class _ProgressLevel extends StatelessWidget {
                     spacing: 10,
                     runSpacing: 4,
                     children: [
-                      Text(
-                        formatHistoryValue(
-                          progress.currentValue,
-                          progress.type,
-                        ),
-                        style: const TextStyle(
-                          fontFamily: 'Space Grotesk',
-                          fontSize: 40,
-                          fontWeight: FontWeight.w700,
+                      MotionPop(
+                        child: Text(
+                          formatHistoryValue(
+                            progress.currentValue,
+                            progress.type,
+                          ),
+                          style: const TextStyle(
+                            fontFamily: 'Space Grotesk',
+                            fontSize: 40,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                       Text(
@@ -743,17 +771,20 @@ class _ProgressChart extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 5),
-                  Container(
-                    height: math.max(
-                      16,
-                      100 * (points[index].value / math.max(maxValue, 1)),
-                    ),
-                    decoration: BoxDecoration(
-                      color: index == points.length - 1
-                          ? lmBlue
-                          : const Color(0xFF2C333D),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(5),
+                  _AnimatedProgressBar(
+                    position: index,
+                    child: Container(
+                      height: math.max(
+                        16,
+                        100 * (points[index].value / math.max(maxValue, 1)),
+                      ),
+                      decoration: BoxDecoration(
+                        color: index == points.length - 1
+                            ? lmBlue
+                            : const Color(0xFF2C333D),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(5),
+                        ),
                       ),
                     ),
                   ),
@@ -777,6 +808,61 @@ class _ProgressChart extends StatelessWidget {
     's' => ExerciseValueType.time,
     _ => ExerciseValueType.repsOnly,
   };
+}
+
+class _AnimatedProgressBar extends StatefulWidget {
+  const _AnimatedProgressBar({required this.position, required this.child});
+
+  final int position;
+  final Widget child;
+
+  @override
+  State<_AnimatedProgressBar> createState() => _AnimatedProgressBarState();
+}
+
+class _AnimatedProgressBarState extends State<_AnimatedProgressBar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: LiftMateMotion.reveal,
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_controller.isAnimating || _controller.value > 0) return;
+    if (LiftMateMotion.animationsDisabled(context)) {
+      _controller.value = 1;
+      return;
+    }
+    Future<void>.delayed(
+      Duration(
+        milliseconds: 70 * LiftMateMotion.staggerPosition(widget.position),
+      ),
+      () {
+        if (mounted) _controller.forward();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizeTransition(
+      axis: Axis.vertical,
+      alignment: Alignment.bottomCenter,
+      sizeFactor: CurvedAnimation(
+        parent: _controller,
+        curve: LiftMateMotion.standard,
+      ),
+      child: widget.child,
+    );
+  }
 }
 
 class _ProgressRow extends StatelessWidget {
@@ -845,10 +931,12 @@ class _HistoryHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(10, 10, 20, 8),
       child: Row(
         children: [
-          IconButton(
-            tooltip: 'Wróć',
-            onPressed: onBack,
-            icon: const Icon(Icons.chevron_left_rounded, size: 30),
+          PressableScale(
+            child: IconButton(
+              tooltip: 'Wróć',
+              onPressed: onBack,
+              icon: const Icon(Icons.chevron_left_rounded, size: 30),
+            ),
           ),
           const SizedBox(width: 2),
           Expanded(
@@ -893,9 +981,11 @@ class _RetryState extends StatelessWidget {
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 14),
-            FilledButton(
-              onPressed: onRetry,
-              child: const Text('Spróbuj ponownie'),
+            PressableScale(
+              child: FilledButton(
+                onPressed: onRetry,
+                child: const Text('Spróbuj ponownie'),
+              ),
             ),
           ],
         ),

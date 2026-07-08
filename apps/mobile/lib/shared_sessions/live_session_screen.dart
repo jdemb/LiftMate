@@ -1,9 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../auth/auth_models.dart';
 import '../relationships/relationship_screen_styles.dart';
+import '../theme/motion.dart';
+import '../widgets/motion/motion_reveals.dart';
+import '../widgets/motion/pressable_scale.dart';
 import 'shared_session_controller.dart';
 import 'shared_session_models.dart';
 
@@ -34,16 +38,22 @@ class LiveSessionScreen extends StatefulWidget {
 }
 
 class _LiveSessionScreenState extends State<LiveSessionScreen> {
-  static const _restTotal = 90;
-
   int _currentExerciseIndex = 0;
-  int _restRemaining = _restTotal;
-  Timer? _restTimer;
-  String? _restSessionId;
+  int _restRemaining = 0;
+  int _restTotal = 1;
+  double _restProgress = 0;
+  bool _restRunning = false;
+  Timer? _restProjectionTicker;
+  Stopwatch? _restProjectionStopwatch;
+  Duration _restTickerElapsed = Duration.zero;
+  DateTime? _restSnapshotReceivedAt;
+  String? _restSnapshotKey;
+  String? _completedRestIntervalKey;
+  final Map<String, bool> _pendingDoneByValueId = {};
 
   @override
   void dispose() {
-    _restTimer?.cancel();
+    _restProjectionTicker?.cancel();
     super.dispose();
   }
 
@@ -81,7 +91,7 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
           );
         }
 
-        _syncRestConfiguration(session);
+        _syncRestSnapshot(session);
         final groups = _groupValues(session.values);
         if (groups.isEmpty) {
           return ListView(
@@ -119,6 +129,7 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
             exerciseIndex: currentIndex,
             exerciseTotal: groups.length,
             restRemaining: _restRemaining,
+            restTotal: _restTotal,
             onBack: widget.onBack,
           );
         }
@@ -164,12 +175,19 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
                   ),
                   const SizedBox(height: 18),
                   for (final value in currentGroup.values)
-                    _EditableSetCard(
-                      user: widget.user,
-                      controller: widget.controller,
-                      value: value,
-                      onToggleDone: (value, isDone) =>
-                          _toggleDone(session, value, isDone),
+                    StaggeredReveal(
+                      key: ValueKey('live-set-reveal-${value.id}'),
+                      position: currentGroup.values.indexOf(value),
+                      child: _EditableSetCard(
+                        key: ValueKey('live-set-card-${value.id}'),
+                        user: widget.user,
+                        controller: widget.controller,
+                        value: value,
+                        isDone: _pendingDoneByValueId[value.id] ?? value.isDone,
+                        isSaving: _pendingDoneByValueId.containsKey(value.id),
+                        onToggleDone: (value, isDone) =>
+                            _toggleDone(session, value, isDone),
+                      ),
                     ),
                   const SizedBox(height: 14),
                   _NextExerciseCard(
@@ -188,25 +206,33 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
             _CompactRestFooter(
               key: const ValueKey('live-rest-footer'),
               remaining: _restRemaining,
-              isRunning: _restTimer != null,
-              onToggle: _restTimer == null ? _startRest : _pauseRest,
-              onAdd: _addRest,
-              onReset: () => _resetRest(session.restSeconds),
+              total: _restTotal,
+              progress: _restProgress,
+              isRunning: _restRunning,
+              onToggle: () => _updateRest(
+                _restRunning
+                    ? SharedSessionRestAction.pause
+                    : SharedSessionRestAction.start,
+              ),
+              onAdd: () => _updateRest(SharedSessionRestAction.add),
+              onReset: () => _updateRest(SharedSessionRestAction.reset),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(22, 12, 22, 16),
-              child: FilledButton.icon(
-                onPressed: _finishSession,
-                icon: const Icon(Icons.check_rounded),
-                label: const Text('Zakończ i zapisz trening'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
-                  backgroundColor: const Color(
-                    0xFF21C97A,
-                  ).withValues(alpha: 0.16),
-                  foregroundColor: const Color(0xFF7EE0AD),
-                  side: BorderSide(
-                    color: const Color(0xFF21C97A).withValues(alpha: 0.4),
+              child: PressableScale(
+                child: FilledButton.icon(
+                  onPressed: _finishSession,
+                  icon: const Icon(Icons.check_rounded),
+                  label: const Text('Zakończ i zapisz trening'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    backgroundColor: const Color(
+                      0xFF21C97A,
+                    ).withValues(alpha: 0.16),
+                    foregroundColor: const Color(0xFF7EE0AD),
+                    side: BorderSide(
+                      color: const Color(0xFF21C97A).withValues(alpha: 0.4),
+                    ),
                   ),
                 ),
               ),
@@ -226,12 +252,33 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
     await widget.onSessionClosed?.call();
   }
 
-  void _syncRestConfiguration(SharedSession session) {
-    if (_restSessionId == session.id) return;
-    _restTimer?.cancel();
-    _restTimer = null;
-    _restSessionId = session.id;
-    _restRemaining = session.restSeconds;
+  void _syncRestSnapshot(SharedSession session) {
+    final snapshot = session.restTimer;
+    final snapshotKey =
+        '${session.id}:${session.version}:'
+        '${snapshot.totalSeconds}:${snapshot.remainingSeconds}:'
+        '${snapshot.endsAt?.toIso8601String()}';
+    if (_restSnapshotKey == snapshotKey) return;
+
+    _restProjectionTicker?.cancel();
+    _restProjectionStopwatch?.stop();
+    _restSnapshotKey = snapshotKey;
+    _restSnapshotReceivedAt = widget.now().toUtc();
+    _restProjectionStopwatch = Stopwatch()..start();
+    _restTickerElapsed = Duration.zero;
+    _restTotal = snapshot.totalSeconds.clamp(1, 3600);
+    _restRemaining = snapshot.remainingSeconds.clamp(0, 3600);
+    _restProgress = (_restRemaining / _restTotal).clamp(0, 1);
+    _restRunning = snapshot.endsAt != null && _restRemaining > 0;
+    if (!_restRunning) {
+      _restProjectionStopwatch?.stop();
+      return;
+    }
+
+    _restProjectionTicker = Timer.periodic(
+      const Duration(milliseconds: 100),
+      (_) => _tickRestProjection(snapshot, snapshotKey),
+    );
   }
 
   Future<void> _toggleDone(
@@ -239,57 +286,58 @@ class _LiveSessionScreenState extends State<LiveSessionScreen> {
     SharedSessionValue value,
     bool isDone,
   ) async {
+    if (_pendingDoneByValueId.containsKey(value.id)) return;
+    setState(() => _pendingDoneByValueId[value.id] = isDone);
     final result = await widget.controller.toggleDone(
       user: widget.user,
       value: value,
       isDone: isDone,
     );
-    if (!mounted || !result.isSuccess || !isDone) return;
-    _restartRest(session.restSeconds);
+    if (!mounted) return;
+    setState(() => _pendingDoneByValueId.remove(value.id));
+    if (result.isSuccess && isDone) HapticFeedback.mediumImpact();
   }
 
-  void _startRest() {
-    _restTimer?.cancel();
+  Future<void> _updateRest(SharedSessionRestAction action) async {
+    await widget.controller.updateRest(user: widget.user, action: action);
+  }
+
+  void _tickRestProjection(
+    SharedSessionRestTimer snapshot,
+    String intervalKey,
+  ) {
+    if (!mounted || _restSnapshotKey != intervalKey) return;
+    _restTickerElapsed += const Duration(milliseconds: 100);
+    final receivedAt = _restSnapshotReceivedAt ?? widget.now().toUtc();
+    final wallClockElapsed = widget.now().toUtc().difference(receivedAt);
+    final monotonicElapsed = _restProjectionStopwatch?.elapsed ?? Duration.zero;
+    final measuredElapsed = wallClockElapsed > monotonicElapsed
+        ? wallClockElapsed
+        : monotonicElapsed;
+    final elapsed = measuredElapsed > _restTickerElapsed
+        ? measuredElapsed
+        : _restTickerElapsed;
+    final remainingMilliseconds =
+        snapshot.endsAt!.difference(snapshot.serverNow).inMilliseconds -
+        elapsed.inMilliseconds;
+    final remaining = (remainingMilliseconds / 1000).ceil().clamp(0, 3600);
+    final progress = (remainingMilliseconds / (_restTotal * 1000)).clamp(
+      0.0,
+      1.0,
+    );
+    if (remainingMilliseconds <= 0) {
+      _restProjectionTicker?.cancel();
+      _restProjectionStopwatch?.stop();
+      _restRunning = false;
+      if (_completedRestIntervalKey != intervalKey) {
+        _completedRestIntervalKey = intervalKey;
+        HapticFeedback.heavyImpact();
+      }
+    }
     setState(() {
-      _restTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (!mounted) {
-          timer.cancel();
-          return;
-        }
-        if (_restRemaining <= 1) {
-          timer.cancel();
-          setState(() {
-            _restRemaining = 0;
-            _restTimer = null;
-          });
-          return;
-        }
-        setState(() => _restRemaining -= 1);
-      });
+      _restRemaining = remaining;
+      _restProgress = progress;
     });
-  }
-
-  void _pauseRest() {
-    _restTimer?.cancel();
-    setState(() => _restTimer = null);
-  }
-
-  void _addRest() {
-    setState(() => _restRemaining += 15);
-  }
-
-  void _resetRest(int seconds) {
-    _restTimer?.cancel();
-    setState(() {
-      _restTimer = null;
-      _restRemaining = seconds;
-    });
-  }
-
-  void _restartRest(int seconds) {
-    _restTimer?.cancel();
-    setState(() => _restRemaining = seconds);
-    _startRest();
   }
 }
 
@@ -317,10 +365,12 @@ class _LiveTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          IconButton(
-            tooltip: 'Wróć',
-            onPressed: onBack,
-            icon: const Icon(Icons.chevron_left_rounded, size: 30),
+          PressableScale(
+            child: IconButton(
+              tooltip: 'Wróć',
+              onPressed: onBack,
+              icon: const Icon(Icons.chevron_left_rounded, size: 30),
+            ),
           ),
           Expanded(
             child: Column(
@@ -407,6 +457,7 @@ class _ReadOnlyLiveView extends StatelessWidget {
     required this.exerciseIndex,
     required this.exerciseTotal,
     required this.restRemaining,
+    required this.restTotal,
     required this.onBack,
   });
 
@@ -417,6 +468,7 @@ class _ReadOnlyLiveView extends StatelessWidget {
   final int exerciseIndex;
   final int exerciseTotal;
   final int restRemaining;
+  final int restTotal;
   final VoidCallback onBack;
 
   @override
@@ -446,12 +498,14 @@ class _ReadOnlyLiveView extends StatelessWidget {
                     children: [
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: IconButton(
-                          tooltip: 'Wróć',
-                          onPressed: onBack,
-                          icon: const Icon(
-                            Icons.chevron_left_rounded,
-                            size: 30,
+                        child: PressableScale(
+                          child: IconButton(
+                            tooltip: 'Wróć',
+                            onPressed: onBack,
+                            icon: const Icon(
+                              Icons.chevron_left_rounded,
+                              size: 30,
+                            ),
                           ),
                         ),
                       ),
@@ -577,7 +631,10 @@ class _ReadOnlyLiveView extends StatelessWidget {
               ),
             ),
           ),
-          _ReadOnlyRestFooter(restRemaining: restRemaining),
+          _ReadOnlyRestFooter(
+            restRemaining: restRemaining,
+            restTotal: restTotal,
+          ),
         ],
       ),
     );
@@ -586,15 +643,20 @@ class _ReadOnlyLiveView extends StatelessWidget {
 
 class _EditableSetCard extends StatelessWidget {
   const _EditableSetCard({
+    super.key,
     required this.user,
     required this.controller,
     required this.value,
+    required this.isDone,
+    required this.isSaving,
     required this.onToggleDone,
   });
 
   final AuthUser user;
   final SharedSessionController controller;
   final SharedSessionValue value;
+  final bool isDone;
+  final bool isSaving;
   final Future<void> Function(SharedSessionValue value, bool isDone)
   onToggleDone;
 
@@ -603,7 +665,9 @@ class _EditableSetCard extends StatelessWidget {
     return RelationshipCard(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
-      borderColor: value.isDone
+      duration: LiftMateMotion.base,
+      color: lmSurface,
+      borderColor: isDone
           ? const Color(0xFF21C97A).withValues(alpha: 0.32)
           : Colors.white.withValues(alpha: 0.07),
       child: Column(
@@ -624,19 +688,29 @@ class _EditableSetCard extends StatelessWidget {
               ),
               SizedBox.square(
                 dimension: 40,
-                child: IconButton(
-                  tooltip: value.isDone ? 'Cofnij serię' : 'Oznacz serię',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints.tightFor(
-                    width: 40,
-                    height: 40,
-                  ),
-                  onPressed: () => onToggleDone(value, !value.isDone),
-                  icon: Icon(
-                    value.isDone
-                        ? Icons.check_box_rounded
-                        : Icons.check_box_outline_blank_rounded,
-                    color: value.isDone ? const Color(0xFF21C97A) : lmMuted,
+                child: PressableScale(
+                  enabled: !isSaving,
+                  haptic: PressableHaptic.none,
+                  child: IconButton(
+                    tooltip: isDone ? 'Cofnij serię' : 'Oznacz serię',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 40,
+                      height: 40,
+                    ),
+                    onPressed: isSaving
+                        ? null
+                        : () => onToggleDone(value, !isDone),
+                    icon: MotionCheckPop(
+                      active: isDone,
+                      child: Icon(
+                        isDone
+                            ? Icons.check_box_rounded
+                            : Icons.check_box_outline_blank_rounded,
+                        key: ValueKey(isDone),
+                        color: isDone ? const Color(0xFF21C97A) : lmMuted,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -795,14 +869,18 @@ class _RoundStepButton extends StatelessWidget {
     return SizedBox(
       width: 32,
       height: 32,
-      child: IconButton.filled(
-        onPressed: onTap,
-        icon: Icon(icon, size: 18),
-        style: IconButton.styleFrom(
-          backgroundColor: highlighted ? lmBlue : const Color(0xFF22262E),
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+      child: PressableScale(
+        child: IconButton.filled(
+          onPressed: onTap,
+          icon: Icon(icon, size: 18),
+          style: IconButton.styleFrom(
+            backgroundColor: highlighted ? lmBlue : const Color(0xFF22262E),
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(9),
+            ),
+          ),
         ),
       ),
     );
@@ -812,6 +890,8 @@ class _RoundStepButton extends StatelessWidget {
 class _CompactRestFooter extends StatelessWidget {
   const _CompactRestFooter({
     required this.remaining,
+    required this.total,
+    required this.progress,
     required this.isRunning,
     required this.onToggle,
     required this.onAdd,
@@ -820,6 +900,8 @@ class _CompactRestFooter extends StatelessWidget {
   });
 
   final int remaining;
+  final int total;
+  final double progress;
   final bool isRunning;
   final VoidCallback onToggle;
   final VoidCallback onAdd;
@@ -860,6 +942,16 @@ class _CompactRestFooter extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: progress.clamp(0, 1),
+              minHeight: 5,
+              color: lmBlue,
+              backgroundColor: const Color(0xFF22262E),
+            ),
+          ),
+          const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -874,17 +966,19 @@ class _CompactRestFooter extends StatelessWidget {
               SizedBox(
                 width: 52,
                 height: 40,
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: onAdd,
-                    child: const Center(
-                      child: Text(
-                        '+15s',
-                        style: TextStyle(
-                          color: lmBlueSoft,
-                          fontWeight: FontWeight.w700,
+                child: PressableScale(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: onAdd,
+                      child: const Center(
+                        child: Text(
+                          '+15s',
+                          style: TextStyle(
+                            color: lmBlueSoft,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
@@ -920,15 +1014,17 @@ class _FooterAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: tooltip,
-      child: SizedBox.square(
-        dimension: 40,
-        child: Material(
-          color: const Color(0xFF22262E),
-          borderRadius: BorderRadius.circular(20),
-          child: InkWell(
+      child: PressableScale(
+        child: SizedBox.square(
+          dimension: 40,
+          child: Material(
+            color: const Color(0xFF22262E),
             borderRadius: BorderRadius.circular(20),
-            onTap: onTap,
-            child: Center(child: icon),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: onTap,
+              child: Center(child: icon),
+            ),
           ),
         ),
       ),
@@ -971,7 +1067,10 @@ class _NextExerciseCard extends StatelessWidget {
               ],
             ),
           ),
-          TextButton(onPressed: onNext, child: const Text('Dalej')),
+          PressableScale(
+            enabled: onNext != null,
+            child: TextButton(onPressed: onNext, child: const Text('Dalej')),
+          ),
         ],
       ),
     );
@@ -979,9 +1078,13 @@ class _NextExerciseCard extends StatelessWidget {
 }
 
 class _ReadOnlyRestFooter extends StatelessWidget {
-  const _ReadOnlyRestFooter({required this.restRemaining});
+  const _ReadOnlyRestFooter({
+    required this.restRemaining,
+    required this.restTotal,
+  });
 
   final int restRemaining;
+  final int restTotal;
 
   @override
   Widget build(BuildContext context) {
@@ -1020,7 +1123,7 @@ class _ReadOnlyRestFooter extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(3),
             child: LinearProgressIndicator(
-              value: restRemaining / _LiveSessionScreenState._restTotal,
+              value: (restRemaining / restTotal.clamp(1, 3600)).clamp(0, 1),
               minHeight: 5,
               color: lmBlue,
               backgroundColor: const Color(0xFF22262E),

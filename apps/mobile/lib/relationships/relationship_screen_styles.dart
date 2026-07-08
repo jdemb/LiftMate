@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../theme/motion.dart';
+import '../widgets/motion/pressable_scale.dart';
+
 const lmBackground = Color(0xFF101216);
 const lmSurface = Color(0xFF191C22);
 const lmSurfaceAlt = Color(0xFF22262E);
@@ -30,6 +33,7 @@ class RelationshipCard extends StatelessWidget {
     this.margin,
     this.color,
     this.borderColor,
+    this.duration = LiftMateMotion.fast,
     super.key,
   });
 
@@ -38,10 +42,13 @@ class RelationshipCard extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
   final Color? color;
   final Color? borderColor;
+  final Duration duration;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: LiftMateMotion.duration(context, duration),
+      curve: LiftMateMotion.standard,
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
@@ -57,11 +64,7 @@ class RelationshipCard extends StatelessWidget {
 }
 
 class RelationshipAvatar extends StatelessWidget {
-  const RelationshipAvatar({
-    required this.label,
-    this.size = 46,
-    super.key,
-  });
+  const RelationshipAvatar({required this.label, this.size = 46, super.key});
 
   final String label;
   final double size;
@@ -113,10 +116,7 @@ class RelationshipSectionLabel extends StatelessWidget {
 }
 
 class RelationshipBottomNav extends StatelessWidget {
-  const RelationshipBottomNav({
-    required this.items,
-    super.key,
-  });
+  const RelationshipBottomNav({required this.items, super.key});
 
   final List<RelationshipBottomNavItem> items;
 
@@ -126,7 +126,9 @@ class RelationshipBottomNav extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
       decoration: BoxDecoration(
         color: const Color(0xFF13151A),
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.07))),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -153,27 +155,30 @@ class RelationshipBottomNavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = active ? lmBlue : lmMutedDark;
-    return TextButton(
-      onPressed: onTap,
-      style: TextButton.styleFrom(
-        foregroundColor: color,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        minimumSize: const Size(64, 44),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 20),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+    return PressableScale(
+      enabled: onTap != null,
+      child: TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          foregroundColor: color,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          minimumSize: const Size(64, 44),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -147,6 +147,14 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 .HasDefaultValue(90)
                 .IsRequired();
 
+            entity.Property(session => session.RestTimerTotalSeconds)
+                .HasDefaultValue(90)
+                .IsRequired();
+
+            entity.Property(session => session.RestTimerRemainingSeconds)
+                .HasDefaultValue(90)
+                .IsRequired();
+
             entity.HasIndex(session => session.WorkoutSetId);
             entity.HasIndex(session => session.StartedByUserId);
             entity.HasIndex(session => session.TrainerUserId);
@@ -197,6 +205,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
                 table.HasCheckConstraint(
                     "CK_SharedSessions_RestSeconds",
                     "[RestSeconds] BETWEEN 15 AND 600");
+                table.HasCheckConstraint(
+                    "CK_SharedSessions_RestTimerTotalSeconds",
+                    "[RestTimerTotalSeconds] BETWEEN 0 AND 3600");
+                table.HasCheckConstraint(
+                    "CK_SharedSessions_RestTimerRemainingSeconds",
+                    "[RestTimerRemainingSeconds] BETWEEN 0 AND 3600");
             });
         });
 

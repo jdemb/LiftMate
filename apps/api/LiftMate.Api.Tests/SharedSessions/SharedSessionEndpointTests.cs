@@ -450,9 +450,123 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         Assert.Equal(8, updatedValue.Reps);
         Assert.Equal(42.5m, updatedValue.Weight);
         Assert.Equal(trainee.User.Id, updatedValue.UpdatedByUserId);
+        Assert.Equal(updated.RestSeconds, updated.RestTimer.TotalSeconds);
+        Assert.NotNull(updated.RestTimer.EndsAt);
         Assert.Equal(HttpStatusCode.OK, trainerRead.StatusCode);
         Assert.True(trainerValue.IsDone);
         Assert.NotNull(trainerValue.CompletedAt);
+    }
+
+    [Fact]
+    public async Task SelfStartedTraineeCanControlPersistentRestTimer()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var workoutSet = await CreateWorkoutSet(client, trainer, "Rest timer", DefaultWorkoutSetRows());
+        await AssignWorkoutSet(client, trainer, workoutSet.Id, [trainee.User.Id]);
+        var session = await StartFromWorkoutSet(client, trainee, workoutSet.Id);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var startResponse = await client.PatchAsJsonAsync(
+            $"/shared-sessions/{session.Id}/rest",
+            new { action = "start", deltaSeconds = (int?)null });
+        var started = await startResponse.Content.ReadFromJsonAsync<SharedSessionResponse>();
+
+        var addResponse = await client.PatchAsJsonAsync(
+            $"/shared-sessions/{session.Id}/rest",
+            new { action = "add", deltaSeconds = 15 });
+        var added = await addResponse.Content.ReadFromJsonAsync<SharedSessionResponse>();
+
+        var pauseResponse = await client.PatchAsJsonAsync(
+            $"/shared-sessions/{session.Id}/rest",
+            new { action = "pause", deltaSeconds = (int?)null });
+        var paused = await pauseResponse.Content.ReadFromJsonAsync<SharedSessionResponse>();
+
+        var resetResponse = await client.PatchAsJsonAsync(
+            $"/shared-sessions/{session.Id}/rest",
+            new { action = "reset", deltaSeconds = (int?)null });
+        var reset = await resetResponse.Content.ReadFromJsonAsync<SharedSessionResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+        Assert.NotNull(started?.RestTimer.EndsAt);
+        Assert.Equal(HttpStatusCode.OK, addResponse.StatusCode);
+        Assert.Equal(session.RestSeconds + 15, added?.RestTimer.TotalSeconds);
+        Assert.InRange(added?.RestTimer.RemainingSeconds ?? 0, session.RestSeconds + 13, session.RestSeconds + 15);
+        Assert.Equal(HttpStatusCode.OK, pauseResponse.StatusCode);
+        Assert.Null(paused?.RestTimer.EndsAt);
+        Assert.Equal(HttpStatusCode.OK, resetResponse.StatusCode);
+        Assert.Equal(session.RestSeconds, reset?.RestTimer.TotalSeconds);
+        Assert.Equal(session.RestSeconds, reset?.RestTimer.RemainingSeconds);
+        Assert.Null(reset?.RestTimer.EndsAt);
+        Assert.True((reset?.Version ?? 0) > session.Version);
+    }
+
+    [Fact]
+    public async Task TrainerLedTraineeCannotControlRestTimer()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var session = await CreateSession(client, trainer, trainee);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainee.AccessToken);
+        var response = await client.PatchAsJsonAsync(
+            $"/shared-sessions/{session.Id}/rest",
+            new { action = "start", deltaSeconds = (int?)null });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RestTimerRejectsMissingActionAsBadRequest()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var session = await CreateSession(client, trainer, trainee);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.PatchAsJsonAsync(
+            $"/shared-sessions/{session.Id}/rest",
+            new { action = (string?)null, deltaSeconds = (int?)null });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ConcurrentRestAddsPreserveBothDeltasAndVersions()
+    {
+        using var setupClient = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(setupClient, "trainer");
+        var trainee = await AuthEndpointTests.Register(setupClient, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(setupClient, trainer, trainee);
+        var session = await CreateSession(setupClient, trainer, trainee);
+        using var firstClient = factory.CreateClient();
+        using var secondClient = factory.CreateClient();
+        firstClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        secondClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+
+        var responses = await Task.WhenAll(
+            firstClient.PatchAsJsonAsync(
+                $"/shared-sessions/{session.Id}/rest",
+                new { action = "add", deltaSeconds = 15 }),
+            secondClient.PatchAsJsonAsync(
+                $"/shared-sessions/{session.Id}/rest",
+                new { action = "add", deltaSeconds = 15 }));
+
+        Assert.All(responses, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
+        setupClient.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var canonical = await setupClient.GetFromJsonAsync<SharedSessionResponse>(
+            $"/shared-sessions/{session.Id}");
+
+        Assert.NotNull(canonical);
+        Assert.Equal(120, canonical.RestTimer.TotalSeconds);
+        Assert.Equal(120, canonical.RestTimer.RemainingSeconds);
+        Assert.Equal(session.Version + 2, canonical.Version);
     }
 
     [Fact]
@@ -1351,7 +1465,14 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
         DateTimeOffset CreatedAt,
         DateTimeOffset UpdatedAt,
         DateTimeOffset? ClosedAt,
+        SharedSessionRestTimerResponse RestTimer,
         IReadOnlyList<SharedSessionValueResponse> Values);
+
+    private sealed record SharedSessionRestTimerResponse(
+        int TotalSeconds,
+        int RemainingSeconds,
+        DateTimeOffset? EndsAt,
+        DateTimeOffset ServerNow);
 
     private sealed record SharedSessionValueResponse(
         Guid Id,

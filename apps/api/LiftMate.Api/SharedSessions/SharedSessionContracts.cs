@@ -22,6 +22,10 @@ public sealed record UpdateSharedSessionValueRequest(
     int? Seconds,
     bool? IsDone);
 
+public sealed record UpdateSharedSessionRestRequest(
+    string Action,
+    int? DeltaSeconds);
+
 public sealed record SharedSessionResponse(
     Guid Id,
     string TrainerUserId,
@@ -38,7 +42,14 @@ public sealed record SharedSessionResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     DateTimeOffset? ClosedAt,
+    SharedSessionRestTimerResponse RestTimer,
     IReadOnlyList<SharedSessionValueResponse> Values);
+
+public sealed record SharedSessionRestTimerResponse(
+    int TotalSeconds,
+    int RemainingSeconds,
+    DateTimeOffset? EndsAt,
+    DateTimeOffset ServerNow);
 
 public sealed record SharedSessionValueResponse(
     Guid Id,

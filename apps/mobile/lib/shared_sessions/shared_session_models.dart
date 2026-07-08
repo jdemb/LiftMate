@@ -87,6 +87,7 @@ class SharedSession {
     this.restSeconds = 90,
     this.startedByUserId = '',
     this.startedByRole = SharedSessionStartRole.trainer,
+    this.restTimerSnapshot,
   });
 
   final String id;
@@ -105,6 +106,15 @@ class SharedSession {
   final DateTime updatedAt;
   final DateTime? closedAt;
   final List<SharedSessionValue> values;
+  final SharedSessionRestTimer? restTimerSnapshot;
+
+  SharedSessionRestTimer get restTimer =>
+      restTimerSnapshot ??
+      SharedSessionRestTimer(
+        totalSeconds: restSeconds,
+        remainingSeconds: restSeconds,
+        serverNow: updatedAt,
+      );
 
   bool get isTrainerLed => startedByRole == SharedSessionStartRole.trainer;
 
@@ -129,6 +139,7 @@ class SharedSession {
     final createdAt = json['createdAt'];
     final updatedAt = json['updatedAt'];
     final closedAt = json['closedAt'];
+    final restTimer = json['restTimer'];
     final values = json['values'];
 
     if (id is! String ||
@@ -146,6 +157,7 @@ class SharedSession {
         createdAt is! String ||
         updatedAt is! String ||
         (closedAt != null && closedAt is! String) ||
+        (restTimer != null && restTimer is! Map<String, dynamic>) ||
         values is! List) {
       throw const FormatException('Invalid shared session response body.');
     }
@@ -166,6 +178,9 @@ class SharedSession {
       createdAt: DateTime.parse(createdAt).toUtc(),
       updatedAt: DateTime.parse(updatedAt).toUtc(),
       closedAt: closedAt == null ? null : DateTime.parse(closedAt).toUtc(),
+      restTimerSnapshot: restTimer == null
+          ? null
+          : SharedSessionRestTimer.fromJson(restTimer),
       values: values
           .map((value) {
             if (value is! Map<String, dynamic>) {
@@ -174,6 +189,52 @@ class SharedSession {
             return SharedSessionValue.fromJson(value);
           })
           .toList(growable: false),
+    );
+  }
+}
+
+class SharedSessionRestTimer {
+  const SharedSessionRestTimer({
+    required this.totalSeconds,
+    required this.remainingSeconds,
+    required this.serverNow,
+    this.endsAt,
+  });
+
+  final int totalSeconds;
+  final int remainingSeconds;
+  final DateTime? endsAt;
+  final DateTime serverNow;
+
+  bool get isRunning => endsAt != null && remainingSeconds > 0;
+
+  int remainingAt(DateTime clientNow, {DateTime? receivedAt}) {
+    if (endsAt == null) return remainingSeconds.clamp(0, 3600);
+    final elapsed = clientNow.toUtc().difference(
+      (receivedAt ?? clientNow).toUtc(),
+    );
+    final projectedServerNow = serverNow.add(elapsed);
+    return (endsAt!.difference(projectedServerNow).inMilliseconds / 1000)
+        .ceil()
+        .clamp(0, 3600);
+  }
+
+  factory SharedSessionRestTimer.fromJson(Map<String, dynamic> json) {
+    final totalSeconds = json['totalSeconds'];
+    final remainingSeconds = json['remainingSeconds'];
+    final endsAt = json['endsAt'];
+    final serverNow = json['serverNow'];
+    if (totalSeconds is! int ||
+        remainingSeconds is! int ||
+        (endsAt != null && endsAt is! String) ||
+        serverNow is! String) {
+      throw const FormatException('Invalid shared session rest timer body.');
+    }
+    return SharedSessionRestTimer(
+      totalSeconds: totalSeconds.clamp(0, 3600),
+      remainingSeconds: remainingSeconds.clamp(0, 3600),
+      endsAt: endsAt == null ? null : DateTime.parse(endsAt).toUtc(),
+      serverNow: DateTime.parse(serverNow).toUtc(),
     );
   }
 }
@@ -317,4 +378,27 @@ class UpdateSharedSessionValue {
       'isDone': isDone,
     };
   }
+}
+
+enum SharedSessionRestAction {
+  start('start'),
+  pause('pause'),
+  add('add'),
+  reset('reset');
+
+  const SharedSessionRestAction(this.wireName);
+
+  final String wireName;
+}
+
+class UpdateSharedSessionRest {
+  const UpdateSharedSessionRest(this.action, {this.deltaSeconds});
+
+  final SharedSessionRestAction action;
+  final int? deltaSeconds;
+
+  Map<String, Object?> toJson() => {
+    'action': action.wireName,
+    'deltaSeconds': deltaSeconds,
+  };
 }

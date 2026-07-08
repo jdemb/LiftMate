@@ -9,6 +9,9 @@ import '../shared_sessions/shared_session_realtime_client.dart';
 import '../training_history/training_history_api_client.dart';
 import '../trainer_guidance/trainer_guidance_api_client.dart';
 import '../workout_sets/workout_set_api_client.dart';
+import '../widgets/motion/pressable_scale.dart';
+import '../widgets/motion/motion_reveals.dart';
+import '../widgets/motion/continuous_motion.dart';
 import 'auth_api_client.dart';
 import 'auth_controller.dart';
 import 'auth_models.dart';
@@ -428,7 +431,12 @@ class _AuthScreenState extends State<AuthScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (_pendingPairRole != null)
-                    _PairingPanel(
+                    MotionSwitcher(
+                      child: KeyedSubtree(
+                        key: ValueKey(
+                          'auth-step-pair-${_pendingPairRole!.name}',
+                        ),
+                        child: _PairingPanel(
                       role: _pendingPairRole!,
                       trainerInviteCode: _trainerInviteCode,
                       trainerCodeController: _trainerCodeController,
@@ -442,9 +450,14 @@ class _AuthScreenState extends State<AuthScreen> {
                           ? _finishPairing
                           : _backToSignupFromPairing,
                       onTrainerCodeChanged: () => setState(() {}),
+                        ),
+                      ),
                     )
                   else
-                    _OnboardingPanel(
+                    MotionSwitcher(
+                      child: KeyedSubtree(
+                        key: ValueKey('auth-step-${_step.name}'),
+                        child: _OnboardingPanel(
                       step: _step,
                       selectedRole: _selectedRole,
                       isLoading: isLoading || _isRegistering,
@@ -473,6 +486,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       onToggleSignupPassword: () => setState(() {
                         _isSignupPasswordVisible = !_isSignupPasswordVisible;
                       }),
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -650,10 +665,12 @@ class _WelcomeStep extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 296),
-          _PrimaryActionButton(
-            label: 'Załóż konto',
-            onPressed: isLoading ? null : onCreateAccount,
-            hasGlow: true,
+          ContinuousSheen(
+            child: _PrimaryActionButton(
+              label: 'Załóż konto',
+              onPressed: isLoading ? null : onCreateAccount,
+              hasGlow: true,
+            ),
           ),
           const SizedBox(height: 12),
           _SecondaryActionButton(
@@ -1137,10 +1154,11 @@ class _RoleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Container(
+    return PressableScale(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: selected ? _lmBlue.withValues(alpha: 0.16) : _lmPanel,
@@ -1206,6 +1224,7 @@ class _RoleCard extends StatelessWidget {
             ),
           ],
         ),
+        ),
       ),
     );
   }
@@ -1252,10 +1271,13 @@ class _DesignedField extends StatelessWidget {
           decoration: InputDecoration(
             suffixIcon: suffix == null
                 ? null
-                : TextButton(
-                    key: suffixKey,
-                    onPressed: onSuffixPressed,
-                    child: Text(suffix!),
+                : PressableScale(
+                    enabled: onSuffixPressed != null,
+                    child: TextButton(
+                      key: suffixKey,
+                      onPressed: onSuffixPressed,
+                      child: Text(suffix!),
+                    ),
                   ),
           ),
           keyboardType: keyboardType,
@@ -1414,27 +1436,30 @@ class _InviteCodeCard extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         Center(
-          child: Tooltip(
-            message: 'Kopiuj kod zaproszenia',
-            child: TextButton(
-              key: const ValueKey('copy-trainer-invite-code-onboarding'),
-              onPressed: canCopy ? onCopy : null,
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF9CC1FB),
-                backgroundColor: _lmBlue.withValues(alpha: 0.16),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 9,
+          child: PressableScale(
+            enabled: canCopy,
+            child: Tooltip(
+              message: 'Kopiuj kod zaproszenia',
+              child: TextButton(
+                key: const ValueKey('copy-trainer-invite-code-onboarding'),
+                onPressed: canCopy ? onCopy : null,
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF9CC1FB),
+                  backgroundColor: _lmBlue.withValues(alpha: 0.16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 9,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: const StadiumBorder(),
+                  textStyle: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: const StadiumBorder(),
-                textStyle: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                ),
+                child: const Text('⧉ Kopiuj kod'),
               ),
-              child: const Text('⧉ Kopiuj kod'),
             ),
           ),
         ),
@@ -1534,20 +1559,23 @@ class _PrimaryActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: hasGlow && onPressed != null
-            ? [
-                BoxShadow(
-                  color: _lmBlue.withValues(alpha: 0.4),
-                  blurRadius: 26,
-                  offset: const Offset(0, 10),
-                ),
-              ]
-            : null,
+    return PressableScale(
+      enabled: onPressed != null,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: hasGlow && onPressed != null
+              ? [
+                  BoxShadow(
+                    color: _lmBlue.withValues(alpha: 0.4),
+                    blurRadius: 26,
+                    offset: const Offset(0, 10),
+                  ),
+                ]
+              : null,
+        ),
+        child: FilledButton(onPressed: onPressed, child: Text(label)),
       ),
-      child: FilledButton(onPressed: onPressed, child: Text(label)),
     );
   }
 }
@@ -1560,7 +1588,10 @@ class _SecondaryActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(onPressed: onPressed, child: Text(label));
+    return PressableScale(
+      enabled: onPressed != null,
+      child: OutlinedButton(onPressed: onPressed, child: Text(label)),
+    );
   }
 }
 
@@ -1573,9 +1604,11 @@ class _BackButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Align(
       alignment: Alignment.centerLeft,
-      child: IconButton(
-        onPressed: onPressed,
-        icon: const Icon(Icons.chevron_left, size: 30, color: _lmMuted),
+      child: PressableScale(
+        child: IconButton(
+          onPressed: onPressed,
+          icon: const Icon(Icons.chevron_left, size: 30, color: _lmMuted),
+        ),
       ),
     );
   }

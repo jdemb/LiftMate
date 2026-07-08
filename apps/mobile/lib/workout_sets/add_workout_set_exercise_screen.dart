@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../relationships/relationship_screen_styles.dart';
 import '../shared_sessions/shared_session_models.dart';
+import '../widgets/motion/pressable_scale.dart';
 import 'workout_set_draft.dart';
 
 class AddWorkoutSetExerciseScreen extends StatefulWidget {
@@ -205,13 +206,15 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 14, 22, 6),
       child: Row(
         children: [
-          IconButton(
+          PressableScale(
+            child: IconButton(
             tooltip: 'Wróć',
             onPressed: onBack,
             icon: const Icon(
               Icons.chevron_left_rounded,
               color: lmMuted,
               size: 30,
+            ),
             ),
           ),
           const SizedBox(width: 4),
@@ -259,7 +262,8 @@ class _TypeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
+    return PressableScale(
+      child: OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(58),
@@ -270,7 +274,7 @@ class _TypeButton extends StatelessWidget {
           color: active ? lmBlue : Colors.white.withValues(alpha: 0.08),
         ),
       ),
-      child: FittedBox(
+        child: FittedBox(
         fit: BoxFit.scaleDown,
         child: Text(
           label,
@@ -278,6 +282,7 @@ class _TypeButton extends StatelessWidget {
           softWrap: false,
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+        ),
         ),
       ),
     );
@@ -361,14 +366,18 @@ class _SmallStepButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton.filled(
-      onPressed: onPressed,
-      style: IconButton.styleFrom(
-        backgroundColor: primary ? lmBlue : lmSurfaceAlt,
-        fixedSize: const Size(38, 38),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+    return PressableScale(
+      child: IconButton.filled(
+        onPressed: onPressed,
+        style: IconButton.styleFrom(
+          backgroundColor: primary ? lmBlue : lmSurfaceAlt,
+          fixedSize: const Size(38, 38),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(11),
+          ),
+        ),
+        icon: Icon(icon),
       ),
-      icon: Icon(icon),
     );
   }
 }
@@ -393,7 +402,9 @@ class _BottomAction extends StatelessWidget {
           top: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
         ),
       ),
-      child: FilledButton(onPressed: onPressed, child: Text(label)),
+      child: PressableScale(
+        child: FilledButton(onPressed: onPressed, child: Text(label)),
+      ),
     );
   }
 }

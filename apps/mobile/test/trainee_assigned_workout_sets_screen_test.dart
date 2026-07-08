@@ -12,6 +12,7 @@ import 'package:liftmate/relationships/relationship_api_client.dart';
 import 'package:liftmate/shared_sessions/shared_session_api_client.dart';
 import 'package:liftmate/shared_sessions/shared_session_realtime_client.dart';
 import 'package:liftmate/workout_sets/workout_set_api_client.dart';
+import 'package:liftmate/widgets/motion/continuous_motion.dart';
 
 import 'fake_onboarding_state_store.dart';
 
@@ -45,6 +46,8 @@ void main() {
       expect(find.text('Bench press'), findsNWidgets(2));
       expect(find.text('Plank'), findsNWidgets(2));
       expect(find.text('Rozpocznij trening'), findsNWidgets(2));
+      expect(find.byType(AmbientOrb), findsOneWidget);
+      expect(find.byType(ContinuousSheen), findsOneWidget);
     });
 
     testWidgets('linked trainee starts assigned workout from set card', (tester) async {
@@ -136,6 +139,8 @@ void main() {
       ));
 
       await tester.pumpAndSettle();
+      expect(find.byType(AmbientOrb), findsOneWidget);
+      expect(find.byType(ContinuousSheen), findsNothing);
       await tester.tap(find.text('Dołącz do aktywnego treningu'));
       await tester.pumpAndSettle();
 

@@ -14,6 +14,7 @@ import 'shared_sessions/shared_session_api_client.dart';
 import 'shared_sessions/shared_session_realtime_client.dart';
 import 'training_history/training_history_api_client.dart';
 import 'trainer_guidance/trainer_guidance_api_client.dart';
+import 'theme/motion.dart';
 import 'workout_sets/workout_set_api_client.dart';
 
 Future<void> main() async {
@@ -107,6 +108,10 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: _liftMateTheme(),
+      builder: (context, child) => MotionScope(
+        allowContinuousAnimations: true,
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: AuthScreen(
         authController: authController,
         onboardingStateStore: onboardingStateStore,

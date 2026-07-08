@@ -13,6 +13,7 @@ import 'package:liftmate/auth/onboarding_state_store.dart';
 import 'package:liftmate/auth/token_store.dart';
 import 'package:liftmate/relationships/relationship_api_client.dart';
 import 'package:liftmate/workout_sets/workout_set_api_client.dart';
+import 'package:liftmate/widgets/motion/continuous_motion.dart';
 
 void main() {
   group('AuthScreen', () {
@@ -38,12 +39,50 @@ void main() {
         findsNothing,
       );
       expect(find.text('Załóż konto'), findsOneWidget);
+      expect(find.byType(ContinuousSheen), findsOneWidget);
       expect(find.text('Mam już konto'), findsOneWidget);
       expect(find.text('Kod dostępu'), findsNothing);
       expect(find.text('Kod rejestracji'), findsNothing);
       expect(find.text('API diagnostics'), findsNothing);
       expect(find.text('Trainer probe passed'), findsNothing);
       expect(find.text('Shared session diagnostics'), findsNothing);
+    });
+
+    testWidgets('welcome action emits one selection haptic and still navigates', (
+      tester,
+    ) async {
+      final haptics = <MethodCall>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'HapticFeedback.vibrate') {
+            haptics.add(call);
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            fail('No auth request should be sent before submitting');
+          }),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _tapButton(tester, 'Załóż konto');
+
+      expect(find.text('Jak korzystasz\nz LiftMate?'), findsOneWidget);
+      expect(find.byType(ContinuousSheen), findsNothing);
+      expect(haptics, hasLength(1));
+      expect(haptics.single.arguments, 'HapticFeedbackType.selectionClick');
     });
 
     testWidgets('role selection uses design cards and opens trainee signup', (
@@ -818,6 +857,27 @@ void main() {
       expect(_textContaining('Beta-Code'), findsNothing);
       expect(find.text('Kod dostępu'), findsNothing);
       expect(find.text('Kod rejestracji'), findsNothing);
+    });
+
+    testWidgets('onboarding transition follows the active step key', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _testApp(
+          httpClient: MockClient((request) async {
+            fail('No auth request should be sent before submitting');
+          }),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('auth-step-welcome')), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Załóż konto'));
+      await tester.tap(find.text('Załóż konto'));
+      await tester.pump(const Duration(milliseconds: 1));
+
+      expect(find.byKey(const ValueKey('auth-step-role')), findsOneWidget);
     });
   });
 }

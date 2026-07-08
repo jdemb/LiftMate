@@ -18,6 +18,16 @@ void main() {
       expect(session.isTraineeSelfStarted, isTrue);
       expect(session.status, SharedSessionStatus.active);
       expect(session.version, 3);
+      expect(session.restTimer.totalSeconds, 90);
+      expect(session.restTimer.remainingSeconds, 45);
+      expect(
+        session.restTimer.endsAt,
+        DateTime.parse('2026-06-03T12:01:45Z').toUtc(),
+      );
+      expect(
+        session.restTimer.serverNow,
+        DateTime.parse('2026-06-03T12:01:00Z').toUtc(),
+      );
       expect(session.closedAt, isNull);
       expect(session.values, hasLength(1));
       expect(session.values.single.exerciseType, ExerciseValueType.repsWeight);
@@ -100,6 +110,12 @@ Map<String, Object?> _sessionJson() {
     'startedByRole': 'trainee',
     'status': 'active',
     'version': 3,
+    'restTimer': {
+      'totalSeconds': 90,
+      'remainingSeconds': 45,
+      'endsAt': '2026-06-03T12:01:45Z',
+      'serverNow': '2026-06-03T12:01:00Z',
+    },
     'createdAt': '2026-06-03T12:00:00Z',
     'updatedAt': '2026-06-03T12:01:00Z',
     'closedAt': null,

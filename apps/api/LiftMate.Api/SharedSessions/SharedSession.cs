@@ -23,6 +23,12 @@ public sealed class SharedSession
 
     public int RestSeconds { get; set; } = 90;
 
+    public int RestTimerTotalSeconds { get; set; } = 90;
+
+    public int RestTimerRemainingSeconds { get; set; } = 90;
+
+    public DateTimeOffset? RestTimerEndsAt { get; set; }
+
     public string StartedByUserId { get; set; } = string.Empty;
 
     public ApplicationUser? StartedByUser { get; set; }

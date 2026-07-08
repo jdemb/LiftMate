@@ -9,6 +9,7 @@ import 'package:http/testing.dart';
 import 'package:liftmate/auth/auth_api_client.dart';
 import 'package:liftmate/auth/auth_controller.dart';
 import 'package:liftmate/auth/token_store.dart';
+import 'package:liftmate/relationships/relationship_screen_styles.dart';
 import 'package:liftmate/shared_sessions/live_session_screen.dart';
 import 'package:liftmate/shared_sessions/shared_session_api_client.dart';
 import 'package:liftmate/shared_sessions/shared_session_controller.dart';
@@ -428,6 +429,160 @@ void main() {
     expect(find.text('02:00'), findsOneWidget);
   });
 
+  testWidgets('series completion updates visually before the API returns', (
+    tester,
+  ) async {
+    final gate = Completer<void>();
+    final authController = await _authController();
+    final apiClient = _FakeSharedSessionApiClient(updateGate: gate);
+    final controller = SharedSessionController(
+      apiClient: apiClient,
+      authController: authController,
+      realtimeClientFactory: _FakeRealtimeClient.new,
+    );
+    addTearDown(controller.dispose);
+    await controller.loadById(
+      user: authController.state.user!,
+      sessionId: 'session-1',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _liveTestTheme(),
+        home: LiveSessionScreen(
+          user: authController.state.user!,
+          controller: controller,
+          editable: true,
+          onBack: () {},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('Oznacz serię'));
+    await tester.pump();
+
+    expect(find.byTooltip('Cofnij serię'), findsOneWidget);
+    gate.complete();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('series completion does not animate the whole card green', (
+    tester,
+  ) async {
+    final authController = await _authController();
+    final controller = SharedSessionController(
+      apiClient: _FakeSharedSessionApiClient(),
+      authController: authController,
+      realtimeClientFactory: _FakeRealtimeClient.new,
+    );
+    addTearDown(controller.dispose);
+    await controller.loadById(
+      user: authController.state.user!,
+      sessionId: 'session-1',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _liveTestTheme(),
+        home: LiveSessionScreen(
+          user: authController.state.user!,
+          controller: controller,
+          editable: true,
+          onBack: () {},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('Oznacz serię'));
+    await tester.pump();
+
+    final card = find.byKey(const ValueKey('live-set-card-value-1'));
+    final animatedCard = tester.widget<AnimatedContainer>(
+      find.descendant(of: card, matching: find.byType(AnimatedContainer)),
+    );
+    expect((animatedCard.decoration! as BoxDecoration).color, lmSurface);
+  });
+
+  testWidgets('next exercise gets fresh keyed set cards', (tester) async {
+    final authController = await _authController();
+    final controller = SharedSessionController(
+      apiClient: _FakeSharedSessionApiClient(session: _multiExerciseSession()),
+      authController: authController,
+      realtimeClientFactory: _FakeRealtimeClient.new,
+    );
+    addTearDown(controller.dispose);
+    await controller.loadById(
+      user: authController.state.user!,
+      sessionId: 'session-1',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _liveTestTheme(),
+        home: LiveSessionScreen(
+          user: authController.state.user!,
+          controller: controller,
+          editable: true,
+          onBack: () {},
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('live-set-card-value-1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('live-set-card-value-2')), findsOneWidget);
+    final nextButton = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Dalej', skipOffstage: false),
+    );
+    nextButton.onPressed!();
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('live-set-card-value-1')), findsNothing);
+    expect(find.byKey(const ValueKey('live-set-card-value-2')), findsNothing);
+    expect(find.byKey(const ValueKey('live-set-card-value-3')), findsOneWidget);
+  });
+
+  testWidgets('rest projection catches up after wall clock advances', (
+    tester,
+  ) async {
+    final base = DateTime.utc(2026, 7, 7, 12);
+    var now = base;
+    final authController = await _authController();
+    final controller = SharedSessionController(
+      apiClient: _FakeSharedSessionApiClient(
+        session: _session(
+          restTimer: SharedSessionRestTimer(
+            totalSeconds: 60,
+            remainingSeconds: 60,
+            endsAt: base.add(const Duration(seconds: 60)),
+            serverNow: base,
+          ),
+        ),
+      ),
+      authController: authController,
+      realtimeClientFactory: _FakeRealtimeClient.new,
+    );
+    addTearDown(controller.dispose);
+    await controller.loadById(
+      user: authController.state.user!,
+      sessionId: 'session-1',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _liveTestTheme(),
+        home: LiveSessionScreen(
+          user: authController.state.user!,
+          controller: controller,
+          editable: true,
+          onBack: () {},
+          now: () => now,
+        ),
+      ),
+    );
+    expect(find.text('01:00'), findsOneWidget);
+
+    now = base.add(const Duration(seconds: 30));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('00:30'), findsOneWidget);
+  });
+
   testWidgets('rest commands use the server snapshot and dynamic denominator', (
     tester,
   ) async {
@@ -734,12 +889,14 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
     SharedSession? session,
     this.failComplete = false,
     this.failUpdate = false,
+    this.updateGate,
   }) : _currentSession = session ?? _session(),
        super(baseUrl: 'https://api.example.test');
 
   SharedSession _currentSession;
   final bool failComplete;
   final bool failUpdate;
+  final Completer<void>? updateGate;
   UpdateSharedSessionValue? updatedValue;
   final List<SharedSessionRestAction> restUpdates = [];
   bool completed = false;
@@ -764,6 +921,7 @@ class _FakeSharedSessionApiClient extends SharedSessionApiClient {
     required UpdateSharedSessionValue value,
   }) async {
     updatedValue = value;
+    await updateGate?.future;
     if (failUpdate) {
       return const SharedSessionApiResult(
         status: SharedSessionApiStatus.error,
@@ -850,7 +1008,9 @@ SharedSession _copySessionWithUpdatedValue(
   String valueId,
   UpdateSharedSessionValue update,
 ) {
-  final previousValue = session.values.singleWhere((item) => item.id == valueId);
+  final previousValue = session.values.singleWhere(
+    (item) => item.id == valueId,
+  );
   final startsRest = !previousValue.isDone && update.isDone == true;
   final now = DateTime.utc(2026, 7, 7, 12);
   return SharedSession(

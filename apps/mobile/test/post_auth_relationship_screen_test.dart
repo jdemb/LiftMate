@@ -53,6 +53,22 @@ void main() {
         expect(find.text('7F2K9D'), findsWidgets);
         expect(find.text('Brak podopiecznych'), findsOneWidget);
         expect(find.text('Zaproś podopiecznego'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('trainer-dashboard-reveal-header')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('trainer-dashboard-reveal-counters')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('trainer-dashboard-reveal-invite')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('trainer-dashboard-reveal-list-state')),
+          findsOneWidget,
+        );
       },
     );
 

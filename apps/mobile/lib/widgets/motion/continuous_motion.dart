@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../theme/motion.dart';
@@ -24,6 +27,7 @@ class _ContinuousSheenState extends State<ContinuousSheen>
     vsync: this,
     duration: const Duration(milliseconds: 3600),
   );
+  Timer? _startDelay;
 
   @override
   void didChangeDependencies() {
@@ -33,9 +37,18 @@ class _ContinuousSheenState extends State<ContinuousSheen>
 
   void _syncLoop() {
     if (MotionScope.continuousAnimationsEnabled(context)) {
-      if (!_controller.isAnimating) _controller.repeat();
+      if (!_controller.isAnimating && _startDelay == null) {
+        _startDelay = Timer(const Duration(milliseconds: 1200), () {
+          _startDelay = null;
+          if (mounted && MotionScope.continuousAnimationsEnabled(context)) {
+            _controller.repeat();
+          }
+        });
+      }
       return;
     }
+    _startDelay?.cancel();
+    _startDelay = null;
     _controller
       ..stop()
       ..value = 0;
@@ -43,6 +56,7 @@ class _ContinuousSheenState extends State<ContinuousSheen>
 
   @override
   void dispose() {
+    _startDelay?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -66,22 +80,27 @@ class _ContinuousSheenState extends State<ContinuousSheen>
                         final width = constraints.maxWidth.isFinite
                             ? constraints.maxWidth
                             : 0.0;
-                        final offset = width * (-0.6 + 1.8 * _controller.value);
+                        final offset =
+                            width * (-0.63 + 2.25 * _controller.value);
                         return Transform.translate(
                           key: ContinuousSheen.transformKey,
                           offset: Offset(offset, 0),
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: SizedBox(
-                              width: width * 0.38,
-                              child: const DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.transparent,
-                                      Color(0x33FFFFFF),
-                                      Colors.transparent,
-                                    ],
+                              width: width * 0.45,
+                              child: Transform(
+                                transform: Matrix4.skewX(-20 * math.pi / 180),
+                                alignment: Alignment.center,
+                                child: const DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.transparent,
+                                        Color(0x52FFFFFF),
+                                        Colors.transparent,
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -123,12 +142,28 @@ class _AmbientOrbState extends State<AmbientOrb>
     vsync: this,
     duration: const Duration(seconds: 8),
   );
+  late final Animation<Offset> _offset = TweenSequence<Offset>([
+    TweenSequenceItem(
+      tween: Tween(
+        begin: Offset.zero,
+        end: const Offset(7, -16),
+      ).chain(CurveTween(curve: Curves.easeInOut)),
+      weight: 50,
+    ),
+    TweenSequenceItem(
+      tween: Tween(
+        begin: const Offset(7, -16),
+        end: Offset.zero,
+      ).chain(CurveTween(curve: Curves.easeInOut)),
+      weight: 50,
+    ),
+  ]).animate(_controller);
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (MotionScope.continuousAnimationsEnabled(context)) {
-      if (!_controller.isAnimating) _controller.repeat(reverse: true);
+      if (!_controller.isAnimating) _controller.repeat();
       return;
     }
     _controller
@@ -157,10 +192,7 @@ class _AmbientOrbState extends State<AmbientOrb>
                   builder: (context, _) {
                     return Transform.translate(
                       key: AmbientOrb.transformKey,
-                      offset: Offset(
-                        10 * _controller.value,
-                        -8 + 12 * _controller.value,
-                      ),
+                      offset: _offset.value,
                       child: Align(
                         alignment: Alignment.topRight,
                         child: FractionallySizedBox(
@@ -171,7 +203,9 @@ class _AmbientOrbState extends State<AmbientOrb>
                               shape: BoxShape.circle,
                               gradient: RadialGradient(
                                 colors: [
-                                  const Color(0xFF3A82F6).withValues(alpha: 0.2),
+                                  const Color(
+                                    0xFF3A82F6,
+                                  ).withValues(alpha: 0.2),
                                   Colors.transparent,
                                 ],
                               ),

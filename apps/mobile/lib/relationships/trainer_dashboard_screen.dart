@@ -45,70 +45,100 @@ class TrainerDashboardScreen extends StatelessWidget {
             onRefresh: onReload,
             child: MotionStaggerScope(
               child: ListView(
-              padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
-              children: [
-                _TrainerHeader(user: user, onLogout: onLogout),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _CounterCard(
-                        value: trainees.length.toString(),
-                        label: 'podopiecznych',
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _CounterCard(
-                        value: activeCount.toString(),
-                        label: 'aktywnych sesji',
-                        accent: true,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                _InviteCodeCard(
-                  code: summary?.inviteCode,
-                  isLoading:
-                      state.status == RelationshipControllerStatus.loading,
-                  onCopy: onCopyInviteCode,
-                ),
-                const SizedBox(height: 24),
-                const RelationshipSectionLabel('Podopieczni'),
-                const SizedBox(height: 12),
-                if (state.status == RelationshipControllerStatus.loading &&
-                    summary == null)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 32),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                else if (state.status == RelationshipControllerStatus.error &&
-                    summary == null)
-                  _ErrorState(
-                    message: state.message ?? 'Nie udało się pobrać relacji.',
-                  )
-                else if (state.status == RelationshipControllerStatus.error)
-                  _ErrorState(
-                    message: state.message ?? 'Nie udało się pobrać relacji.',
-                  )
-                else if (trainees.isEmpty)
-                  const _TrainerEmptyState()
-                else
-                  ...trainees.map(
-                    (trainee) => StaggeredReveal(
-                      position: trainees.indexOf(trainee),
-                      child: _TraineeListItem(
-                        trainee: trainee,
-                        isOpening: openingTraineeId == trainee.id,
-                        isDisabled: openingTraineeId != null,
-                        onTap: () => onOpenTrainee(trainee),
-                      ),
+                padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+                children: [
+                  StaggeredReveal(
+                    key: const ValueKey('trainer-dashboard-reveal-header'),
+                    position: 0,
+                    child: _TrainerHeader(user: user, onLogout: onLogout),
+                  ),
+                  const SizedBox(height: 18),
+                  StaggeredReveal(
+                    key: const ValueKey('trainer-dashboard-reveal-counters'),
+                    position: 1,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _CounterCard(
+                            value: trainees.length.toString(),
+                            label: 'podopiecznych',
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _CounterCard(
+                            value: activeCount.toString(),
+                            label: 'aktywnych sesji',
+                            accent: true,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-              ],
+                  const SizedBox(height: 18),
+                  StaggeredReveal(
+                    key: const ValueKey('trainer-dashboard-reveal-invite'),
+                    position: 2,
+                    child: _InviteCodeCard(
+                      code: summary?.inviteCode,
+                      isLoading:
+                          state.status == RelationshipControllerStatus.loading,
+                      onCopy: onCopyInviteCode,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const StaggeredReveal(
+                    key: ValueKey('trainer-dashboard-reveal-list-state'),
+                    position: 3,
+                    child: RelationshipSectionLabel('Podopieczni'),
+                  ),
+                  const SizedBox(height: 12),
+                  if (state.status == RelationshipControllerStatus.loading &&
+                      summary == null)
+                    const StaggeredReveal(
+                      position: 4,
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 32),
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                    )
+                  else if (state.status == RelationshipControllerStatus.error &&
+                      summary == null)
+                    StaggeredReveal(
+                      position: 4,
+                      child: _ErrorState(
+                        message:
+                            state.message ?? 'Nie udało się pobrać relacji.',
+                      ),
+                    )
+                  else if (state.status == RelationshipControllerStatus.error)
+                    StaggeredReveal(
+                      position: 4,
+                      child: _ErrorState(
+                        message:
+                            state.message ?? 'Nie udało się pobrać relacji.',
+                      ),
+                    )
+                  else if (trainees.isEmpty)
+                    const StaggeredReveal(
+                      position: 4,
+                      child: _TrainerEmptyState(),
+                    )
+                  else
+                    ...trainees.map(
+                      (trainee) => StaggeredReveal(
+                        position: 4 + trainees.indexOf(trainee),
+                        child: _TraineeListItem(
+                          trainee: trainee,
+                          isOpening: openingTraineeId == trainee.id,
+                          isDisabled: openingTraineeId != null,
+                          onTap: () => onOpenTrainee(trainee),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -291,23 +321,23 @@ class _InviteCodeCard extends StatelessWidget {
               child: Tooltip(
                 message: 'Kopiuj kod zaproszenia',
                 child: TextButton.icon(
-                key: const ValueKey('copy-trainer-invite-code-dashboard'),
-                onPressed: canCopy ? () => onCopy(code!) : null,
-                icon: const Icon(Icons.copy_rounded, size: 17),
-                label: const Text('Kopiuj kod'),
-                style: TextButton.styleFrom(
-                  foregroundColor: lmBlueSoft,
-                  backgroundColor: lmBlue.withValues(alpha: 0.16),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
+                  key: const ValueKey('copy-trainer-invite-code-dashboard'),
+                  onPressed: canCopy ? () => onCopy(code!) : null,
+                  icon: const Icon(Icons.copy_rounded, size: 17),
+                  label: const Text('Kopiuj kod'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: lmBlueSoft,
+                    backgroundColor: lmBlue.withValues(alpha: 0.16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: const StadiumBorder(),
                   ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  shape: const StadiumBorder(),
                 ),
               ),
-            ),
             ),
           ),
         ],
@@ -378,81 +408,84 @@ class _TraineeListItem extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             onTap: isDisabled ? null : onTap,
             child: RelationshipCard(
-            child: Row(
-              children: [
-                RelationshipAvatar(label: trainee.displayName),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        trainee.displayName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15.5,
+              child: Row(
+                children: [
+                  RelationshipAvatar(label: trainee.displayName),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          trainee.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15.5,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        trainee.email,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: lmMuted, fontSize: 12.5),
-                      ),
-                      if (trainee.activeSession != null) ...[
-                        const SizedBox(height: 7),
-                        const _ActiveSessionBadge(),
+                        const SizedBox(height: 2),
+                        Text(
+                          trainee.email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: lmMuted,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                        if (trainee.activeSession != null) ...[
+                          const SizedBox(height: 7),
+                          const _ActiveSessionBadge(),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 78,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        trainee.weeklyStreak.lastCompletedWorkoutAt == null
-                            ? 'nie zaczął'
-                            : formatLastWorkout(
-                                trainee.weeklyStreak.lastCompletedWorkoutAt,
-                              ),
-                        maxLines: 2,
-                        textAlign: TextAlign.right,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: lmMuted,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    width: 78,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          trainee.weeklyStreak.lastCompletedWorkoutAt == null
+                              ? 'nie zaczął'
+                              : formatLastWorkout(
+                                  trainee.weeklyStreak.lastCompletedWorkoutAt,
+                                ),
+                          maxLines: 2,
+                          textAlign: TextAlign.right,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: lmMuted,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        formatWeeklyStreakFlame(
-                          trainee.weeklyStreak.currentStreak,
+                        const SizedBox(height: 3),
+                        Text(
+                          formatWeeklyStreakFlame(
+                            trainee.weeklyStreak.currentStreak,
+                          ),
+                          style: const TextStyle(
+                            color: lmMutedDark,
+                            fontSize: 11.5,
+                          ),
                         ),
-                        style: const TextStyle(
-                          color: lmMutedDark,
-                          fontSize: 11.5,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                if (isOpening)
-                  const SizedBox.square(
-                    dimension: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  const Icon(Icons.chevron_right_rounded, color: lmMutedDark),
-              ],
-            ),
+                  const SizedBox(width: 4),
+                  if (isOpening)
+                    const SizedBox.square(
+                      dimension: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    const Icon(Icons.chevron_right_rounded, color: lmMutedDark),
+                ],
+              ),
             ),
           ),
         ),

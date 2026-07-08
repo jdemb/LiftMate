@@ -513,6 +513,11 @@ public static class SharedSessionEndpoints
             return Results.Unauthorized();
         }
 
+        if (string.IsNullOrWhiteSpace(request.Action))
+        {
+            return Results.BadRequest(new { error = "Rest timer action is required." });
+        }
+
         var action = request.Action.Trim().ToLowerInvariant();
         if (action is not ("start" or "pause" or "add" or "reset"))
         {

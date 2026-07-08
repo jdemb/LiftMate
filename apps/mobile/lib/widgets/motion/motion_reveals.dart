@@ -74,19 +74,114 @@ class _MotionEntranceState extends State<MotionEntrance>
   }
 }
 
-class MotionPop extends StatelessWidget {
+class MotionPop extends StatefulWidget {
   const MotionPop({required this.child, super.key});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    return MotionEntrance(
-      duration: LiftMateMotion.reveal,
-      verticalOffset: 0,
-      scaleFrom: 0.4,
-      child: child,
+  State<MotionPop> createState() => _MotionPopState();
+}
+
+class _MotionPopState extends State<MotionPop>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(vsync: this);
+  late final Animation<double> _scale = TweenSequence<double>([
+    TweenSequenceItem(tween: ConstantTween(0.4), weight: 150),
+    TweenSequenceItem(tween: Tween(begin: 0.4, end: 1.15), weight: 303),
+    TweenSequenceItem(tween: Tween(begin: 1.15, end: 1), weight: 247),
+  ]).animate(_controller);
+  late final Animation<double> _opacity = TweenSequence<double>([
+    TweenSequenceItem(tween: ConstantTween(0), weight: 150),
+    TweenSequenceItem(tween: Tween(begin: 0, end: 1), weight: 550),
+  ]).animate(_controller);
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    _controller.duration = LiftMateMotion.duration(
+      context,
+      const Duration(milliseconds: 700),
     );
+    if (_controller.duration == Duration.zero) {
+      _controller.value = 1;
+    } else {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacity,
+      alwaysIncludeSemantics: true,
+      child: ScaleTransition(scale: _scale, child: widget.child),
+    );
+  }
+}
+
+class MotionCheckPop extends StatefulWidget {
+  const MotionCheckPop({required this.active, required this.child, super.key});
+
+  final bool active;
+  final Widget child;
+
+  @override
+  State<MotionCheckPop> createState() => _MotionCheckPopState();
+}
+
+class _MotionCheckPopState extends State<MotionCheckPop>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(vsync: this);
+  late final Animation<double> _scale = TweenSequence<double>([
+    TweenSequenceItem(tween: Tween(begin: 0, end: 1.25), weight: 60),
+    TweenSequenceItem(tween: Tween(begin: 1.25, end: 1), weight: 40),
+  ]).animate(_controller);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _controller.duration = LiftMateMotion.duration(
+      context,
+      const Duration(milliseconds: 420),
+    );
+    if (_controller.duration == Duration.zero || !widget.active) {
+      _controller.value = 1;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant MotionCheckPop oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.active && widget.active) {
+      if (_controller.duration == Duration.zero) {
+        _controller.value = 1;
+      } else {
+        _controller.forward(from: 0);
+      }
+    } else if (oldWidget.active && !widget.active) {
+      _controller.value = 1;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(scale: _scale, child: widget.child);
   }
 }
 
@@ -108,9 +203,7 @@ class StaggeredReveal extends StatefulWidget {
 
 class _StaggeredRevealState extends State<StaggeredReveal>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-  );
+  late final AnimationController _controller = AnimationController(vsync: this);
   bool _started = false;
   double _delayFraction = 0;
 
@@ -124,7 +217,8 @@ class _StaggeredRevealState extends State<StaggeredReveal>
       return;
     }
 
-    final delayMilliseconds = LiftMateMotion.staggerStep.inMilliseconds *
+    final delayMilliseconds =
+        LiftMateMotion.staggerStep.inMilliseconds *
         LiftMateMotion.staggerPosition(widget.position);
     final totalMilliseconds =
         delayMilliseconds + LiftMateMotion.reveal.inMilliseconds;
@@ -143,11 +237,7 @@ class _StaggeredRevealState extends State<StaggeredReveal>
   Widget build(BuildContext context) {
     final animation = CurvedAnimation(
       parent: _controller,
-      curve: Interval(
-        _delayFraction,
-        1,
-        curve: LiftMateMotion.standard,
-      ),
+      curve: Interval(_delayFraction, 1, curve: LiftMateMotion.standard),
     );
     return AnimationConfiguration.staggeredList(
       position: LiftMateMotion.staggerPosition(widget.position),
@@ -208,6 +298,8 @@ class MotionSwitcher extends StatelessWidget {
           ),
         );
       },
+      layoutBuilder: (currentChild, previousChildren) =>
+          currentChild ?? const SizedBox.shrink(),
       child: child,
     );
   }

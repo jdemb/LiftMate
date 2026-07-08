@@ -19,9 +19,9 @@
 
 ## Czym jest LiftMate?
 
-LiftMate łączy trenera z podopiecznym w jednym procesie. Trener przygotowuje i przypisuje zestawy, może prowadzić wspólną sesję oraz obserwować historię. Podopieczny wykonuje trening pod jego nadzorem lub samodzielnie i zachowuje ciągłość między kolejnymi wizytami na siłowni.
+LiftMate to aplikacja dla osób, które trenują razem. Trener lub bardziej doświadczony partner przygotowuje zestaw, prowadzi wspólną sesję i zapisuje wyniki. Druga osoba zawsze wie, jakie ćwiczenie wykonać, z jakim ciężarem zacząć i co udało się osiągnąć podczas wcześniejszych treningów.
 
-Projekt ma strukturę monorepo i obejmuje aplikację mobilną stworzoną we Flutterze oraz interfejs API zbudowany w ASP.NET Core. Obsługuje cały proces, od rejestracji i połączenia kont po historię treningów, informacje zwrotne oraz analizę postępów.
+Aplikacja mobilna powstała we Flutterze, a jej zaplecze w ASP.NET Core. LiftMate obsługuje cały proces od połączenia kont i przygotowania zestawu po wspólny trening, informację zwrotną oraz historię postępów.
 
 ## Dla kogo jest LiftMate?
 

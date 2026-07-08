@@ -76,17 +76,11 @@ void main() {
     expect(await readContinuousMotion(includeScope: false), isFalse);
     expect(await readContinuousMotion(includeScope: true), isTrue);
     expect(
-      await readContinuousMotion(
-        includeScope: true,
-        disableAnimations: true,
-      ),
+      await readContinuousMotion(includeScope: true, disableAnimations: true),
       isFalse,
     );
     expect(
-      await readContinuousMotion(
-        includeScope: true,
-        tickerEnabled: false,
-      ),
+      await readContinuousMotion(includeScope: true, tickerEnabled: false),
       isFalse,
     );
   });
@@ -125,6 +119,77 @@ void main() {
     expect(find.byKey(const ValueKey('stable-view')), findsOneWidget);
     expect(find.text('value-0'), findsNothing);
     expect(find.text('value-1'), findsOneWidget);
+  });
+
+  testWidgets('changed view paints only the incoming screen', (tester) async {
+    final value = ValueNotifier(0);
+    addTearDown(value.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ValueListenableBuilder<int>(
+          valueListenable: value,
+          builder: (context, current, _) => MotionSwitcher(
+            child: Text('view-$current', key: ValueKey(current)),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    value.value = 1;
+    await tester.pump();
+
+    expect(find.text('view-0'), findsNothing);
+    expect(find.text('view-1'), findsOneWidget);
+  });
+
+  testWidgets('pop overshoots before settling', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: MotionPop(child: Text('42'))),
+    );
+
+    await tester.pump(const Duration(milliseconds: 460));
+    final transition = tester.widget<ScaleTransition>(
+      find.descendant(
+        of: find.byType(MotionPop),
+        matching: find.byType(ScaleTransition),
+      ),
+    );
+    expect(transition.scale.value, greaterThan(1.1));
+
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(transition.scale.value, closeTo(1, 0.001));
+  });
+
+  testWidgets('completion check overshoots only when becoming active', (
+    tester,
+  ) async {
+    final active = ValueNotifier(false);
+    addTearDown(active.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ValueListenableBuilder<bool>(
+          valueListenable: active,
+          builder: (context, value, _) => MotionCheckPop(
+            active: value,
+            child: const Icon(Icons.check_rounded),
+          ),
+        ),
+      ),
+    );
+    active.value = true;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    final transition = tester.widget<ScaleTransition>(
+      find.descendant(
+        of: find.byType(MotionCheckPop),
+        matching: find.byType(ScaleTransition),
+      ),
+    );
+    expect(transition.scale.value, greaterThan(1.2));
   });
 
   testWidgets('reduced motion switches views immediately', (tester) async {
@@ -188,7 +253,8 @@ void main() {
     final staticSheen = tester
         .widget<Transform>(find.byKey(ContinuousSheen.transformKey))
         .transform;
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pump(const Duration(milliseconds: 200));
     expect(
       tester
           .widget<Transform>(find.byKey(ContinuousSheen.transformKey))
@@ -200,7 +266,8 @@ void main() {
     final movingSheen = tester
         .widget<Transform>(find.byKey(ContinuousSheen.transformKey))
         .transform;
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.pump(const Duration(milliseconds: 200));
     expect(
       tester
           .widget<Transform>(find.byKey(ContinuousSheen.transformKey))
@@ -209,16 +276,74 @@ void main() {
     );
   });
 
+  testWidgets('sheen waits before its first sweep', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MotionScope(
+          allowContinuousAnimations: true,
+          child: ContinuousSheen(child: SizedBox(width: 160, height: 80)),
+        ),
+      ),
+    );
+    final initial = tester
+        .widget<Transform>(find.byKey(ContinuousSheen.transformKey))
+        .transform;
+
+    await tester.pump(const Duration(seconds: 1));
+    expect(
+      tester
+          .widget<Transform>(find.byKey(ContinuousSheen.transformKey))
+          .transform,
+      initial,
+    );
+
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(
+      tester
+          .widget<Transform>(find.byKey(ContinuousSheen.transformKey))
+          .transform,
+      isNot(initial),
+    );
+  });
+
+  testWidgets(
+    'orb reaches the prototype midpoint and completes in eight seconds',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MotionScope(
+            allowContinuousAnimations: true,
+            child: AmbientOrb(child: SizedBox(width: 180, height: 100)),
+          ),
+        ),
+      );
+
+      Offset offset() {
+        final translation = tester
+            .widget<Transform>(find.byKey(AmbientOrb.transformKey))
+            .transform
+            .getTranslation();
+        return Offset(translation.x, translation.y);
+      }
+
+      expect(offset(), Offset.zero);
+      await tester.pump(const Duration(seconds: 4));
+      expect(offset().dx, closeTo(7, 0.1));
+      expect(offset().dy, closeTo(-16, 0.1));
+      await tester.pump(const Duration(seconds: 4));
+      expect(offset().dx, closeTo(0, 0.1));
+      expect(offset().dy, closeTo(0, 0.1));
+    },
+  );
+
   testWidgets('reduced motion and TickerMode stop continuous loops', (
     tester,
   ) async {
     Future<void> expectStatic(Widget wrapper) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: MotionScope(
-            allowContinuousAnimations: true,
-            child: wrapper,
-          ),
+          home: MotionScope(allowContinuousAnimations: true, child: wrapper),
         ),
       );
       final before = tester
@@ -226,9 +351,7 @@ void main() {
           .transform;
       await tester.pump(const Duration(seconds: 2));
       expect(
-        tester
-            .widget<Transform>(find.byKey(AmbientOrb.transformKey))
-            .transform,
+        tester.widget<Transform>(find.byKey(AmbientOrb.transformKey)).transform,
         before,
       );
     }

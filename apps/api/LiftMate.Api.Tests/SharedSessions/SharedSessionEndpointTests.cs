@@ -521,6 +521,23 @@ public sealed class SharedSessionEndpointTests(TestApplicationFactory factory)
     }
 
     [Fact]
+    public async Task RestTimerRejectsMissingActionAsBadRequest()
+    {
+        using var client = factory.CreateClient();
+        var trainer = await AuthEndpointTests.Register(client, "trainer");
+        var trainee = await AuthEndpointTests.Register(client, "trainee");
+        await PairingEndpointTests.PairTrainerAndTrainee(client, trainer, trainee);
+        var session = await CreateSession(client, trainer, trainee);
+
+        client.DefaultRequestHeaders.Authorization = Bearer(trainer.AccessToken);
+        var response = await client.PatchAsJsonAsync(
+            $"/shared-sessions/{session.Id}/rest",
+            new { action = (string?)null, deltaSeconds = (int?)null });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task ConcurrentRestAddsPreserveBothDeltasAndVersions()
     {
         using var setupClient = factory.CreateClient();

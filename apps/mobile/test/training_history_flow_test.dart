@@ -169,15 +169,20 @@ void main() {
       find.byKey(const ValueKey('history-progress-chart')),
       findsOneWidget,
     );
+    final verticalTransitions = find.descendant(
+      of: find.byKey(const ValueKey('history-progress-chart')),
+      matching: find.byType(SizeTransition),
+    );
+    expect(verticalTransitions, findsWidgets);
     expect(
       tester
-          .widgetList<ScaleTransition>(
-            find.descendant(
-              of: find.byKey(const ValueKey('history-progress-chart')),
-              matching: find.byType(ScaleTransition),
-            ),
-          )
-          .every((transition) => transition.scale.value == 1),
+          .widgetList<SizeTransition>(verticalTransitions)
+          .every(
+            (transition) =>
+                transition.axis == Axis.vertical &&
+                transition.alignment == Alignment.bottomCenter &&
+                transition.sizeFactor.value == 1,
+          ),
       isTrue,
     );
   });

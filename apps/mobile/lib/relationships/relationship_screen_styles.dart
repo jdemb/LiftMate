@@ -33,6 +33,7 @@ class RelationshipCard extends StatelessWidget {
     this.margin,
     this.color,
     this.borderColor,
+    this.duration = LiftMateMotion.fast,
     super.key,
   });
 
@@ -41,11 +42,12 @@ class RelationshipCard extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
   final Color? color;
   final Color? borderColor;
+  final Duration duration;
 
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: LiftMateMotion.duration(context, LiftMateMotion.fast),
+      duration: LiftMateMotion.duration(context, duration),
       curve: LiftMateMotion.standard,
       margin: margin,
       padding: padding,
@@ -62,11 +64,7 @@ class RelationshipCard extends StatelessWidget {
 }
 
 class RelationshipAvatar extends StatelessWidget {
-  const RelationshipAvatar({
-    required this.label,
-    this.size = 46,
-    super.key,
-  });
+  const RelationshipAvatar({required this.label, this.size = 46, super.key});
 
   final String label;
   final double size;
@@ -118,10 +116,7 @@ class RelationshipSectionLabel extends StatelessWidget {
 }
 
 class RelationshipBottomNav extends StatelessWidget {
-  const RelationshipBottomNav({
-    required this.items,
-    super.key,
-  });
+  const RelationshipBottomNav({required this.items, super.key});
 
   final List<RelationshipBottomNavItem> items;
 
@@ -131,7 +126,9 @@ class RelationshipBottomNav extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
       decoration: BoxDecoration(
         color: const Color(0xFF13151A),
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.07))),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,

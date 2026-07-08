@@ -570,12 +570,12 @@ Zmiana wymaga migracji `AddSharedSessionRestTimer`, która dodaje pola timera i 
 
 #### Automated
 
-- [x] 5.1 Pełny zestaw testów API przechodzi: `dotnet test LiftMate.slnx --no-restore`
-- [x] 5.2 Pełny zestaw testów przechodzi: `flutter test --reporter compact`
-- [x] 5.3 Analiza statyczna przechodzi: `flutter analyze`
-- [x] 5.4 Android debug buduje się poprawnie: `flutter build apk --debug`
-- [x] 5.5 Web buduje się poprawnie: `flutter build web`
-- [x] 5.6 Istniejące testy z `pumpAndSettle()` kończą się mimo obecności orb i sheen
+- [x] 5.1 Pełny zestaw testów API przechodzi: `dotnet test LiftMate.slnx --no-restore` — a9aab25
+- [x] 5.2 Pełny zestaw testów przechodzi: `flutter test --reporter compact` — a9aab25
+- [x] 5.3 Analiza statyczna przechodzi: `flutter analyze` — a9aab25
+- [x] 5.4 Android debug buduje się poprawnie: `flutter build apk --debug` — a9aab25
+- [x] 5.5 Web buduje się poprawnie: `flutter build web` — a9aab25
+- [x] 5.6 Istniejące testy z `pumpAndSettle()` kończą się mimo obecności orb i sheen — a9aab25
 
 #### Manual
 

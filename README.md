@@ -2,7 +2,7 @@
 
 **Aplikacja treningowa, dzięki której trener przygotowuje plan i prowadzi trening, a podopieczny może skupić się na ćwiczeniach i własnych postępach.**
 
-[**Zobacz interaktywną prezentację**](https://jdemb.github.io/liftmate-demo) · [**Pobierz aplikację na Androida**](https://github.com/jdemb/PrototypApka/releases/download/v1.0.0/LiftMate-v1.0.0-android.apk)
+[**Zobacz interaktywną prezentację**](https://jdemb.github.io/liftmate-demo) · [**Pobierz aplikację na Androida**](https://github.com/jdemb/LiftMate/releases)
 
 > Prezentacja pozwala przejść przez wszystkie ekrany bez instalowania aplikacji. APK jest wersją demonstracyjną instalowaną ręcznie poza Google Play. Rejestracja w publicznym środowisku wymaga kodu beta.
 
